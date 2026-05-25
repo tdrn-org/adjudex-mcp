@@ -1,4 +1,4 @@
-# CLAUDE.md — adjudex-mcp
+# AGENT.md — adjudex-mcp
 
 > **adjudex** is an MCP server for tracking and analyzing stock prices,
 > with an embedded SvelteKit web frontend.
@@ -12,6 +12,7 @@ adjudex provides:
 - **Portfolio management** — define and persist watchlists and holdings
 - **Quote retrieval** — fetch current and historical stock prices from external data sources
 - **Trend analysis** — basic indicators (moving averages, relative performance)
+- **Alerting** - define triggers based on trends and get notified
 - **MCP interface** — all core functions exposed as MCP tools (stdio + SSE transport)
 - **Web UI** — SvelteKit frontend embedded via `embed.FS`, served by the Go binary
 
@@ -55,7 +56,7 @@ External libraries are only permitted when no own alternative exists.
 
 ```
 adjudex-mcp/
-├── CLAUDE.md                  ← This file
+├── AGENT.md                  ← This file
 ├── ARCHITECTURE.md            ← ADRs and architecture decisions (agent maintains this)
 ├── Makefile
 ├── go.mod                     ← module: github.com/tdrn-org/adjudex-mcp
