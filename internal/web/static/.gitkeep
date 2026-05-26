@@ -1,0 +1,2 @@
+// This file ensures the static directory is tracked by git even when empty.
+// The SvelteKit build populates this directory via adapter-static.
