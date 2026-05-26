@@ -1,0 +1,54 @@
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - revive
+    - misspell
+    - unconvert
+    - unparam
+    - prealloc
+    - bodyclose
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/tdrn-org
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+      - name: blank-imports
+        severity: warning
+      - name: context-as-argument
+        severity: warning
+      - name: error-return
+        severity: warning
+      - name: error-strings
+        severity: warning
+      - name: error-naming
+        severity: warning
+      - name: if-return
+        severity: warning
+      - name: increment-decrement
+        severity: warning
+      - name: range
+        severity: warning
+      - name: receiver-naming
+        severity: warning
+      - name: time-naming
+        severity: warning
+      - name: unexported-return
+        severity: warning
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+run:
+  timeout: 2m
