@@ -35,14 +35,14 @@ type Portfolio struct {
 
 // Position represents a tracked security within a portfolio.
 type Position struct {
-	ID          string
-	Symbol      string    // WKN or ticker (e.g., "A413X6", "NVDA")
-	Quantity    float64
-	EntryPrice  float64
-	EntryDate   time.Time
-	Notes       string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID         string
+	Symbol     string // WKN or ticker (e.g., "A413X6", "NVDA")
+	Quantity   float64
+	EntryPrice float64
+	EntryDate  time.Time
+	Notes      string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // Holding is a Position enriched with current market data.
@@ -52,10 +52,13 @@ type Holding struct {
 	CurrentPrice float64
 	MarketValue  float64
 	PnL          float64 // absolute profit/loss
-	PnLPercent    float64 // relative profit/loss percentage
+	PnLPercent   float64 // relative profit/loss percentage
 }
 
 // NewHolding derives a Holding from a Position and current price.
+// Returns by-value (not pointer) because Holding is a derived Value Object —
+// it is never persisted or mutated, only computed and consumed. This avoids
+// nil-check boilerplate and reduces GC pressure (stack allocation for ~224 bytes).
 func NewHolding(pos Position, currentPrice float64) Holding {
 	marketValue := pos.Quantity * currentPrice
 	pnl := marketValue - (pos.Quantity * pos.EntryPrice)
@@ -68,6 +71,6 @@ func NewHolding(pos Position, currentPrice float64) Holding {
 		CurrentPrice: currentPrice,
 		MarketValue:  marketValue,
 		PnL:          pnl,
-		PnLPercent:    pnlPct,
+		PnLPercent:   pnlPct,
 	}
 }

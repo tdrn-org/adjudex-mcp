@@ -1,18 +1,24 @@
-.PHONY: build test lint dev web clean run
+.PHONY: build test lint fmt dev web clean run
 
 BINARY_NAME := adjudex
 BUILD_DIR := build
 CMD_DIR := cmd/adjudex
 
-# Build the binary
-build:
+# Format Go source files
+fmt:
+	@echo "📏 Formatting Go sources..."
+	@gofmt -w .
+	@echo "✅ Formatting done"
+
+# Build the binary (depends on fmt for consistent formatting)
+build: fmt
 	@echo "🔨 Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./$(CMD_DIR)
 	@echo "✅ Binary: $(BUILD_DIR)/$(BINARY_NAME)"
 
-# Run tests
-test:
+# Run tests (depends on fmt for consistent formatting)
+test: fmt
 	@echo "🧪 Running tests..."
 	go test ./... -count=1 -timeout=30s
 	@echo "✅ All tests passed"

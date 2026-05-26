@@ -27,9 +27,9 @@ import (
 
 // StrategyCreateArgs are the parameters for strategy_create.
 type StrategyCreateArgs struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Params      domain.StrategyParams  `json:"params"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Params      domain.StrategyParams `json:"params"`
 }
 
 // StrategyCreate creates a new trading strategy.

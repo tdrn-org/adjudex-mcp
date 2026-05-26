@@ -26,10 +26,10 @@ import (
 
 // AlertCreateArgs are the parameters for alert_create.
 type AlertCreateArgs struct {
-	Name      string  `json:"name"`
-	Symbol    string  `json:"symbol"`
-	Condition string  `json:"condition"`           // price_above, price_below, rsi_above, rsi_below, sma_cross_above, sma_cross_below, volume_spike
-	Threshold float64 `json:"threshold"`
+	Name      string                `json:"name"`
+	Symbol    string                `json:"symbol"`
+	Condition string                `json:"condition"` // price_above, price_below, rsi_above, rsi_below, sma_cross_above, sma_cross_below, volume_spike
+	Threshold float64               `json:"threshold"`
 	Indicator *domain.IndicatorSpec `json:"indicator,omitempty"` // nil for price-based alerts
 }
 

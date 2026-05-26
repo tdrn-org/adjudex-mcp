@@ -50,7 +50,7 @@ type StrategyParams struct {
 	RSIPeriod    int     `json:"rsi_period"`
 	RSIThreshold float64 `json:"rsi_threshold"` // oversold threshold (e.g., 30)
 	SMAPeriod    int     `json:"sma_period"`
-	SMATrigger   float64 `json:"sma_trigger"` // deviation from SMA to trigger
+	SMATrigger   float64 `json:"sma_trigger"`  // deviation from SMA to trigger
 	MaxPosition  float64 `json:"max_position"` // max amount per trade
 	StopLoss     float64 `json:"stop_loss"`    // stop-loss percentage
 }
@@ -71,17 +71,17 @@ type Trade struct {
 
 // BacktestResult holds the outcome of a strategy backtest.
 type BacktestResult struct {
-	Strategy     Strategy
-	Symbol       string
-	From         time.Time
-	To           time.Time
-	TotalTrades  int
-	WinningTrades int
-	LosingTrades  int
-	WinRate      float64 // percentage
-	TotalReturn  float64 // absolute
+	Strategy       Strategy
+	Symbol         string
+	From           time.Time
+	To             time.Time
+	TotalTrades    int
+	WinningTrades  int
+	LosingTrades   int
+	WinRate        float64 // percentage
+	TotalReturn    float64 // absolute
 	TotalReturnPct float64 // percentage
-	MaxDrawdown  float64 // maximum peak-to-trough decline
-	SharpeRatio  float64
-	Trades       []Trade
+	MaxDrawdown    float64 // maximum peak-to-trough decline
+	SharpeRatio    float64
+	Trades         []Trade
 }

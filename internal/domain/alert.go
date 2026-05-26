@@ -52,8 +52,8 @@ type IndicatorSpec struct {
 // It is evaluated on every quote update and fires when its condition is met.
 type Alert struct {
 	ID          string
-	Name        string     // human-readable label
-	Symbol      string     // WKN or ticker
+	Name        string // human-readable label
+	Symbol      string // WKN or ticker
 	Condition   AlertCondition
 	Threshold   float64        // trigger value (e.g., 30.0 for RSI < 30)
 	Indicator   *IndicatorSpec // nil if price-based condition

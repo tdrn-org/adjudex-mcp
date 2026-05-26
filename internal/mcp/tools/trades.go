@@ -27,7 +27,7 @@ import (
 
 // TradeListArgs are the parameters for trade_list.
 type TradeListArgs struct {
-	Symbol     string `json:"symbol,omitempty"`     // optional: filter by symbol
+	Symbol     string `json:"symbol,omitempty"`      // optional: filter by symbol
 	StrategyID string `json:"strategy_id,omitempty"` // optional: filter by strategy
 }
 
