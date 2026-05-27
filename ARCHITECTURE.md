@@ -147,3 +147,44 @@ to proceed in parallel with backend implementation.
 - `strategy_backtest` (H19) is the riskiest tool — it requires all three stores
   plus the Strategy domain logic. Its signature was deliberately included now to
   force early design thinking about the backtest architecture.
+
+---
+
+## ADR-005: Quote Provider Interface & Mock Implementation (Phase 4)
+
+**Date**: 2026-05-27
+**Status**: Accepted
+
+**Decision**: Define a `stock.Provider` interface and a Yahoo mock implementation
+that generates plausible synthetic historical data for development. The mock
+will be replaced by the Consorsbank API (ADR-002) once account access is verified.
+
+**Provider Interface** (`internal/stock/provider.go`):
+- `FetchQuote(ctx, symbol) → (*domain.Quote, error)` — latest quote
+- `FetchHistory(ctx, symbol, from, to) → ([]domain.Quote, error)` — date range
+
+**Yahoo Mock** (`internal/stock/yahoo/yahoo.go`):
+- Deterministic random walk: seeded RNG per day ensures reproducible output
+- ~1.5% daily volatility with micro-drift, realistic OHLCV fields
+- Business-day-aware: weekends skipped, holidays ignored
+- `FetchQuote` returns a single synthetic quote anchored at "now"
+- `FetchHistory(Mon–Fri)` returns exactly 5 quotes in chronological order
+- Zero external API dependencies — pure development scaffolding
+
+**Tests** (`internal/stock/yahoo/yahoo_test.go`):
+8 tests covering: basic FetchQuote, 5-day history, weekend-only (returns empty),
+invalid date range (from > to), deterministic output (same seed = same prices),
+chronological sort order, all OHLCV fields populated, and interface compliance.
+
+**Key design decisions**:
+- Provider interface at `internal/stock/provider.go` (not in domain) — providers
+  are IO-bound, domain is pure. Interface lives at the package boundary.
+- Compile-time check: `var _ stock.Provider = (*yahoo.Provider)(nil)`
+- No external dependencies: `math/rand/v2` replaces third-party random libraries
+- `FetchHistory` returns sorted ascending — stores can append without re-sorting
+
+**Consequences**:
+- Phase 5 (MCP server wiring) can inject the provider via interface
+- Testing is fully deterministic (no flaky integration tests)
+- Consorsbank adapter will implement the same interface (drop-in replacement)
+- adjudex can now serve live mock data end-to-end without any external services

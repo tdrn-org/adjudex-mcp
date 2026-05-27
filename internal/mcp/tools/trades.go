@@ -34,7 +34,10 @@ type TradeListArgs struct {
 // TradeList returns trades, optionally filtered by symbol or strategy.
 // Stores: domain.TradeStore.ListTrades / domain.TradeStore.ListTradesByStrategy
 func TradeList(ctx context.Context, store domain.TradeStore, args TradeListArgs) ([]domain.Trade, error) {
-	panic("not implemented: Phase 5")
+	if args.StrategyID != "" {
+		return store.ListTradesByStrategy(ctx, args.StrategyID)
+	}
+	return store.ListTrades(ctx, args.Symbol)
 }
 
 // --- Tool: trade_get ---
@@ -47,8 +50,8 @@ type TradeGetArgs struct {
 // TradeGet retrieves a single trade by ID.
 // Store: domain.TradeStore.GetTrade
 func TradeGet(ctx context.Context, store domain.TradeStore, args TradeGetArgs) (*domain.Trade, error) {
-	panic("not implemented: Phase 5")
+	return store.GetTrade(ctx, args.ID)
 }
 
-// Ensure imported types are referenced (avoid compile errors in stub phase).
+// Keep imported types referenced.
 var _ = time.Now
