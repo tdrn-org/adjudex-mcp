@@ -18,6 +18,7 @@ package tools
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 )
@@ -36,7 +37,17 @@ type AlertCreateArgs struct {
 // AlertCreate creates a new alert trigger.
 // Store: domain.AlertStore.CreateAlert
 func AlertCreate(ctx context.Context, store domain.AlertStore, args AlertCreateArgs) (*domain.Alert, error) {
-	panic("not implemented: Phase 5")
+	a := &domain.Alert{
+		Name:      args.Name,
+		Symbol:    args.Symbol,
+		Condition: domain.AlertCondition(args.Condition),
+		Threshold: args.Threshold,
+		Indicator: args.Indicator,
+	}
+	if err := store.CreateAlert(ctx, a); err != nil {
+		return nil, err
+	}
+	return a, nil
 }
 
 // --- Tool: alert_list ---
@@ -49,7 +60,10 @@ type AlertListArgs struct {
 // AlertList returns all alerts, optionally filtered by symbol.
 // Store: domain.AlertStore.ListAlerts
 func AlertList(ctx context.Context, store domain.AlertStore, args AlertListArgs) ([]domain.Alert, error) {
-	panic("not implemented: Phase 5")
+	if args.Symbol != "" {
+		return store.ListAlerts(ctx, args.Symbol)
+	}
+	return store.ListAlerts(ctx, "")
 }
 
 // --- Tool: alert_acknowledge ---
@@ -63,7 +77,15 @@ type AlertAcknowledgeArgs struct {
 // State machine: Armed/Triggered → Acknowledged.
 // Store: domain.AlertStore.GetAlert → domain.Alert.Acknowledge() → domain.AlertStore.UpdateAlert
 func AlertAcknowledge(ctx context.Context, store domain.AlertStore, args AlertAcknowledgeArgs) (*domain.Alert, error) {
-	panic("not implemented: Phase 5")
+	a, err := store.GetAlert(ctx, args.ID)
+	if err != nil {
+		return nil, fmt.Errorf("alert_acknowledge: %w", err)
+	}
+	a.Acknowledge()
+	if err := store.UpdateAlert(ctx, a); err != nil {
+		return nil, fmt.Errorf("alert_acknowledge: update: %w", err)
+	}
+	return a, nil
 }
 
 // --- Tool: alert_delete ---
@@ -76,5 +98,5 @@ type AlertDeleteArgs struct {
 // AlertDelete removes an alert.
 // Store: domain.AlertStore.DeleteAlert
 func AlertDelete(ctx context.Context, store domain.AlertStore, args AlertDeleteArgs) error {
-	panic("not implemented: Phase 5")
+	return store.DeleteAlert(ctx, args.ID)
 }

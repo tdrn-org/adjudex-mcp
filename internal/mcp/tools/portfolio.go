@@ -18,6 +18,8 @@ package tools
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 )
@@ -33,7 +35,14 @@ type PortfolioCreateArgs struct {
 // PortfolioCreate creates a new portfolio.
 // Store: domain.PortfolioStore.CreatePortfolio
 func PortfolioCreate(ctx context.Context, store domain.PortfolioStore, args PortfolioCreateArgs) (*domain.Portfolio, error) {
-	panic("not implemented: Phase 5")
+	p := &domain.Portfolio{
+		Name:        args.Name,
+		Description: args.Description,
+	}
+	if err := store.CreatePortfolio(ctx, p); err != nil {
+		return nil, err
+	}
+	return store.GetPortfolio(ctx, p.ID)
 }
 
 // --- Tool: portfolio_get ---
@@ -46,7 +55,7 @@ type PortfolioGetArgs struct {
 // PortfolioGet retrieves a portfolio by ID, including its positions.
 // Store: domain.PortfolioStore.GetPortfolio
 func PortfolioGet(ctx context.Context, store domain.PortfolioStore, args PortfolioGetArgs) (*domain.Portfolio, error) {
-	panic("not implemented: Phase 5")
+	return store.GetPortfolio(ctx, args.ID)
 }
 
 // --- Tool: portfolio_list ---
@@ -57,7 +66,7 @@ type PortfolioListArgs struct{}
 // PortfolioList returns all portfolios.
 // Store: domain.PortfolioStore.ListPortfolios
 func PortfolioList(ctx context.Context, store domain.PortfolioStore, args PortfolioListArgs) ([]domain.Portfolio, error) {
-	panic("not implemented: Phase 5")
+	return store.ListPortfolios(ctx)
 }
 
 // --- Tool: portfolio_delete ---
@@ -70,7 +79,7 @@ type PortfolioDeleteArgs struct {
 // PortfolioDelete removes a portfolio and its positions.
 // Store: domain.PortfolioStore.DeletePortfolio
 func PortfolioDelete(ctx context.Context, store domain.PortfolioStore, args PortfolioDeleteArgs) error {
-	panic("not implemented: Phase 5")
+	return store.DeletePortfolio(ctx, args.ID)
 }
 
 // --- Tool: portfolio_add_position ---
@@ -88,7 +97,21 @@ type PortfolioAddPositionArgs struct {
 // PortfolioAddPosition adds a position to a portfolio.
 // Store: domain.PortfolioStore.AddPosition
 func PortfolioAddPosition(ctx context.Context, store domain.PortfolioStore, args PortfolioAddPositionArgs) (*domain.Position, error) {
-	panic("not implemented: Phase 5")
+	entryDate, err := time.Parse(time.RFC3339, args.EntryDate)
+	if err != nil {
+		return nil, fmt.Errorf("portfolio_add_position: parse entry_date: %w", err)
+	}
+	pos := domain.Position{
+		Symbol:     args.Symbol,
+		Quantity:   args.Quantity,
+		EntryPrice: args.EntryPrice,
+		EntryDate:  entryDate,
+		Notes:      args.Notes,
+	}
+	if err := store.AddPosition(ctx, args.PortfolioID, &pos); err != nil {
+		return nil, err
+	}
+	return &pos, nil
 }
 
 // --- Tool: portfolio_remove_position ---
@@ -102,7 +125,7 @@ type PortfolioRemovePositionArgs struct {
 // PortfolioRemovePosition removes a position from a portfolio.
 // Store: domain.PortfolioStore.RemovePosition
 func PortfolioRemovePosition(ctx context.Context, store domain.PortfolioStore, args PortfolioRemovePositionArgs) error {
-	panic("not implemented: Phase 5")
+	return store.RemovePosition(ctx, args.PortfolioID, args.PositionID)
 }
 
 // --- Tool: portfolio_get_holdings ---
@@ -116,9 +139,18 @@ type PortfolioGetHoldingsArgs struct {
 // Derived operation: queries Positions + latest Quotes per symbol.
 // Stores: domain.PortfolioStore.GetPortfolio + domain.QuoteStore.GetLatestQuote
 func PortfolioGetHoldings(ctx context.Context, portfolioStore domain.PortfolioStore, quoteStore domain.QuoteStore, args PortfolioGetHoldingsArgs) ([]domain.Holding, error) {
-	_ = ctx
-	_ = portfolioStore
-	_ = quoteStore
-	_ = args
-	panic("not implemented: Phase 5")
+	p, err := portfolioStore.GetPortfolio(ctx, args.PortfolioID)
+	if err != nil {
+		return nil, fmt.Errorf("portfolio_get_holdings: %w", err)
+	}
+	holdings := make([]domain.Holding, 0, len(p.Positions))
+	for _, pos := range p.Positions {
+		q, err := quoteStore.GetLatestQuote(ctx, pos.Symbol)
+		if err != nil {
+			return nil, fmt.Errorf("portfolio_get_holdings: %s: %w", pos.Symbol, err)
+		}
+		h := domain.NewHolding(pos, q.Close)
+		holdings = append(holdings, h)
+	}
+	return holdings, nil
 }
