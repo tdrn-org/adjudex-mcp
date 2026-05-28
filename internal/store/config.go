@@ -23,7 +23,7 @@ import (
 
 // Config returns a SQLite database configuration with the adjudex schema.
 func Config(dbPath string) database.Config {
-	return sqlite.NewConfig(dbPath, sqlite.ModeRWC)
+	return sqlite.NewConfig(dbPath, sqlite.ModeRWC, sqlite.WithSchemaScripts(Schema()...))
 }
 
 // Schema returns the adjudex database schema as SQL scripts.

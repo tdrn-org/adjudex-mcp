@@ -25,14 +25,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/tdrn-org/adjudex-mcp/internal/api"
 	"github.com/tdrn-org/adjudex-mcp/internal/mcp"
 	"github.com/tdrn-org/adjudex-mcp/internal/store"
 	"github.com/tdrn-org/go-database"
+	"github.com/tdrn-org/go-httpserver"
 )
 
 func main() {
-	transport := flag.String("transport", "stdio", "Transport mode: stdio or sse")
-	addr := flag.String("addr", ":8080", "Listen address (SSE mode only)")
+	transport := flag.String("transport", "stdio", "Transport mode: stdio, sse, or http")
+	addr := flag.String("addr", ":8080", "Listen address (SSE and HTTP modes)")
 	dbPath := flag.String("db", "adjudex.db", "Path to SQLite database file")
 	flag.Parse()
 
@@ -54,13 +56,15 @@ func main() {
 	s := store.NewStore(dbDriver)
 
 	// Wire up MCP server with all five stores
-	server := mcp.New(mcp.StoreSet{
+	storeSet := mcp.StoreSet{
 		Portfolio: s,
 		Quote:     s,
 		Alert:     s,
 		Trade:     s,
 		Strategy:  s,
-	})
+	}
+
+	server := mcp.New(storeSet)
 
 	switch *transport {
 	case "stdio":
@@ -75,8 +79,20 @@ func main() {
 			fmt.Fprintf(os.Stderr, "FATAL: sse serve: %v\n", err)
 			os.Exit(1)
 		}
+	case "http":
+		fmt.Fprintf(os.Stderr, "REST API server starting on %s...\n", *addr)
+		httpSrv, err := httpserver.Listen(ctx, "tcp", *addr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "FATAL: listen: %v\n", err)
+			os.Exit(1)
+		}
+		api.Router(httpSrv, storeSet)
+		if err := httpSrv.Serve(); err != nil {
+			fmt.Fprintf(os.Stderr, "FATAL: serve: %v\n", err)
+			os.Exit(1)
+		}
 	default:
-		fmt.Fprintf(os.Stderr, "FATAL: unknown transport %q (use stdio or sse)\n", *transport)
+		fmt.Fprintf(os.Stderr, "FATAL: unknown transport %q (use stdio, sse, or http)\n", *transport)
 		os.Exit(1)
 	}
 }

@@ -271,4 +271,80 @@ PortfolioStore and QuoteStore).
 - Testing deferred: store and provider have unit tests; tool-level integration tests
   are a future task.
 - The mock provider generates realistic synthetic data — adjudex is demo-ready with
-  zero external dependencies.
+- zero external dependencies.
+
+---
+
+## ADR-007: REST API Design (Phase 6)
+
+**Date**: 2026-05-28
+**Status**: Accepted
+
+**Decision**: Expose all 21 adjudex MCP tools as REST endpoints under `/api/v1/` using
+`go-httpserver` (which wraps `net/http`). Each endpoint mirrors exactly one MCP tool
+from Phase 5, reusing the same `tools.*` functions directly — zero logic duplication.
+
+**Approval**: Holger approved the route design (F1), choice of `go-httpserver` (F2),
+and synchronous backtest (F3). [REVIEW REQUIRED] checkpoint per AGENT.md §9 satisfied.
+
+**Route Table** (21 endpoints):
+
+| Method | Path | MCP Tool |
+|--------|------|----------|
+| POST | `/api/v1/portfolios` | `portfolio_create` |
+| GET | `/api/v1/portfolios` | `portfolio_list` |
+| GET | `/api/v1/portfolios/{id}` | `portfolio_get` |
+| DELETE | `/api/v1/portfolios/{id}` | `portfolio_delete` |
+| POST | `/api/v1/portfolios/{id}/positions` | `portfolio_add_position` |
+| DELETE | `/api/v1/portfolios/{pid}/positions/{posid}` | `portfolio_remove_position` |
+| GET | `/api/v1/portfolios/{id}/holdings` | `portfolio_get_holdings` |
+| GET | `/api/v1/quotes/{symbol}` | `quote_get` |
+| GET | `/api/v1/quotes/{symbol}/history` | `quote_history` |
+| GET | `/api/v1/quotes/{symbol}/indicator` | `quote_indicator` |
+| POST | `/api/v1/alerts` | `alert_create` |
+| GET | `/api/v1/alerts` | `alert_list` |
+| PUT | `/api/v1/alerts/{id}/acknowledge` | `alert_acknowledge` |
+| DELETE | `/api/v1/alerts/{id}` | `alert_delete` |
+| POST | `/api/v1/strategies` | `strategy_create` |
+| GET | `/api/v1/strategies` | `strategy_list` |
+| GET | `/api/v1/strategies/{id}` | `strategy_get` |
+| DELETE | `/api/v1/strategies/{id}` | `strategy_delete` |
+| POST | `/api/v1/strategies/{id}/backtest` | `strategy_backtest` |
+| GET | `/api/v1/trades` | `trade_list` |
+| GET | `/api/v1/trades/{id}` | `trade_get` |
+
+**Implementation**:
+
+- `internal/api/router.go` — route registration on `go-httpserver.Instance` using
+  Go 1.22+ path patterns (`{id}`, `{pid}`, `{posid}`, `{symbol}`). Injects
+  `mcp.StoreSet` into a shared `handler` struct.
+- `internal/api/portfolio.go`, `quotes.go`, `alerts.go`, `strategies.go`, `trades.go` —
+  one file per domain, each calling the corresponding `tools.*` functions directly.
+- JSON helpers: `writeJSON`, `writeError`, `decodeBody`, `handleNotFound`.
+- `cmd/adjudex/main.go` — new `--transport http` mode creates a `go-httpserver`
+  instance, calls `api.Router()`, and serves.
+
+**Schema fix**: `store.Config()` was not passing adjudex schema scripts to
+`go-database`, causing `UpdateSchema` to be a no-op. Fixed by adding
+`sqlite.WithSchemaScripts(Schema()...)` to the config constructor. All existing
+functionality (stdio/SSE) also benefits from this fix.
+
+**Smoke test results** (all passed):
+- `POST /api/v1/portfolios` → 201 Created with full Portfolio JSON
+- `GET /api/v1/portfolios` → 200 OK with array
+- `GET /api/v1/portfolios/{id}` → 200 OK with positions
+- `DELETE /api/v1/portfolios/{id}` → 200 OK
+- `POST /api/v1/strategies` → 201 Created
+- `DELETE /api/v1/strategies/{id}` → 200 OK, confirmed empty list after
+- `GET /api/v1/trades`, `alerts` → 200 OK with empty arrays
+
+**Consequences**:
+
+- The SvelteKit frontend (Phases 7–8) can now communicate with adjudex via REST
+  without needing MCP protocol knowledge.
+- `--transport http` is the default mode for serving the embedded web UI.
+- `--transport stdio` remains for Judy's MCP integration.
+- `--transport sse` remains for remote MCP clients.
+- No new external dependencies beyond `go-httpserver` (tdrn-org library).
+- All endpoint implementations are thin wrappers — business logic stays in `tools.*`.
+  A bug fix in a tool function automatically fixes both the MCP and REST interfaces.
