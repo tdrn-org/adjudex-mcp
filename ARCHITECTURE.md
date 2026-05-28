@@ -188,3 +188,87 @@ chronological sort order, all OHLCV fields populated, and interface compliance.
 - Testing is fully deterministic (no flaky integration tests)
 - Consorsbank adapter will implement the same interface (drop-in replacement)
 - adjudex can now serve live mock data end-to-end without any external services
+
+---
+
+## ADR-006: MCP Server Wiring & Tool Implementations (Phase 5)
+
+**Date**: 2026-05-27
+**Status**: Accepted
+
+**Decision**: Wire all 21 MCP tool signatures from Phase 2 into the `mcp-go` server
+with full implementations that connect domain logic, SQLite stores, and the Yahoo
+mock provider. Expose the server via both stdio and SSE transport.
+
+**Architecture**:
+
+- **`internal/mcp/server.go`**: Creates and configures the `mcp-go` server.
+  `NewServer(dbFile, transport)` opens the SQLite store, creates the Yahoo provider,
+  and calls all `Register*` functions.
+- **`internal/mcp/tools/register.go`**: Central wiring hub. Contains five
+  `Register*` functions (`RegisterPortfolioTools`, etc.) that call `srv.AddTool`
+  for each tool group. This is where domain stores and providers are injected
+  into the tool handler closures.
+- **`cmd/adjudex/main.go`**: Parses `--transport` (stdio/sse) and `--db` flags,
+  then calls `mcp.NewServer()`.
+
+**StoreSet pattern**: A lightweight struct bundling all five domain store interfaces
+is passed to tool registration functions. This avoids individual parameter explosions
+for tools that need multiple stores (e.g., `portfolio_get_holdings` needs both
+PortfolioStore and QuoteStore).
+
+**21 tools implemented end-to-end**:
+
+| # | Tool | Input | Output |
+|---|------|-------|--------|
+| 1 | `portfolio_create` | name, description | Portfolio |
+| 2 | `portfolio_get` | id | Portfolio + Positions |
+| 3 | `portfolio_list` | — | []Portfolio |
+| 4 | `portfolio_delete` | id | confirmation |
+| 5 | `portfolio_add_position` | portfolio_id, symbol, shares, avg_price | Position |
+| 6 | `portfolio_remove_position` | portfolio_id, position_id | confirmation |
+| 7 | `portfolio_get_holdings` | portfolio_id | []Holding (with current price) |
+| 8 | `quote_get` | symbol | Quote |
+| 9 | `quote_history` | symbol, from, to | []Quote |
+| 10 | `quote_indicator` | symbol, indicator_type, period | IndicatorValue |
+| 11 | `alert_create` | portfolio_id, symbol, condition, threshold | Alert |
+| 12 | `alert_list` | portfolio_id | []Alert |
+| 13 | `alert_acknowledge` | id | Alert (state: acknowledged) |
+| 14 | `alert_delete` | id | confirmation |
+| 15 | `strategy_create` | name, type, params | Strategy |
+| 16 | `strategy_get` | id | Strategy |
+| 17 | `strategy_list` | — | []Strategy |
+| 18 | `strategy_delete` | id | confirmation |
+| 19 | `strategy_backtest` | strategy_id, symbol, from, to | BacktestResult |
+| 20 | `trade_list` | strategy_id | []Trade |
+| 21 | `trade_get` | id | Trade |
+
+**Key design decisions**:
+
+- **No `panic` stubs remain**: All 21 tools have proper implementations. The domain
+  Store interfaces from Phase 1 are fully realized via the Phase 3 SQLite
+  implementations.
+- **Quote provider injection**: The Yahoo mock is created once in `server.go` and
+  passed into `RegisterQuoteTools` and `RegisterStrategyTools`. When the Consorsbank
+  adapter (ADR-002) is ready, only `server.go` changes — all tools are provider-agnostic.
+- **Indicator calculations**: `quote_indicator` (tool #10) implements RSI, SMA, EMA,
+  and MACD using standard formulas on historical quote data. Computed entirely from
+  stored quotes — no external API calls.
+- **Backtest engine**: `strategy_backtest` (tool #19) simulates mean-reversion trading
+  across a date range using the strategy's parameters. It generates synthetic Trades
+  and computes a BacktestResult with Sharpe ratio and max drawdown.
+- **`marshalResult` helper**: All tool handlers return `*mcp.CallToolResult` via a
+  shared JSON marshaling utility, ensuring consistent error formatting.
+- **Transport abstraction**: `--transport stdio` for local/Judy usage, `--transport sse`
+  for remote/HTTP access. Both handled by `mcp-go` without code duplication.
+
+**Consequences**:
+
+- adjudex is now a fully functional MCP server — connect any MCP client and use all
+  21 tools immediately.
+- Phase 6 (REST API) can be designed knowing the complete backend surface.
+- Phase 7–8 (SvelteKit UI) has a running backend to develop against.
+- Testing deferred: store and provider have unit tests; tool-level integration tests
+  are a future task.
+- The mock provider generates realistic synthetic data — adjudex is demo-ready with
+  zero external dependencies.
