@@ -28,6 +28,7 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/api"
 	"github.com/tdrn-org/adjudex-mcp/internal/mcp"
 	"github.com/tdrn-org/adjudex-mcp/internal/store"
+	"github.com/tdrn-org/adjudex-mcp/internal/web"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-httpserver"
 )
@@ -87,12 +88,15 @@ func main() {
 			os.Exit(1)
 		}
 	case "http":
-		fmt.Fprintf(os.Stderr, "REST API server starting on %s...\n", *addr)
+		fmt.Fprintf(os.Stderr, "REST API + SvelteKit frontend starting on %s...\n", *addr)
 		httpSrv, err := httpserver.Listen(ctx, "tcp", *addr)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "FATAL: listen: %v\n", err)
 			os.Exit(1)
 		}
+		// SvelteKit SPA frontend at /
+		httpSrv.Handle("/", web.Handler())
+		// REST API at /api/v1/
 		api.Router(httpSrv, storeSet)
 		if err := httpSrv.Serve(); err != nil {
 			fmt.Fprintf(os.Stderr, "FATAL: serve: %v\n", err)
