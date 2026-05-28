@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-//go:embed static/*
+//go:embed all:static
 var staticFiles embed.FS
 
 // Handler returns an http.Handler that serves the embedded SvelteKit frontend
