@@ -18,12 +18,19 @@ package store
 
 import (
 	"github.com/tdrn-org/go-database"
+	"github.com/tdrn-org/go-database/memory"
 	"github.com/tdrn-org/go-database/sqlite"
 )
 
 // Config returns a SQLite database configuration with the adjudex schema.
 func Config(dbPath string) database.Config {
 	return sqlite.NewConfig(dbPath, sqlite.ModeRWC, sqlite.WithSchemaScripts(Schema()...))
+}
+
+// MemoryConfig returns an in-memory SQLite database configuration with the adjudex schema.
+// Data is lost when the database is closed — ideal for development and smoke testing.
+func MemoryConfig() database.Config {
+	return memory.NewConfig(sqlite.WithSchemaScripts(Schema()...))
 }
 
 // Schema returns the adjudex database schema as SQL scripts.

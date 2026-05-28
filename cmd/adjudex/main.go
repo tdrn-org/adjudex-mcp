@@ -35,13 +35,20 @@ import (
 func main() {
 	transport := flag.String("transport", "stdio", "Transport mode: stdio, sse, or http")
 	addr := flag.String("addr", ":8080", "Listen address (SSE and HTTP modes)")
-	dbPath := flag.String("db", "adjudex.db", "Path to SQLite database file")
+	dbPath := flag.String("db", "adjudex.db", "Path to SQLite database file (use \"memory\" for in-memory DB)")
 	flag.Parse()
 
 	fmt.Fprintf(os.Stderr, "adjudex v0.2.0 — Agent juDy eXchange\n")
 
-	// Initialize SQLite store with adjudex schema
-	dbDriver, err := database.Open(store.Config(*dbPath))
+	// Initialize database with adjudex schema
+	var dbConfig database.Config
+	if *dbPath == "memory" {
+		fmt.Fprintf(os.Stderr, "Using in-memory database (data will be lost on exit)\n")
+		dbConfig = store.MemoryConfig()
+	} else {
+		dbConfig = store.Config(*dbPath)
+	}
+	dbDriver, err := database.Open(dbConfig)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "FATAL: open database: %v\n", err)
 		os.Exit(1)
