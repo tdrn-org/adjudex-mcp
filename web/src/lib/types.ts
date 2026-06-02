@@ -20,8 +20,8 @@ export interface Holding {
 	Position: Position;
 	CurrentPrice: number;
 	MarketValue: number;
-	UnrealizedPnL: number;
-	UnrealizedPnLPct: number;
+	PnL: number;
+	PnLPercent: number;
 }
 
 export interface Quote {

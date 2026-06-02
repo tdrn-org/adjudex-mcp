@@ -54,11 +54,11 @@
 	async function handleCreate() {
 		if (!newName.trim()) return;
 		try {
-			const p = await createPortfolio(newName.trim(), newDesc.trim());
-			portfolios = [p, ...portfolios];
+			await createPortfolio(newName.trim(), newDesc.trim());
 			newName = '';
 			newDesc = '';
 			showCreate = false;
+			await loadPortfolios();
 		} catch (e: any) {
 			error = e.message;
 		}
@@ -176,8 +176,8 @@
 											<td class="py-2 text-right">{h.Position.Quantity}</td>
 											<td class="py-2 text-right text-slate-400">{formatMoney(h.Position.EntryPrice)}</td>
 											<td class="py-2 text-right">{formatMoney(h.CurrentPrice)}</td>
-											<td class="py-2 text-right" class:text-gain={h.UnrealizedPnL >= 0} class:text-loss={h.UnrealizedPnL < 0}>
-												{formatPct(h.UnrealizedPnLPct)}
+											<td class="py-2 text-right" class:text-gain={h.PnL >= 0} class:text-loss={h.PnL < 0}>
+												{formatPct(h.PnLPercent)}
 											</td>
 										</tr>
 									{/each}
