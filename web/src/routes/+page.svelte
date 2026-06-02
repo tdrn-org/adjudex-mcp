@@ -40,9 +40,9 @@
 	}
 
 	function select(portfolio: Portfolio) {
-		window.location.hash = portfolio.ID;
+		window.location.hash = portfolio.id;
 		selected = portfolio;
-		loadHoldings(portfolio.ID);
+		loadHoldings(portfolio.id);
 	}
 
 	function deselect() {
@@ -67,8 +67,8 @@
 	async function handleDelete(id: string) {
 		try {
 			await deletePortfolio(id);
-			portfolios = portfolios.filter(p => p.ID !== id);
-			if (selected?.ID === id) deselect();
+			portfolios = portfolios.filter(p => p.id !== id);
+			if (selected?.id === id) deselect();
 		} catch (e: any) {
 			error = e.message;
 		}
@@ -126,35 +126,35 @@
 	</div>
 {:else}
 	<div class="grid gap-4">
-		{#each portfolios as p (p.ID)}
+		{#each portfolios as p (p.id)}
 		<div
 			role="button"
 			tabindex="0"
-			onclick={() => selected?.ID === p.ID ? deselect() : select(p)}
-			onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { selected?.ID === p.ID ? deselect() : select(p); e.preventDefault(); } }}
+			onclick={() => selected?.id === p.id ? deselect() : select(p)}
+			onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { selected?.id === p.id ? deselect() : select(p); e.preventDefault(); } }}
 			class="card text-left w-full transition-all duration-200 cursor-pointer"
-			class:ring-2={selected?.ID === p.ID}
-			class:ring-accent={selected?.ID === p.ID}
+			class:ring-2={selected?.id === p.id}
+			class:ring-accent={selected?.id === p.id}
 		>
 				<div class="flex items-center justify-between">
 					<div>
-						<h2 class="text-lg font-semibold text-slate-100">{p.Name}</h2>
-						{#if p.Description}
-							<p class="text-sm text-slate-500 mt-1">{p.Description}</p>
+						<h2 class="text-lg font-semibold text-slate-100">{p.name}</h2>
+						{#if p.description}
+							<p class="text-sm text-slate-500 mt-1">{p.description}</p>
 						{/if}
 						<p class="text-xs text-slate-600 mt-2">
-							{p.Positions?.length ?? 0} positions · Created {new Date(p.CreatedAt).toLocaleDateString()}
+							{p.positions?.length ?? 0} positions · Created {new Date(p.created_at).toLocaleDateString()}
 						</p>
 					</div>
 					<button
 						class="btn btn-danger text-xs"
-						onclick:stopPropagation={() => handleDelete(p.ID)}
+						onclick:stopPropagation={() => handleDelete(p.id)}
 					>
 						Delete
 					</button>
 				</div>
 
-				{#if selected?.ID === p.ID}
+				{#if selected?.id === p.id}
 					<div class="mt-4 pt-4 border-t border-adjudex-700">
 						{#if holdingsLoading}
 							<p class="text-slate-500 text-sm">Loading holdings...</p>
@@ -170,14 +170,14 @@
 									</tr>
 								</thead>
 								<tbody>
-									{#each holdings as h (h.Position.ID)}
+									{#each holdings as h (h.position.id)}
 										<tr class="border-b border-adjudex-700/50">
-											<td class="py-2 font-mono text-accent-glow">{h.Position.Symbol}</td>
-											<td class="py-2 text-right">{h.Position.Quantity}</td>
-											<td class="py-2 text-right text-slate-400">{formatMoney(h.Position.EntryPrice)}</td>
-											<td class="py-2 text-right">{formatMoney(h.CurrentPrice)}</td>
-											<td class="py-2 text-right" class:text-gain={h.PnL >= 0} class:text-loss={h.PnL < 0}>
-												{formatPct(h.PnLPercent)}
+											<td class="py-2 font-mono text-accent-glow">{h.position.symbol}</td>
+											<td class="py-2 text-right">{h.position.quantity}</td>
+											<td class="py-2 text-right text-slate-400">{formatMoney(h.position.entry_price)}</td>
+											<td class="py-2 text-right">{formatMoney(h.current_price)}</td>
+											<td class="py-2 text-right" class:text-gain={h.pnl >= 0} class:text-loss={h.pnl < 0}>
+												{formatPct(h.pnl_pct)}
 											</td>
 										</tr>
 									{/each}

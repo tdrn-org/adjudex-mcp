@@ -1,49 +1,51 @@
 export interface Portfolio {
-	ID: string;
-	Name: string;
-	Description: string;
-	Positions: Position[] | null;
-	CreatedAt: string;
-	UpdatedAt: string;
+	id: string;
+	name: string;
+	description: string;
+	positions: Position[] | null;
+	created_at: string;
+	updated_at: string;
 }
 
 export interface Position {
-	ID: string;
-	Symbol: string;
-	Quantity: number;
-	EntryPrice: number;
-	EntryDate: string;
-	Notes: string;
+	id: string;
+	symbol: string;
+	quantity: number;
+	entry_price: number;
+	entry_date: string;
+	notes: string;
+	created_at: string;
+	updated_at: string;
 }
 
 export interface Holding {
-	Position: Position;
-	CurrentPrice: number;
-	MarketValue: number;
-	PnL: number;
-	PnLPercent: number;
+	position: Position;
+	current_price: number;
+	market_value: number;
+	pnl: number;
+	pnl_pct: number;
 }
 
 export interface Quote {
-	Symbol: string;
-	Timestamp: string;
-	Open: number;
-	High: number;
-	Low: number;
-	Close: number;
-	Volume: number;
-	Source: string;
+	symbol: string;
+	timestamp: string;
+	open: number;
+	high: number;
+	low: number;
+	close: number;
+	volume: number;
+	source: string;
 }
 
 export interface PriceHistory {
-	Symbol: string;
-	Quotes: Quote[];
+	symbol: string;
+	quotes: Quote[];
 }
 
 export interface IndicatorValue {
-	Symbol: string;
-	Type: string;
-	Period: number;
-	Value: number;
-	Timestamp: string;
+	symbol: string;
+	type: string;
+	period: number;
+	value: number;
+	timestamp: string;
 }

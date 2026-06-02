@@ -25,34 +25,34 @@ import "time"
 
 // Portfolio represents a named collection of positions (watchlist or holdings).
 type Portfolio struct {
-	ID          string
-	Name        string
-	Description string
-	Positions   []Position
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Positions   []Position `json:"positions"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 // Position represents a tracked security within a portfolio.
 type Position struct {
-	ID         string
-	Symbol     string // WKN or ticker (e.g., "A413X6", "NVDA")
-	Quantity   float64
-	EntryPrice float64
-	EntryDate  time.Time
-	Notes      string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID         string    `json:"id"`
+	Symbol     string    `json:"symbol"` // WKN or ticker (e.g., "A413X6", "NVDA")
+	Quantity   float64   `json:"quantity"`
+	EntryPrice float64   `json:"entry_price"`
+	EntryDate  time.Time `json:"entry_date"`
+	Notes      string    `json:"notes"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // Holding is a Position enriched with current market data.
 // It is not persisted — derived at query time from Position + Quote.
 type Holding struct {
 	Position
-	CurrentPrice float64
-	MarketValue  float64
-	PnL          float64 // absolute profit/loss
-	PnLPercent   float64 // relative profit/loss percentage
+	CurrentPrice float64 `json:"current_price"`
+	MarketValue  float64 `json:"market_value"`
+	PnL          float64 `json:"pnl"`
+	PnLPercent   float64 `json:"pnl_pct"`
 }
 
 // NewHolding derives a Holding from a Position and current price.

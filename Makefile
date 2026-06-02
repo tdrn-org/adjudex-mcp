@@ -51,7 +51,7 @@ package: build web
 # Build SvelteKit frontend
 web:
 	@echo "🎨 Building SvelteKit frontend..."
-	cd web && npm ci && npm run build
+	cd web && npm install && npm run build
 	@echo "✅ Frontend built: internal/web/static/"
 
 # Run the binary

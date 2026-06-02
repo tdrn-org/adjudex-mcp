@@ -9,13 +9,12 @@
 	let loading = $state(false);
 	let error = $state('');
 
-	// SMA computed client-side from history closes
 	let smaValues = $state<number[] | null>(null);
 
 	function computeSma(h: PriceHistory): number[] | null {
-		if (h.Quotes.length < 20) return null;
+		if (h.quotes.length < 20) return null;
 		const period = 20;
-		const closes = h.Quotes.map(q => q.Close);
+		const closes = h.quotes.map(q => q.close);
 		const result: number[] = [];
 		let sum = closes.slice(0, period).reduce((a, b) => a + b, 0);
 		result.push(sum / period);
@@ -37,10 +36,15 @@
 		smaValues = null;
 		try {
 			const sym = symbol.trim().toUpperCase();
-			const [q, h] = await Promise.all([
-				getQuote(sym),
-				getHistory(sym)
-			]);
+			let q: Quote;
+			let h: PriceHistory;
+			// Quote is cheap; history may fail with mock provider
+			q = await getQuote(sym);
+			try {
+				h = await getHistory(sym);
+			} catch {
+				h = { symbol: sym, quotes: [q] };
+			}
 			quote = q;
 			history = h;
 			smaValues = computeSma(h);
@@ -91,55 +95,53 @@
 {/if}
 
 {#if quote}
-	{@const prevClose = history && history.Quotes.length >= 2
-		? history.Quotes[history.Quotes.length - 2].Close
-		: quote.Close}
-	{@const change = fmtChange(quote.Close, prevClose)}
+	{@const prevClose = history && history.quotes.length >= 2
+		? history.quotes[history.quotes.length - 2].close
+		: quote.close}
+	{@const change = fmtChange(quote.close, prevClose)}
 
 	<div class="card mb-6">
 		<div class="flex items-start justify-between">
 			<div>
 				<div class="flex items-center gap-3 mb-1">
-					<h2 class="text-2xl font-bold text-slate-100">{quote.Symbol}</h2>
-					<span class="text-xs px-2 py-0.5 rounded bg-adjudex-700 text-slate-400">{quote.Source}</span>
+					<h2 class="text-2xl font-bold text-slate-100">{quote.symbol}</h2>
+					<span class="text-xs px-2 py-0.5 rounded bg-adjudex-700 text-slate-400">{quote.source}</span>
 				</div>
 				<div class="flex items-baseline gap-3">
-					<span class="text-3xl font-mono font-bold text-accent-glow">{fmtPrice(quote.Close)}</span>
+					<span class="text-3xl font-mono font-bold text-accent-glow">{fmtPrice(quote.close)}</span>
 					<span class="text-lg font-mono {change.cls}">{change.text}</span>
 				</div>
 			</div>
 			<div class="text-right text-sm text-slate-400 space-y-0.5">
-				<div>Open <span class="text-slate-300 ml-2 font-mono">{fmtPrice(quote.Open)}</span></div>
-				<div>High <span class="text-slate-300 ml-2 font-mono">{fmtPrice(quote.High)}</span></div>
-				<div>Low  <span class="text-slate-300 ml-2 font-mono">{fmtPrice(quote.Low)}</span></div>
-				<div>Vol  <span class="text-slate-300 ml-2 font-mono">{quote.Volume.toLocaleString()}</span></div>
+				<div>Open <span class="text-slate-300 ml-2 font-mono">{fmtPrice(quote.open)}</span></div>
+				<div>High <span class="text-slate-300 ml-2 font-mono">{fmtPrice(quote.high)}</span></div>
+				<div>Low  <span class="text-slate-300 ml-2 font-mono">{fmtPrice(quote.low)}</span></div>
+				<div>Vol  <span class="text-slate-300 ml-2 font-mono">{quote.volume.toLocaleString()}</span></div>
 			</div>
 		</div>
 	</div>
 
-	<!-- Chart -->
-	{#if history && history.Quotes.length > 0}
+	{#if history && history.quotes.length > 0}
 		<div class="card mb-6">
 			<h3 class="text-sm font-semibold text-slate-400 mb-3">
-				Price History — {history.Quotes.length} days
+				Price History — {history.quotes.length} days
 				{#if smaValues}
 					<span class="ml-3 text-amber-400">SMA(20)</span>
 				{/if}
 			</h3>
 			<PriceChart
-				quotes={history.Quotes}
+				quotes={history.quotes}
 				indicator={smaValues ? { label: 'SMA(20)', values: smaValues, color: '#f59e0b' } : undefined}
 			/>
 		</div>
 	{/if}
 
-	<!-- Quick Stats -->
-	{@const qs = history?.Quotes ?? []}
+	{@const qs = history?.quotes ?? []}
 	{#if qs.length >= 20}
 		{@const recent = qs.slice(-20)}
-		{@const avg = recent.reduce((s, q) => s + q.Close, 0) / recent.length}
-		{@const high20 = Math.max(...recent.map(q => q.High))}
-		{@const low20 = Math.min(...recent.map(q => q.Low))}
+		{@const avg = recent.reduce((s, q) => s + q.close, 0) / recent.length}
+		{@const high20 = Math.max(...recent.map(q => q.high))}
+		{@const low20 = Math.min(...recent.map(q => q.low))}
 
 		<div class="grid grid-cols-3 gap-4 mb-6">
 			<div class="card text-center">
