@@ -1,25 +1,11 @@
-/*
- * Copyright 2026 Holger de Carne
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package api
 
 import (
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/adjudex-mcp/internal/mcp/tools"
 )
 
@@ -29,7 +15,14 @@ func (h *handler) quoteGet(w http.ResponseWriter, r *http.Request) {
 	symbol := r.PathValue("symbol")
 	q, err := tools.QuoteGet(r.Context(), h.stores.Quote, tools.QuoteGetArgs{Symbol: symbol})
 	if err != nil {
-		handleNotFound(w, err)
+		// Fallback: fetch from provider and save
+		q2, err2 := h.provider.FetchQuote(r.Context(), symbol)
+		if err2 != nil {
+			writeError(w, http.StatusNotFound, "no quote found for "+symbol)
+			return
+		}
+		h.stores.Quote.SaveQuotes(r.Context(), []domain.Quote{*q2})
+		writeJSON(w, http.StatusOK, q2)
 		return
 	}
 	writeJSON(w, http.StatusOK, q)
@@ -39,17 +32,36 @@ func (h *handler) quoteGet(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) quoteHistory(w http.ResponseWriter, r *http.Request) {
 	symbol := r.PathValue("symbol")
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+	if from == "" {
+		from = time.Now().AddDate(0, -1, 0).Format(time.RFC3339)
+	}
+	if to == "" {
+		to = time.Now().Format(time.RFC3339)
+	}
 	args := tools.QuoteHistoryArgs{
 		Symbol: symbol,
-		From:   r.URL.Query().Get("from"),
-		To:     r.URL.Query().Get("to"),
+		From:   from,
+		To:     to,
 	}
 	quotes, err := tools.QuoteHistory(r.Context(), h.stores.Quote, args)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+	if err != nil || len(quotes) == 0 {
+		// Fallback: fetch from provider and save
+		fromTime, _ := time.Parse(time.RFC3339, from)
+		toTime, _ := time.Parse(time.RFC3339, to)
+		q2, err2 := h.provider.FetchHistory(r.Context(), symbol, fromTime, toTime)
+		if err2 != nil {
+			writeError(w, http.StatusBadRequest, err2.Error())
+			return
+		}
+		if len(q2) > 0 {
+			h.stores.Quote.SaveQuotes(r.Context(), q2)
+		}
+		writeJSON(w, http.StatusOK, domain.PriceHistory{Symbol: symbol, Quotes: q2})
 		return
 	}
-	writeJSON(w, http.StatusOK, quotes)
+	writeJSON(w, http.StatusOK, domain.PriceHistory{Symbol: symbol, Quotes: quotes})
 }
 
 // --- GET /api/v1/quotes/{symbol}/indicator ---

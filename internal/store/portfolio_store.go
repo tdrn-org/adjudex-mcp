@@ -227,3 +227,31 @@ func (s *Store) UpdatePosition(ctx context.Context, portfolioID string, pos *dom
 	}
 	return tx.CommitTx(ctx)
 }
+
+// ListSymbols returns all distinct symbols across all portfolios and positions.
+func (s *Store) ListSymbols(ctx context.Context) ([]string, error) {
+	_, tx, err := s.db.BeginTx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing symbols: begin tx: %w", err)
+	}
+	defer tx.RollbackUncommitedTx(ctx)
+
+	rows, err := tx.QueryTx(ctx, "SELECT DISTINCT symbol FROM positions ORDER BY symbol")
+	if err != nil {
+		return nil, fmt.Errorf("listing symbols: query: %w", err)
+	}
+	defer rows.Close()
+
+	var symbols []string
+	for rows.Next() {
+		var sym string
+		if err := rows.Scan(&sym); err != nil {
+			return nil, fmt.Errorf("listing symbols: scan: %w", err)
+		}
+		symbols = append(symbols, sym)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("listing symbols: rows iteration: %w", err)
+	}
+	return symbols, tx.CommitTx(ctx)
+}

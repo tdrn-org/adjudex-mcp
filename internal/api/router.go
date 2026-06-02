@@ -23,13 +23,13 @@ import (
 	"net/http"
 
 	"github.com/tdrn-org/adjudex-mcp/internal/mcp"
+	"github.com/tdrn-org/adjudex-mcp/internal/stock"
 	"github.com/tdrn-org/go-httpserver"
 )
 
 // Router registers all API routes on the provided httpserver.Instance.
-// Routes are prefixed with /api/v1/ and mirror the 21 MCP tools.
-func Router(srv *httpserver.Instance, stores mcp.StoreSet) {
-	h := &handler{stores: stores}
+func Router(srv *httpserver.Instance, stores mcp.StoreSet, provider stock.Provider) {
+	h := &handler{stores: stores, provider: provider}
 
 	srv.HandleFunc("POST /api/v1/portfolios", h.portfolioCreate)
 	srv.HandleFunc("GET /api/v1/portfolios", h.portfolioList)
@@ -60,7 +60,8 @@ func Router(srv *httpserver.Instance, stores mcp.StoreSet) {
 
 // handler holds the store references injected into all endpoints.
 type handler struct {
-	stores mcp.StoreSet
+	stores   mcp.StoreSet
+	provider stock.Provider
 }
 
 // --- JSON helpers ---

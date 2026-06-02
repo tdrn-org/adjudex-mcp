@@ -347,4 +347,67 @@ functionality (stdio/SSE) also benefits from this fix.
 - `--transport sse` remains for remote MCP clients.
 - No new external dependencies beyond `go-httpserver` (tdrn-org library).
 - All endpoint implementations are thin wrappers — business logic stays in `tools.*`.
-  A bug fix in a tool function automatically fixes both the MCP and REST interfaces.
+  - A bug fix in a tool function automatically fixes both the MCP and REST interfaces.
+
+  ---
+
+  ## ADR-008: Phase 8 — Quote & Chart View (SvelteKit)
+
+  **Date**: 2026-05-29
+  **Status**: Accepted
+
+  **Decision**: Build the quote exploration and price chart UI as a second SvelteKit
+  route (`/quotes`) using pure SVG components with zero external charting
+  dependencies.
+
+  **Key decisions**:
+  - **Pure SVG charts** (`PriceChart.svelte`): Rejected chart.js (heavy, canvas-based)
+    and LayerCake (complex, still requires manual drawing). SVG `<polyline>` + `<text>`
+    elements with computed scales cover all needed chart types (price line, SMA overlay)
+    with zero additional bundle weight.
+  - **Client-side SMA(20)**: Computed from history closes in the browser — avoids an
+    additional API round-trip for indicator data.
+  - **Route-based navigation**: Second route `/quotes` with tab navigation in the
+    layout, per Holger's preference (rejected hash-based approach).
+  - **Quote card**: OHLCV summary with color-coded change percentage, mirroring
+    professional trading UIs.
+
+  **Consequences**:
+  - Phase 8 delivered 4 files: `types.ts` (3 new types), `api.ts` (3 new endpoints),
+    `PriceChart.svelte` (SVG chart component), `routes/quotes/+page.svelte` (full page).
+  - `+layout.svelte` updated with Portfolio | Quotes tab navigation.
+  - Zero new npm dependencies — pure SVG + Svelte 5 runes.
+  - API bug fix: `quoteHistory` handler now defaults to 1-month range when no
+    `from`/`to` parameters are provided (was panicking on empty string parse).
+
+  ## ADR-009: Phase 9 — Configuration, TLS, and Packaging
+
+  **Date**: 2026-05-29
+  **Status**: Accepted
+
+  **Decision**: Implement a triple-layer configuration system (defaults → env vars →
+  CLI flags) and TLS support via go-httpserver's `CertificateProvider` mechanism.
+
+  **Configuration layers** (in priority order):
+  1. **Defaults** — hardcoded constants for dev-friendly zero-config startup
+  2. **Environment variables** — `ADJUDEX_TRANSPORT`, `ADJUDEX_ADDR`, `ADJUDEX_DB`,
+     `ADJUDEX_TLS_CERT`, `ADJUDEX_TLS_KEY`
+  3. **CLI flags** — `--transport`, `--addr`, `--db`, `--tls-cert`, `--tls-key`
+     (override env vars)
+
+  **TLS design**:
+  - Single server instance handles both HTTP and HTTPS — no separate goroutine needed.
+  - When `--tls-cert` + `--tls-key` are provided, `certificate.FileCertificateProvider`
+    is injected via `httpserver.WithCertificateProvider()`.
+  - `Serve()` auto-detects TLS via the certificate provider and calls
+    `http.Server.ServeTLS` internally — no manual TLS config required.
+  - Uses go-httpserver v0.1.0 certificate package (tdrn-org library).
+
+  **Consequences**:
+  - Removed `go-tlsconf` dependency (was imported but unused after refactoring to
+    go-httpserver's native TLS support).
+  - `main.go` simplified from 109 to 137 lines — more functionality, cleaner code.
+  - Makefile updated: `dev` target uses in-memory DB, new `package` target for
+    distributable builds.
+  - Version bumped to v0.3.0.
+  - Zero new non-tdrn-org dependencies.
