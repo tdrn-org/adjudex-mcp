@@ -36,10 +36,17 @@ lint:
 	golangci-lint run ./...
 	@echo "✅ Lint clean"
 
-# Development mode — build and run with default config
+# Development mode — build and run with in-memory DB
 dev: build
-	@echo "🚀 Starting $(BINARY_NAME) in dev mode..."
-	$(BUILD_DIR)/$(BINARY_NAME) --config adjudex-mcp.yaml
+	@echo "🚀 Starting $(BINARY_NAME) in dev mode (http, in-memory DB)..."
+	$(BUILD_DIR)/$(BINARY_NAME) -transport http -db memory -addr :8080
+
+# Build distributable package
+package: build web
+	@echo "📦 Creating distributable package..."
+	@mkdir -p dist
+	@cp $(BUILD_DIR)/$(BINARY_NAME) dist/
+	@echo "✅ Package: dist/$(BINARY_NAME)"
 
 # Build SvelteKit frontend
 web:
