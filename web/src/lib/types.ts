@@ -20,8 +20,32 @@ export interface Holding {
 	Position: Position;
 	CurrentPrice: number;
 	MarketValue: number;
-	UnrealizedPnL: number;
-	UnrealizedPnLPct: number;
+	PnL: number;
+	PnLPercent: number;
+}
+
+export interface Quote {
+	Symbol: string;
+	Timestamp: string;
+	Open: number;
+	High: number;
+	Low: number;
+	Close: number;
+	Volume: number;
+	Source: string;
+}
+
+export interface PriceHistory {
+	Symbol: string;
+	Quotes: Quote[];
+}
+
+export interface IndicatorValue {
+	Symbol: string;
+	Type: string;
+	Period: number;
+	Value: number;
+	Timestamp: string;
 }
 
 export interface Quote {
