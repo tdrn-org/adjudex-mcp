@@ -16,13 +16,17 @@
 
 package model
 
-type Quote struct {
-	Id        string  `db:"id"`
-	Timestamp int64   `db:"timestamp"`
-	Open      float64 `db:"open"`
-	High      float64 `db:"high"`
-	Low       float64 `db:"low"`
-	Close     float64 `db:"close"`
-	Volume    int64   `db:"volume"`
-	Source    string  `db:"source"`
+type Alert struct {
+	Id              string  `db:"id"`
+	Name            string  `db:"name"`
+	Symbol          string  `db:"symbol"`
+	Condition       string  `db:"condition"`
+	Threshold       float64 `db:"threshold"`
+	IndicatorType   *string `db:"indicator_type"`
+	IndicatorPeriod *int    `db:"indicator_period"`
+	State           string  `db:"state"`
+	TriggeredAt     *int64  `db:"triggered_at"`
+	Message         string  `db:"message"`
+	CreatedAt       int64   `db:"created_at"`
+	UpdatedAt       int64   `db:"updated_at"`
 }

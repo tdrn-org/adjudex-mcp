@@ -16,13 +16,10 @@
 
 package model
 
-type Quote struct {
-	Id        string  `db:"id"`
-	Timestamp int64   `db:"timestamp"`
-	Open      float64 `db:"open"`
-	High      float64 `db:"high"`
-	Low       float64 `db:"low"`
-	Close     float64 `db:"close"`
-	Volume    int64   `db:"volume"`
-	Source    string  `db:"source"`
+type Portfolio struct {
+	Id          string `db:"id"`
+	Name        string `db:"name"`
+	Description string `db:"description"`
+	CreatedAt   int64  `db:"created_at"`
+	UpdatedAt   int64  `db:"updated_at"`
 }

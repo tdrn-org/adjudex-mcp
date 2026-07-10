@@ -16,13 +16,14 @@
 
 package model
 
-type Quote struct {
-	Id        string  `db:"id"`
-	Timestamp int64   `db:"timestamp"`
-	Open      float64 `db:"open"`
-	High      float64 `db:"high"`
-	Low       float64 `db:"low"`
-	Close     float64 `db:"close"`
-	Volume    int64   `db:"volume"`
-	Source    string  `db:"source"`
+type Position struct {
+	Id          string  `db:"id"`
+	PortfolioId string  `db:"portfolio_id"`
+	Symbol      string  `db:"symbol"`
+	Quantity    float64 `db:"quantity"`
+	EntryPrice  float64 `db:"entry_price"`
+	EntryDate   int64   `db:"entry_date"`
+	Notes       string  `db:"notes"`
+	CreatedAt   int64   `db:"created_at"`
+	UpdatedAt   int64   `db:"updated_at"`
 }

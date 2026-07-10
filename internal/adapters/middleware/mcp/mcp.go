@@ -17,17 +17,24 @@
 package mcp
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/tdrn-org/adjudex-mcp/internal/buildinfo"
+	"github.com/tdrn-org/adjudex-mcp/internal/data"
+	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 )
 
 type Runtime interface {
 	BaseURL() *url.URL
 	Logger() *slog.Logger
+	DataStore() *data.Store
+	FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error)
+	FetchHistory(ctx context.Context, symbol string, from, to time.Time) ([]domain.Quote, error)
 }
 
 func NewHandler(runtime Runtime) http.Handler {

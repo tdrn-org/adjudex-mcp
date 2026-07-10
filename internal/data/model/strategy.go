@@ -16,13 +16,16 @@
 
 package model
 
-type Quote struct {
-	Id        string  `db:"id"`
-	Timestamp int64   `db:"timestamp"`
-	Open      float64 `db:"open"`
-	High      float64 `db:"high"`
-	Low       float64 `db:"low"`
-	Close     float64 `db:"close"`
-	Volume    int64   `db:"volume"`
-	Source    string  `db:"source"`
+type Strategy struct {
+	Id           string  `db:"id"`
+	Name         string  `db:"name"`
+	Description  string  `db:"description"`
+	RsiPeriod    int     `db:"rsi_period"`
+	RsiThreshold float64 `db:"rsi_threshold"`
+	SmaPeriod    int     `db:"sma_period"`
+	SmaTrigger   float64 `db:"sma_trigger"`
+	MaxPosition  float64 `db:"max_position"`
+	StopLoss     float64 `db:"stop_loss"`
+	CreatedAt    int64   `db:"created_at"`
+	UpdatedAt    int64   `db:"updated_at"`
 }
