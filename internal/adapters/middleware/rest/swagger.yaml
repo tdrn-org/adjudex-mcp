@@ -1,15 +1,37 @@
 basePath: /api/v1
+definitions:
+  rest.ServerInfo:
+    properties:
+      version:
+        description: The server version
+        type: string
+    type: object
 host: localhost:9123
 info:
   contact:
     url: https://github.com/tdrn-org/adjudex-mcp
-  description: MCP server providing Agent access to PIM services.
+  description: MCP server providing Agent access to virtual stock depot.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   title: ADJUDEX MCP Server REST API
   version: "1.0"
 paths:
+  /api/v1/info:
+    get:
+      description: Get server software version details.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.ServerInfo'
+        "500":
+          description: server error
+          schema:
+            type: string
+      summary: Query server info
   /api/v1/ping:
     get:
       description: Ping the server to check general health

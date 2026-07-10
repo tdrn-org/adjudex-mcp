@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/tdrn-org/adjudex-mcp/internal/buildinfo"
 	"github.com/tdrn-org/go-httpserver"
 )
 
@@ -34,7 +35,7 @@ type Runtime interface {
 
 //	@title			ADJUDEX MCP Server REST API
 //	@version		1.0
-//	@description	MCP server providing Agent access to PIM services.
+//	@description	MCP server providing Agent access to virtual stock depot.
 
 //	@contact.url	https://github.com/tdrn-org/adjudex-mcp
 
@@ -79,6 +80,26 @@ func (api *API) PingGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	api.sendPlainTextResponse(w, r, http.StatusOK, responseOK)
+}
+
+// GET @BasePath/info
+//
+//	@Summary		Query server info
+//	@Description	Get server software version details.
+//	@Produce		text/plain
+//	@Success		200	{object}	ServerInfo
+//	@Failure		500	{string}	string	"server error"
+//	@Router			/api/v1/info [get]
+func (api *API) InfoGet(w http.ResponseWriter, r *http.Request) {
+	info := &ServerInfo{
+		Version: buildinfo.Version(),
+	}
+	api.sendApplicationJSONResponse(w, r, http.StatusOK, info)
+}
+
+type ServerInfo struct {
+	// The server version
+	Version string `json:"version"`
 }
 
 func (api *API) sendApplicationJSONResponse(w http.ResponseWriter, r *http.Request, status int, content any) {

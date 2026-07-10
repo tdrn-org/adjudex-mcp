@@ -21,6 +21,29 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/info": {
+            "get": {
+                "description": "Get server software version details.",
+                "produces": [
+                    "text/plain"
+                ],
+                "summary": "Query server info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rest.ServerInfo"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/ping": {
             "get": {
                 "description": "Ping the server to check general health",
@@ -44,6 +67,17 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "definitions": {
+        "rest.ServerInfo": {
+            "type": "object",
+            "properties": {
+                "version": {
+                    "description": "The server version",
+                    "type": "string"
+                }
+            }
+        }
     }
 }`
 
@@ -54,7 +88,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "ADJUDEX MCP Server REST API",
-	Description:      "MCP server providing Agent access to PIM services.",
+	Description:      "MCP server providing Agent access to virtual stock depot.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

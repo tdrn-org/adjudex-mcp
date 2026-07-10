@@ -16,10 +16,8 @@
 
 package model
 
-import "github.com/tdrn-org/go-database"
-
 type Quote struct {
-	driver    *database.Driver
+	//driver    *database.Driver
 	Id        string  `db:"id"`
 	Timestamp int64   `db:"id"`
 	Open      float64 `db:"open"`

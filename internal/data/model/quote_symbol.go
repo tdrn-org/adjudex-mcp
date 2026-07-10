@@ -16,10 +16,8 @@
 
 package model
 
-import "github.com/tdrn-org/go-database"
-
 type QuoteSymbol struct {
-	driver *database.Driver
+	//driver *database.Driver
 	Symbol string `db:"symbol"`
 	Source string `db:"source"`
 }

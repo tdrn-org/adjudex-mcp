@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "MCP server providing Agent access to PIM services.",
+        "description": "MCP server providing Agent access to virtual stock depot.",
         "title": "ADJUDEX MCP Server REST API",
         "contact": {
             "url": "https://github.com/tdrn-org/adjudex-mcp"
@@ -15,6 +15,29 @@
     "host": "localhost:9123",
     "basePath": "/api/v1",
     "paths": {
+        "/api/v1/info": {
+            "get": {
+                "description": "Get server software version details.",
+                "produces": [
+                    "text/plain"
+                ],
+                "summary": "Query server info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rest.ServerInfo"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/ping": {
             "get": {
                 "description": "Ping the server to check general health",
@@ -35,6 +58,17 @@
                             "type": "string"
                         }
                     }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "rest.ServerInfo": {
+            "type": "object",
+            "properties": {
+                "version": {
+                    "description": "The server version",
+                    "type": "string"
                 }
             }
         }
