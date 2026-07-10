@@ -1,80 +1,108 @@
-.PHONY: build test lint fmt dev web clean run
+GOPROJECT := adjudex-mcp
+GOCMDS := $(GOPROJECT)
+GOMODULE := github.com/tdrn-org/$(GOPROJECT)
+GOMODULE_VERSION := $(shell cat version.txt)
 
-BINARY_NAME := adjudex
-BUILD_DIR := build
-CMD_DIR := cmd/adjudex
+GO := $(shell command -v go 2> /dev/null)
+ifdef GO
+GOBIN ?= $(shell go env GOPATH)/bin
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+LDFLAGS := $(LDFLAGS) -X $(GOMODULE)/internal/buildinfo.version=$(GOMODULE_VERSION) -X $(GOMODULE)/internal/buildinfo.timestamp=$(shell date +%Y%m%d%H%M%S)
+ifneq (windows, $(GOOS))
+GOCMDEXT :=
+else
+GOCMDEXT := .exe
+endif
+endif
 
-# Format Go source files
-fmt:
-	@echo "📏 Formatting Go sources..."
-	@gofmt -w .
-	@echo "✅ Formatting done"
+NPM := $(shell command -v npm 2> /dev/null)
+NPMOPTS ?= --no-progress --no-color --no-fund
 
-# Build the binary (depends on fmt for consistent formatting)
-build: fmt
-	@echo "🔨 Building $(BINARY_NAME)..."
-	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./$(CMD_DIR)
-	@echo "✅ Binary: $(BUILD_DIR)/$(BINARY_NAME)"
+WEB ?= 0
 
-# Run tests (depends on fmt for consistent formatting)
-test: fmt
-	@echo "🧪 Running tests..."
-	go test ./... -count=1 -timeout=30s
-	@echo "✅ All tests passed"
+.DEFAULT_GOAL := help
 
-# Run tests with race detector
-test-race:
-	@echo "🧪 Running tests with race detector..."
-	go test ./... -race -count=1 -timeout=60s
-	@echo "✅ All tests passed"
-
-# Run linter
-lint:
-	@echo "🔍 Running golangci-lint..."
-	@which golangci-lint > /dev/null || (echo "❌ golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest" && exit 1)
-	golangci-lint run ./...
-	@echo "✅ Lint clean"
-
-# Development mode — build and run with in-memory DB
-dev: build
-	@echo "🚀 Starting $(BINARY_NAME) in dev mode (http, in-memory DB)..."
-	$(BUILD_DIR)/$(BINARY_NAME) -transport http -db memory -addr :8080
-
-# Build distributable package
-package: build web
-	@echo "📦 Creating distributable package..."
-	@mkdir -p dist
-	@cp $(BUILD_DIR)/$(BINARY_NAME) dist/
-	@echo "✅ Package: dist/$(BINARY_NAME)"
-
-# Build SvelteKit frontend
-web:
-	@echo "🎨 Building SvelteKit frontend..."
-	cd web && npm ci && npm run build
-	@echo "✅ Frontend built: internal/web/static/"
-
-# Run the binary
-run: build
-	$(BUILD_DIR)/$(BINARY_NAME)
-
-# Clean build artifacts
-clean:
-	@echo "🧹 Cleaning..."
-	rm -rf $(BUILD_DIR)
-	rm -rf internal/web/static/*
-	@echo "✅ Clean"
-
-# Show help
+.PHONY: help
 help:
-	@echo "adjudex — Agent juDy eXchange"
-	@echo ""
-	@echo "Targets:"
-	@echo "  build     Build the adjudex binary"
-	@echo "  test      Run unit tests"
-	@echo "  test-race Run tests with race detector"
-	@echo "  lint      Run golangci-lint"
-	@echo "  dev       Build and run in dev mode"
-	@echo "  web       Build SvelteKit frontend"
-	@echo "  run       Build and run"
-	@echo "  clean     Remove build artifacts"
+	@echo "Please use 'make <target>' where <target> is one of the following:"
+	@echo "  make deps\tprepare dependencies"
+	@echo "  make build\tbuild artifacts"
+	@echo "  make dist\tcreate release package"
+	@echo "  make check\ttest artifacts"
+	@echo "  make clean\tdiscard build artifacts (not dependencies)"
+
+.PHONY: init
+init:
+	@echo "Using build environment:"
+ifndef GO
+    $(error "ERROR: go command is not available")
+endif
+	@echo "  GO: $(GO) ($(shell $(GO) version))"
+ifndef NPM
+    $(error "ERROR: npm command is not available")
+endif
+	@echo "  NPM: $(NPM) ($(shell $(NPM) -v))"
+
+.PHONY: deps
+deps: init
+	@echo "Preparing dependencies..."
+ifeq (1, $(WEB))
+	$(NPM) $(NPMOPTS) install --prefix internal/web
+endif
+	$(GO) mod download -x
+
+.PHONY: build
+build: deps
+	@echo "Building artifacts..."
+ifeq (1, $(WEB))
+	# cd internal/web && $(NPM) $(NPMOPTS) run build
+	$(NPM) $(NPMOPTS) run --prefix internal/web build
+endif
+	mkdir -p "build/bin"
+	$(foreach GOCMD, $(GOCMDS), $(GO) build -ldflags "-X $(GOMODULE)/internal/buildinfo.cmd=$(GOCMD) $(LDFLAGS)" -o "./build/bin/$(GOCMD)$(GOCMDEXT)" ./cmd/$(GOCMD);)
+
+.PHONY: dist
+dist: build
+	@echo "Creating release package..."
+	mkdir -p build/dist
+	tar czvf build/dist/$(GOPROJECT)-$(GOOS)-$(GOARCH)-$(GOMODULE_VERSION).tar.gz -C build/bin .
+
+.PHONY: testdeps
+testdeps: build
+	@echo "Preparing test dependencies..."
+	$(GO) install honnef.co/go/tools/cmd/staticcheck@latest
+
+.PHONY: check
+check: testdeps vet
+	@echo "Testing artifacts..."
+ifeq (1, $(WEB))
+	# $(NPM) $(NPMOPTS) run --prefix internal/server/web test
+endif
+	$(GO) test -ldflags "$(LDFLAGS)" -v -coverpkg=./... -covermode=atomic -coverprofile=build/coverage.out ./...
+	$(GO) vet ./...
+	$(GOBIN)/staticcheck ./...
+
+.PHONY: clean
+clean: init
+	@echo "Cleaning build artifacts..."
+	$(GO) clean ./...
+	rm -rf "internal/web/build"
+	rm -rf "build"
+
+.PHONY: tidy
+tidy: init
+	go mod verify
+	go mod tidy
+
+.PHONY: generate
+generate: deps
+	go generate ./...
+
+.PHONY: fmt
+fmt:
+	go fmt ./...
+
+.PHONY: vet
+vet:
+	go vet ./...

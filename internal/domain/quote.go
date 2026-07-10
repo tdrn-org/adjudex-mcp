@@ -16,18 +16,50 @@
 
 package domain
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
-// Quote represents a single price snapshot for a security.
+var ErrNoQuote error = errors.New("no quote")
+var ErrQuoteRateLimit error = errors.New("quote rate limit")
+
+// Quote represents a single price snapshot for a symbol.
 type Quote struct {
-	Symbol    string
-	Timestamp time.Time
-	Open      float64
-	High      float64
-	Low       float64
-	Close     float64
-	Volume    int64
-	Source    string // provider identifier (e.g., "consorsbank", "yahoo", "mock")
+	Symbol          string
+	Timestamp       time.Time
+	Currency        string
+	Open            float64
+	High            float64
+	Low             float64
+	Close           float64
+	Price           float64
+	Volume          int64
+	Source          string // provider identifier (e.g., "consorsbank", "yahoo", "mock")
+	SourceTimestamp time.Time
+}
+
+func (q *Quote) ApplyCurrency(currency string, exchangeRate float64) {
+	q.Currency = currency
+	q.Open *= exchangeRate
+	q.High *= exchangeRate
+	q.Low *= exchangeRate
+	q.Close *= exchangeRate
+}
+
+type Quotes []Quote
+
+func (qs Quotes) ApplyCurrency(currency string, exchangeRate float64) {
+	for _, q := range qs {
+		q.ApplyCurrency(currency, exchangeRate)
+	}
+}
+
+func (qs Quotes) Currency() string {
+	if len(qs) == 0 {
+		return ""
+	}
+	return qs[0].Currency
 }
 
 // PriceHistory is a chronological series of quotes for a single symbol.

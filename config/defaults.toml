@@ -1,0 +1,51 @@
+[logging]
+level = "info"
+target = "stdout"
+color = "auto"
+file_name = "./adjudex.log"
+file_size_limit = 0
+syslog_network = "tcp"
+syslog_address = "localhost:601"
+syslog_encoding = "rfc5424"
+syslog_facility = 4
+
+[server]
+address = "localhost:0"
+protocol = "http"
+cert_file = ""
+key_file = ""
+public_url = ""
+trusted_proxies = [ ]
+trusted_headers = [ ]
+allowed_origins = [ ]
+access_log = ""
+access_log_size_limit = 0
+session_cookie_name = "adjudex-session"
+
+[store]
+type = "memory"
+
+[store.memory]
+
+[store.sqlite]
+file = "./adjudex.db"
+
+[quote_tracker.currency]
+currency = "USD"
+
+[quote_tracker.demo]
+enabled = false
+online = true
+frequency = "5m"
+
+[quote_tracker.alphavantage]
+enabled = false
+online = false
+frequency = "4h"
+api_key = ""
+
+[quote_tracker.twelvedata]
+enabled = false
+online = true
+frequency = "1h"
+api_key = ""

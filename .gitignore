@@ -34,8 +34,6 @@ go.work.sum
 # Build artifacts
 build/
 
-# Node / SvelteKit
-web/node_modules/
-web/.svelte-kit/
-web/package-lock.json
-.svelte-kit/
+# Local configs
+*-local.toml
+adjudex

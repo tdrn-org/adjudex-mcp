@@ -1,0 +1,28 @@
+basePath: /api/v1
+host: localhost:9123
+info:
+  contact:
+    url: https://github.com/tdrn-org/adjudex-mcp
+  description: MCP server providing Agent access to PIM services.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: ADJUDEX MCP Server REST API
+  version: "1.0"
+paths:
+  /api/v1/ping:
+    get:
+      description: Ping the server to check general health
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: server error
+          schema:
+            type: string
+      summary: Ping the server
+swagger: "2.0"
