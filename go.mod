@@ -59,7 +59,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/tdrn-org/go-cache v0.0.4
 	github.com/tdrn-org/go-diff v0.1.3
-	github.com/tdrn-org/go-log v0.5.6
+	github.com/tdrn-org/go-log v0.5.7
 	github.com/twelvedata/twelvedata-go v1.0.14
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
