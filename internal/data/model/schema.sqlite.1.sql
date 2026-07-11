@@ -2,33 +2,18 @@
 -- Quote
 --
 CREATE TABLE quote(
-    id TEXT NOT NULL,
+    symbol TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
+    currency TEXT NOT NULL,
     open REAL NOT NULL,
     high REAL NOT NULL,
     low REAL NOT NULL,
     close REAL NOT NULL,
+    price REAL NOT NULL,
     volume INTEGER NOT NULL,
     source TEXT NOT NULL,
-    PRIMARY KEY(id, timestamp)
-);
---
--- Quote Symbol (maps symbols to latest quotes for tracking)
---
-CREATE TABLE quote_symbol(
-    symbol TEXT NOT NULL,
-    quote_id TEXT NOT NULL,
-    PRIMARY KEY(symbol),
-    FOREIGN KEY(quote_id) REFERENCES quote(id)
-);
---
--- Quote Symbol Source (which providers track which symbols)
---
-CREATE TABLE quote_symbol_source(
-    symbol TEXT NOT NULL,
-    source TEXT NOT NULL,
-    PRIMARY KEY(symbol, source),
-    FOREIGN KEY(symbol) REFERENCES quote_symbol(symbol)
+    source_timestamp INTEGER NOT NULL,
+    PRIMARY KEY(symbol, timestamp)
 );
 --
 -- Portfolio

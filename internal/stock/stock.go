@@ -19,7 +19,6 @@ package stock
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -100,6 +99,8 @@ func (tp *TrackerPool) FetchQuote(ctx context.Context, symbol string) (*domain.Q
 			continue
 		}
 		quote, err := entry.provider.FetchQuote(ctx, symbol)
+		entry.lastRun = time.Now()
+		entry.lastErr = err
 		if err != nil {
 			tp.runtime.Logger().Warn("failed to fetch quote", slog.String("service", service), slog.String("symbol", symbol), slog.Any("err", err))
 			continue
@@ -118,6 +119,8 @@ func (tp *TrackerPool) FetchHistory(ctx context.Context, symbol string, from, to
 			continue
 		}
 		quotes, err := entry.provider.FetchHistory(ctx, symbol, from, to)
+		entry.lastRun = time.Now()
+		entry.lastErr = err
 		if err != nil {
 			tp.runtime.Logger().Warn("failed to fetch history", slog.String("service", service), slog.String("symbol", symbol), slog.Any("err", err))
 			continue
@@ -133,25 +136,21 @@ func (tp *TrackerPool) Run(ctx context.Context) {
 	tp.mutex.Lock()
 	defer tp.mutex.Unlock()
 
-	now := time.Now()
-	config, err := tp.runtime.DataStore().GetQuoteTrackingConfig(ctx)
+	store := tp.runtime.DataStore()
+	symbols, err := store.ListSymbols(ctx)
 	if err != nil {
-		tp.logger.Error("failed to get quote tracking config", slog.Any("err", err))
+		tp.logger.Error("failed to list symbols", slog.Any("err", err))
 	}
-	for symbol, sources := range config {
-		for _, source := range sources {
-			entry, configured := tp.entries[symbol]
-			if !configured || now.Sub(entry.lastRun) < entry.frequency {
-				tp.logger.Debug("skipping config entry", slog.String("symbol", symbol), slog.String("source", source))
-				continue
-			}
-			tp.logger.Debug("evaluating config entry", slog.String("symbol", symbol), slog.String("source", source))
-			quote, err := entry.provider.FetchQuote(ctx, symbol)
-			entry.lastErr = err
-			if err != nil {
-				tp.logger.Warn("failed to fetch quote", slog.String("symbol", symbol), slog.String("source", source), slog.Any("err", err))
-			}
-			fmt.Println(quote)
+	for _, symbol := range symbols {
+		quote, err := tp.FetchQuote(ctx, symbol)
+		if err != nil {
+			tp.logger.Warn("failed to fetch quote", slog.String("symbol", symbol), slog.Any("err", err))
+			continue
+		}
+		err = store.SaveQuote(ctx, quote)
+		if err != nil {
+			tp.logger.Warn("failed to store quote", slog.String("symbol", symbol), slog.Any("err", err))
+			continue
 		}
 	}
 }

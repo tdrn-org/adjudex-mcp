@@ -18,10 +18,12 @@ package data_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
+	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
 )
@@ -30,6 +32,116 @@ func TestUpdateScheme(t *testing.T) {
 	store := newDataStore(t)
 	err := store.Close()
 	require.NoError(t, err)
+}
+
+func TestPortfolio(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	// Create
+	p1 := &domain.Portfolio{
+		Name:        t.Name(),
+		Description: t.Name() + " portfolio",
+		Positions: []domain.Position{
+			{
+				Symbol:     "XZY",
+				Quantity:   12.0,
+				EntryPrice: 123.4,
+				EntryDate:  time.Date(2026, 7, 10, 23, 56, 0, 0, time.Local),
+				Notes:      t.Name() + "notes",
+			},
+		},
+	}
+	err := store.CreatePortfolio(t.Context(), p1)
+	require.NoError(t, err)
+
+	// Get
+	p2, err := store.GetPortfolio(t.Context(), p1.ID)
+	require.NoError(t, err)
+	require.Equal(t, p1, p2)
+
+	// List (1 result)
+	ps, err := store.ListPortfolios(t.Context())
+	require.NoError(t, err)
+	require.Len(t, ps, 1)
+	require.Equal(t, p1, &ps[0])
+
+	// Add
+	p2.Positions = append(p2.Positions, domain.Position{
+		Symbol:     "ABC",
+		Quantity:   24.0,
+		EntryPrice: 246.8,
+		EntryDate:  time.Date(2026, 7, 11, 06, 49, 0, 0, time.Local),
+		Notes:      t.Name() + "notes (2)",
+	})
+	err = store.AddPosition(t.Context(), p2.ID, &p2.Positions[1])
+	require.NoError(t, err)
+
+	// Update
+	p2.Positions[1].Quantity *= 2
+	err = store.UpdatePosition(t.Context(), p2.ID, &p2.Positions[1])
+	require.NoError(t, err)
+
+	// List symbols (2 entries)
+	symbols, err := store.ListSymbols(t.Context())
+	require.NoError(t, err)
+	require.Len(t, symbols, 2)
+
+	// Remove
+	err = store.RemovePosition(t.Context(), p2.ID, p2.Positions[1].ID)
+	require.NoError(t, err)
+
+	// Delete
+	err = store.DeletePortfolio(t.Context(), p1.ID)
+	require.NoError(t, err)
+
+	// List (0 results)
+	ps, err = store.ListPortfolios(t.Context())
+	require.NoError(t, err)
+	require.Len(t, ps, 0)
+}
+
+func TestQuote(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	quotes := []domain.Quote{
+		{
+			Symbol:          "XYZ",
+			Timestamp:       time.Date(2026, 7, 11, 8, 12, 0, 0, time.Local),
+			Currency:        "USD",
+			Open:            1.0,
+			High:            10.0,
+			Low:             0.0,
+			Close:           2.0,
+			Price:           2.0,
+			Volume:          100,
+			Source:          t.Name(),
+			SourceTimestamp: time.Date(2026, 7, 11, 8, 14, 0, 0, time.Local),
+		},
+		{
+			Symbol:          "ABC",
+			Timestamp:       time.Date(2026, 7, 11, 8, 15, 0, 0, time.Local),
+			Currency:        "USD",
+			Open:            2.0,
+			High:            5.0,
+			Low:             1.0,
+			Close:           3.0,
+			Price:           3.0,
+			Volume:          1000,
+			Source:          t.Name(),
+			SourceTimestamp: time.Date(2026, 7, 11, 8, 16, 0, 0, time.Local),
+		},
+	}
+
+	// Add (multiple)
+	err := store.SaveQuotes(t.Context(), quotes)
+	require.NoError(t, err)
+
+	// Select (latest)
+	quote, err := store.GetLatestQuote(t.Context(), "ABC")
+	require.NoError(t, err)
+	require.Equal(t, &quotes[1], quote)
 }
 
 func newDataStore(t *testing.T) *data.Store {

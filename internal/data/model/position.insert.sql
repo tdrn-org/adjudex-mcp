@@ -1,0 +1,23 @@
+INSERT INTO
+    position(
+        id,
+        portfolio_id,
+        symbol,
+        quantity,
+        entry_price,
+        entry_date,
+        notes,
+        created_at,
+        updated_at
+    )
+VALUES(
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9
+)
