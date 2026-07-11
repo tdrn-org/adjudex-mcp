@@ -32,7 +32,6 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
 	"github.com/tdrn-org/adjudex-mcp/internal/stock"
-	"github.com/tdrn-org/adjudex-mcp/internal/stock/tracker"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
 	"github.com/tdrn-org/go-database/sqlite"
@@ -47,7 +46,7 @@ type Server struct {
 	dataStore           *data.Store
 	httpServer          *httpserver.Instance
 	baseURL             *url.URL
-	stockTrackerPool    *stock.TrackerPool
+	stockTrackerPool    *stock.QuoteService
 	jobTicker           *time.Ticker
 	jobTickerShutdown   chan any
 	jobTickerShutdownWG sync.WaitGroup
@@ -202,7 +201,7 @@ func (s *Server) closeHttpServer() error {
 
 func (s *Server) startStockTrackerPool(_ context.Context, cfg *config.Config) error {
 	runtime := &serverRuntime{server: s}
-	stockTrackerPool, err := stock.NewTrackerPool(runtime, &cfg.QuoteTracker)
+	stockTrackerPool, err := stock.NewQuoteService(runtime, &cfg.QuoteTracker)
 	if err != nil {
 		return err
 	}
@@ -266,7 +265,7 @@ func (runtime *serverRuntime) DataStore() *data.Store {
 	return runtime.server.dataStore
 }
 
-func (runtime *serverRuntime) StockTracker() tracker.Provider {
+func (runtime *serverRuntime) QuoteService() *stock.QuoteService {
 	return runtime.server.stockTrackerPool
 }
 
