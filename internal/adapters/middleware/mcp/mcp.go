@@ -46,6 +46,7 @@ func NewHandler(runtime Runtime) http.Handler {
 	server := mcp.NewServer(impl, options)
 
 	addPortfolioTools(server, runtime)
+	addQuoteTools(server, runtime)
 
 	getServer := func(_ *http.Request) *mcp.Server {
 		return server
