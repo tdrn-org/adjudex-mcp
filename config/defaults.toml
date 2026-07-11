@@ -30,7 +30,7 @@ type = "memory"
 [store.sqlite]
 file = "./adjudex.db"
 
-[quote_tracker.currency]
+[quote_tracker]
 currency = "USD"
 
 [quote_tracker.demo]
