@@ -142,6 +142,7 @@ func (tp *TrackerPool) Run(ctx context.Context) {
 		tp.logger.Error("failed to list symbols", slog.Any("err", err))
 	}
 	for _, symbol := range symbols {
+		tp.logger.Debug("fetching quote...", slog.String("symbol", symbol))
 		quote, err := tp.FetchQuote(ctx, symbol)
 		if err != nil {
 			tp.logger.Warn("failed to fetch quote", slog.String("symbol", symbol), slog.Any("err", err))
@@ -152,6 +153,7 @@ func (tp *TrackerPool) Run(ctx context.Context) {
 			tp.logger.Warn("failed to store quote", slog.String("symbol", symbol), slog.Any("err", err))
 			continue
 		}
+		tp.logger.Debug("quote saved", slog.String("symbol", symbol), slog.Float64("price", quote.Price), slog.String("currency", quote.Currency))
 	}
 }
 
