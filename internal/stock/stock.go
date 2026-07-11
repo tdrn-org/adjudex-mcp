@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"maps"
+	"slices"
 	"sync"
 	"time"
 
@@ -32,37 +34,35 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/stock/tracker/twelvedata"
 )
 
-const defaultMaxAge time.Duration = 15 * time.Minute
-
 type Runtime interface {
 	DataStore() *data.Store
 	Logger() *slog.Logger
 }
 
 // QuoteService resolves stock quotes using store-first caching, provider affinity,
-// and fallback across all configured providers. It also runs a periodic job
+// and fallback across all configured sources. It also runs a periodic job
 // to keep quotes fresh for all tracked symbols.
 type QuoteService struct {
-	runtime  Runtime
-	entries  map[string]*quoteServiceEntry
-	affinity map[string]tracker.ProviderName // symbol → preferred provider
-	maxAge   time.Duration                   // max age for cached quotes
-	logger   *slog.Logger
-	mutex    sync.RWMutex
+	cfg            *config.QuoteServiceConfig
+	runtime        Runtime
+	sources        map[tracker.ProviderName]*sourceProvider
+	sourceAffinity map[string]tracker.ProviderName // symbol → preferred provider
+	logger         *slog.Logger
+	mutex          sync.RWMutex
 }
 
-func NewQuoteService(runtime Runtime, cfg *config.QuoteTrackerConfig) (*QuoteService, error) {
+func NewQuoteService(runtime Runtime, cfg *config.QuoteServiceConfig) (*QuoteService, error) {
 	qs := &QuoteService{
-		runtime:  runtime,
-		entries:  make(map[string]*quoteServiceEntry),
-		affinity: make(map[string]tracker.ProviderName),
-		maxAge:   defaultMaxAge,
-		logger:   runtime.Logger().With(slog.String("job", "quotesTracker")),
+		cfg:            cfg,
+		runtime:        runtime,
+		sources:        make(map[tracker.ProviderName]*sourceProvider),
+		sourceAffinity: make(map[string]tracker.ProviderName),
+		logger:         runtime.Logger().With(slog.String("job", "quotesTracker")),
 	}
 	if cfg.Demo.Enabled {
-		qs.logger.Info("enabling demo quotes tracker")
+		qs.logger.Info("enabling Demo quotes tracker")
 		provider := demo.NewProvider(cfg.Currency)
-		qs.addProvider(provider, cfg.Demo.Online, cfg.Demo.Frequency)
+		qs.addSource(provider, cfg.Demo.Online)
 	}
 	if cfg.AlphaVantage.Enabled {
 		qs.logger.Info("enabling Alpha Vantage quotes tracker")
@@ -70,7 +70,7 @@ func NewQuoteService(runtime Runtime, cfg *config.QuoteTrackerConfig) (*QuoteSer
 		if err != nil {
 			return nil, err
 		}
-		qs.addProvider(provider, cfg.AlphaVantage.Online, cfg.AlphaVantage.Frequency)
+		qs.addSource(provider, cfg.AlphaVantage.Online)
 	}
 	if cfg.TwelveData.Enabled {
 		qs.logger.Info("enabling Twelve Data quotes tracker")
@@ -78,151 +78,166 @@ func NewQuoteService(runtime Runtime, cfg *config.QuoteTrackerConfig) (*QuoteSer
 		if err != nil {
 			return nil, err
 		}
-		qs.addProvider(provider, cfg.TwelveData.Online, cfg.TwelveData.Frequency)
+		qs.addSource(provider, cfg.TwelveData.Online)
 	}
 	return qs, nil
 }
 
-type quoteServiceEntry struct {
-	provider  tracker.NamedProvider
-	online    bool
-	frequency time.Duration
-	lastRun   time.Time
-	lastErr   error
+type sourceProvider struct {
+	provider tracker.Provider
+	online   bool
 }
 
-func (qs *QuoteService) addProvider(provider tracker.NamedProvider, online bool, frequency time.Duration) {
-	qs.entries[provider.Name().String()] = &quoteServiceEntry{
-		provider:  provider,
-		online:    online,
-		frequency: frequency,
+func (qs *QuoteService) addSource(provider tracker.Provider, online bool) {
+	qs.sources[provider.Name()] = &sourceProvider{
+		provider: provider,
+		online:   online,
 	}
+}
+
+// ResolveSymbols resolves a search query (e.g., WKN) to a ticker symbol
+// using all configured providers. Returns the symbol and the provider that resolved it.
+func (qs *QuoteService) ResolveSymbols(ctx context.Context, query string) map[string][]tracker.ProviderName {
+	result := make(map[string][]tracker.ProviderName, 0)
+	for providerName, source := range qs.sources {
+		symbols, err := source.provider.ResolveSymbols(ctx, query)
+		if err != nil {
+			qs.logger.Warn("failed to resolve symbol", slog.String("provider", providerName.String()), slog.Any("err", err))
+			continue
+		}
+		for _, symbol := range symbols {
+			providerNames, ok := result[symbol]
+			if ok {
+				providerNames = append(providerNames, providerName)
+			} else {
+				providerNames = []tracker.ProviderName{providerName}
+			}
+			result[symbol] = providerNames
+		}
+	}
+	return result
 }
 
 // ResolveQuote returns the latest quote for a symbol using store-first caching
 // with a maxAge freshness check, provider affinity, and fallback across all providers.
 func (qs *QuoteService) ResolveQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
-	qs.mutex.RLock()
-	maxAge := qs.maxAge
-	preferred, hasAffinity := qs.affinity[symbol]
-	qs.mutex.RUnlock()
-
-	// 1. Store-First with freshness check
-	q, _ := qs.runtime.DataStore().GetLatestQuote(ctx, symbol)
-	if q != nil && time.Since(q.Timestamp) < maxAge {
+	store := qs.runtime.DataStore()
+	q, err := store.GetLatestQuote(ctx, symbol)
+	if err != nil {
+		qs.logger.Warn("failed to get latest quota", slog.String("symbol", symbol), slog.Any("err", err))
+	}
+	if q != nil && time.Since(q.Timestamp) < time.Duration(qs.cfg.MaxAge) {
 		return q, nil // ✅ cache hit, 0 API calls
 	}
 
-	// 2. Provider affinity: try the last successful provider first
-	if hasAffinity {
-		qs.logger.Info("resolving quote via affinity", "symbol", symbol, "provider", preferred.String())
-		q, err := qs.fetchAndSaveQuoteFrom(ctx, symbol, preferred)
-		if err == nil {
-			return q, nil
-		}
-		qs.logger.Warn("affinity provider failed, falling back", "symbol", symbol, "provider", preferred.String(), "err", err)
-	}
+	qs.mutex.RLock()
+	defer qs.mutex.RUnlock()
 
-	// 3. Fallback: try all providers
-	qs.logger.Info("resolving quote via fallback", "symbol", symbol)
-	q, err := qs.fetchAndSaveQuote(ctx, symbol)
+	quote, err := qs.fetchQuoteLocked(ctx, symbol, qs.sourceAffinity[symbol])
 	if err != nil {
 		return nil, err
 	}
-
-	// 4. Update provider affinity
-	qs.mutex.Lock()
-	qs.affinity[symbol] = tracker.ProviderName(q.Source)
-	qs.mutex.Unlock()
-
-	return q, nil
-}
-
-// ResolveSymbol resolves a search query (e.g., WKN) to a ticker symbol
-// using all configured providers. Returns the symbol and the provider that resolved it.
-func (qs *QuoteService) ResolveSymbol(ctx context.Context, query string) (symbol string, provider tracker.ProviderName, err error) {
-	// TODO: implement WKN→ticker resolution via Alpha Vantage SYMBOL_SEARCH
-	return "", "", errors.New("not implemented")
-}
-
-// fetchAndSaveQuote fetches a quote from all online providers and saves it to the store.
-func (qs *QuoteService) fetchAndSaveQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
-	qs.mutex.RLock()
-	defer qs.mutex.RUnlock()
-
-	return qs.fetchAndSaveQuoteLocked(ctx, symbol)
-}
-
-func (qs *QuoteService) fetchAndSaveQuoteFrom(ctx context.Context, symbol string, providerName tracker.ProviderName) (*domain.Quote, error) {
-	qs.mutex.RLock()
-	defer qs.mutex.RUnlock()
-
-	entry, ok := qs.entries[providerName.String()]
-	if !ok || !entry.online {
-		return nil, errors.New("provider not available")
+	err = store.SaveQuote(ctx, quote)
+	if err != nil {
+		qs.logger.Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
 	}
-	return qs.fetchAndSaveQuoteFromEntry(ctx, symbol, providerName, entry)
+	qs.sourceAffinity[symbol] = tracker.ProviderName(q.Source)
+	return quote, nil
 }
 
-func (qs *QuoteService) fetchAndSaveQuoteLocked(ctx context.Context, symbol string) (*domain.Quote, error) {
-	for service, entry := range qs.entries {
-		if !entry.online {
+func (qs *QuoteService) fetchQuoteLocked(ctx context.Context, symbol string, preferred tracker.ProviderName) (*domain.Quote, error) {
+	for providerName, source := range qs.sources {
+		if providerName != preferred || !source.online {
 			continue
 		}
-		quote, err := qs.fetchAndSaveQuoteFromEntry(ctx, symbol, tracker.ProviderName(service), entry)
-		if err != nil {
-			qs.logger.Warn("failed to fetch quote", slog.String("service", service), slog.String("symbol", symbol), slog.Any("err", err))
+		quote, err := source.provider.FetchQuote(ctx, symbol)
+		if err == nil {
+			return quote, nil
+		}
+		qs.logger.Warn("failed to fetch quote", slog.String("source", providerName.String()), slog.String("symbol", symbol), slog.Any("err", err))
+		break
+	}
+	for providerName, source := range qs.sources {
+		if providerName == preferred || !source.online {
 			continue
 		}
-		return quote, nil
+		quote, err := source.provider.FetchQuote(ctx, symbol)
+		if err == nil {
+			return quote, nil
+		}
+		qs.logger.Warn("failed to fetch quote", slog.String("source", providerName.String()), slog.String("symbol", symbol), slog.Any("err", err))
 	}
 	return nil, domain.ErrNoQuote
 }
 
-func (qs *QuoteService) fetchAndSaveQuoteFromEntry(ctx context.Context, symbol string, providerName tracker.ProviderName, entry *quoteServiceEntry) (*domain.Quote, error) {
-	qs.logger.Info("fetching quote...", slog.String("symbol", symbol), slog.String("provider", providerName.String()))
-	quote, err := entry.provider.FetchQuote(ctx, symbol)
-	entry.lastRun = time.Now()
-	entry.lastErr = err
+// FetchHistory returns historical quotes. Store-first, falls back to live providers.
+func (qs *QuoteService) FetchHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error) {
+	quotes, err := qs.fetchSavedHistory(ctx, symbol, from, to)
+	if err != nil {
+		qs.logger.Warn("failed to get quota history", slog.String("symbol", symbol), slog.Any("err", err))
+	}
+	if len(quotes) >= (int(to.Sub(from).Hours())+23)/24 {
+		return quotes, nil
+	}
+
+	qs.mutex.RLock()
+	defer qs.mutex.RUnlock()
+
+	quotes, err = qs.fetchHistoryLocked(ctx, symbol, from, to, qs.sourceAffinity[symbol])
 	if err != nil {
 		return nil, err
 	}
-	qs.logger.Debug("quote fetched", slog.String("symbol", symbol), slog.Float64("price", quote.Price), slog.String("currency", quote.Currency))
-	err = qs.runtime.DataStore().SaveQuote(ctx, quote)
+	err = qs.runtime.DataStore().SaveQuotes(ctx, quotes)
 	if err != nil {
-		qs.runtime.Logger().Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
+		qs.logger.Warn("failed to save quotes", slog.String("symbol", symbol), slog.Any("err", err))
 	}
-	return quote, nil
+	if len(quotes) > 0 {
+		qs.sourceAffinity[symbol] = tracker.ProviderName(quotes[0].Source)
+	}
+	return quotes, nil
 }
 
-// FetchQuote is the legacy API for direct provider access (used by MCP Runtime compatibility).
-// Prefer ResolveQuote for new code.
-func (qs *QuoteService) FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
-	return qs.ResolveQuote(ctx, symbol)
+func (qs *QuoteService) fetchSavedHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error) {
+	quotes, err := qs.runtime.DataStore().GetQuotes(ctx, symbol, from, to)
+	if err != nil {
+		return nil, err
+	}
+	dateQuotes := make(map[time.Time]int, len(quotes))
+	for quoteIndex, quote := range quotes {
+		date := time.Date(quote.SourceTimestamp.Year(), quote.SourceTimestamp.Month(), quote.SourceTimestamp.Day(), 0, 0, 0, 0, quote.SourceTimestamp.Location())
+		dateQuoteIndex, ok := dateQuotes[date]
+		if !ok || quotes[dateQuoteIndex].SourceTimestamp.Before(quote.SourceTimestamp) {
+			dateQuotes[date] = quoteIndex
+		}
+	}
+	history := make(domain.Quotes, 0, len(dateQuotes))
+	for _, date := range slices.SortedFunc(maps.Keys(dateQuotes), func(t1, t2 time.Time) int { return t1.Compare(t2) }) {
+		history = append(history, quotes[dateQuotes[date]])
+	}
+	return history, nil
 }
 
-// FetchHistory returns historical quotes. Store-first, falls back to live providers.
-func (qs *QuoteService) FetchHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error) {
-	return qs.fetchAndSaveHistory(ctx, symbol, from, to)
-}
-
-func (qs *QuoteService) fetchAndSaveHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error) {
-	for service, entry := range qs.entries {
-		if !entry.online {
+func (qs *QuoteService) fetchHistoryLocked(ctx context.Context, symbol string, from, to time.Time, preferred tracker.ProviderName) (domain.Quotes, error) {
+	for providerName, source := range qs.sources {
+		if providerName != preferred || !source.online {
 			continue
 		}
-		quotes, err := entry.provider.FetchHistory(ctx, symbol, from, to)
-		entry.lastRun = time.Now()
-		entry.lastErr = err
-		if err != nil {
-			qs.runtime.Logger().Warn("failed to fetch history", slog.String("service", service), slog.String("symbol", symbol), slog.Any("err", err))
+		quotes, err := source.provider.FetchHistory(ctx, symbol, from, to)
+		if err == nil {
+			return quotes, nil
+		}
+		qs.logger.Warn("failed to fetch quotes", slog.String("source", providerName.String()), slog.String("symbol", symbol), slog.Any("err", err))
+		break
+	}
+	for providerName, source := range qs.sources {
+		if providerName == preferred || !source.online {
 			continue
 		}
-		err = qs.runtime.DataStore().SaveQuotes(ctx, quotes)
-		if err != nil {
-			qs.runtime.Logger().Warn("failed to save quotes", slog.String("symbol", symbol), slog.Any("err", err))
+		quotes, err := source.provider.FetchHistory(ctx, symbol, from, to)
+		if err == nil {
+			return quotes, nil
 		}
-		return quotes, nil
+		qs.logger.Warn("failed to fetch quotes", slog.String("source", providerName.String()), slog.String("symbol", symbol), slog.Any("err", err))
 	}
 	return nil, domain.ErrNoQuote
 }
@@ -240,11 +255,16 @@ func (qs *QuoteService) Run(ctx context.Context) {
 	}
 	for _, symbol := range symbols {
 		qs.logger.Debug("fetching quote...", slog.String("symbol", symbol))
-		_, err := qs.fetchAndSaveQuoteLocked(ctx, symbol)
+		quote, err := qs.fetchQuoteLocked(ctx, symbol, "")
 		if err != nil {
-			qs.logger.Warn("failed to fetch quote", slog.String("symbol", symbol), slog.Any("err", err))
+			// fetchQuoteLocked logs failures alrady
 			continue
 		}
+		err = store.SaveQuote(ctx, quote)
+		if err != nil {
+			qs.logger.Warn("failed to save quota", slog.String("symbol", symbol), slog.Any("err", err))
+		}
+		break
 	}
 }
 
@@ -252,9 +272,9 @@ func (qs *QuoteService) Close() error {
 	qs.mutex.RLock()
 	defer qs.mutex.RUnlock()
 
-	closeErrs := make([]error, 0, len(qs.entries))
-	for _, entry := range qs.entries {
-		closeErr := entry.provider.Close()
+	closeErrs := make([]error, 0, len(qs.sources))
+	for _, source := range qs.sources {
+		closeErr := source.provider.Close()
 		if closeErr != nil {
 			closeErrs = append(closeErrs, closeErr)
 		}

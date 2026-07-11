@@ -46,7 +46,7 @@ type Server struct {
 	dataStore           *data.Store
 	httpServer          *httpserver.Instance
 	baseURL             *url.URL
-	stockTrackerPool    *stock.QuoteService
+	quoteService        *stock.QuoteService
 	jobTicker           *time.Ticker
 	jobTickerShutdown   chan any
 	jobTickerShutdownWG sync.WaitGroup
@@ -66,7 +66,7 @@ func StartServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 	startFuncs := []func(context.Context, *config.Config) error{
 		s.startStore,
 		s.startHttpServer,
-		s.startStockTrackerPool,
+		s.startQuoteService,
 		s.startRestAPI,
 		s.startMCPHandler,
 		s.startJobTicker,
@@ -199,13 +199,13 @@ func (s *Server) closeHttpServer() error {
 	return s.httpServer.Close()
 }
 
-func (s *Server) startStockTrackerPool(_ context.Context, cfg *config.Config) error {
+func (s *Server) startQuoteService(_ context.Context, cfg *config.Config) error {
 	runtime := &serverRuntime{server: s}
-	stockTrackerPool, err := stock.NewQuoteService(runtime, &cfg.QuoteTracker)
+	quoteService, err := stock.NewQuoteService(runtime, &cfg.QuoteService)
 	if err != nil {
 		return err
 	}
-	s.stockTrackerPool = stockTrackerPool
+	s.quoteService = quoteService
 	return nil
 }
 
@@ -226,7 +226,7 @@ func (s *Server) startJobTicker(_ context.Context, cfg *config.Config) error {
 	s.logger.Info("starting job ticker...", slog.String("schedule", schedule.String()))
 	s.jobTicker = time.NewTicker(schedule)
 	s.jobTickerShutdown = make(chan any)
-	s.jobs = append(s.jobs, s.stockTrackerPool)
+	s.jobs = append(s.jobs, s.quoteService)
 	s.jobTickerShutdownWG.Go(func() {
 		for stopped := false; !stopped; {
 			select {
@@ -266,7 +266,7 @@ func (runtime *serverRuntime) DataStore() *data.Store {
 }
 
 func (runtime *serverRuntime) QuoteService() *stock.QuoteService {
-	return runtime.server.stockTrackerPool
+	return runtime.server.quoteService
 }
 
 func (runtime *serverRuntime) Ping(ctx context.Context) error {

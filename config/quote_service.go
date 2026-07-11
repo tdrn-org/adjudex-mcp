@@ -16,31 +16,27 @@
 
 package config
 
-import "time"
-
-type QuoteTrackerConfig struct {
+type QuoteServiceConfig struct {
 	Currency     string                    `toml:"currency"`
+	MaxAge       DurationSpec              `toml:"max_age"`
 	Demo         DemoQuoteTrackerConfig    `toml:"demo"`
 	AlphaVantage AlphaVantageTrackerConfig `toml:"alphavantage"`
 	TwelveData   TwelveDataTrackerConfig   `toml:"twelvedata"`
 }
 
 type DemoQuoteTrackerConfig struct {
-	Enabled   bool          `toml:"enabled"`
-	Online    bool          `toml:"online"`
-	Frequency time.Duration `toml:"frequency"`
+	Enabled bool `toml:"enabled"`
+	Online  bool `toml:"online"`
 }
 
 type AlphaVantageTrackerConfig struct {
-	Enabled   bool          `toml:"enabled"`
-	Online    bool          `toml:"online"`
-	Frequency time.Duration `toml:"frequency"`
-	APIKey    string        `toml:"api_key"`
+	Enabled bool   `toml:"enabled"`
+	Online  bool   `toml:"online"`
+	APIKey  string `toml:"api_key"`
 }
 
 type TwelveDataTrackerConfig struct {
-	Enabled   bool          `toml:"enabled"`
-	Online    bool          `toml:"online"`
-	Frequency time.Duration `toml:"frequency"`
-	APIKey    string        `toml:"api_key"`
+	Enabled bool   `toml:"enabled"`
+	Online  bool   `toml:"online"`
+	APIKey  string `toml:"api_key"`
 }

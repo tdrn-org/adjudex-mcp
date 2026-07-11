@@ -34,7 +34,7 @@ const Name tracker.ProviderName = "alphavantage"
 
 const defaultBaseURL string = "https://www.alphavantage.co/query"
 
-func NewProvider(currency, apiKey string) (tracker.NamedProvider, error) {
+func NewProvider(currency, apiKey string) (tracker.Provider, error) {
 	p := &alphavantageProvider{
 		currency:   currency,
 		baseURL:    defaultBaseURL,
@@ -66,6 +66,10 @@ type symbolInfo struct {
 
 func (p *alphavantageProvider) Name() tracker.ProviderName {
 	return Name
+}
+
+func (p *alphavantageProvider) ResolveSymbols(ctx context.Context, query string) ([]string, error) {
+	return nil, nil
 }
 
 func (p *alphavantageProvider) FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error) {

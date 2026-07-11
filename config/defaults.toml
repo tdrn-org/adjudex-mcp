@@ -30,22 +30,19 @@ type = "memory"
 [store.sqlite]
 file = "./adjudex.db"
 
-[quote_tracker]
+[quote_service]
 currency = "USD"
 
-[quote_tracker.demo]
+[quote_service.demo]
 enabled = false
 online = true
-frequency = "5m"
 
-[quote_tracker.alphavantage]
+[quote_service.alphavantage]
 enabled = false
 online = false
-frequency = "4h"
 api_key = ""
 
-[quote_tracker.twelvedata]
+[quote_service.twelvedata]
 enabled = false
 online = true
-frequency = "1h"
 api_key = ""

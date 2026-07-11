@@ -20,8 +20,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"math"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -35,7 +37,7 @@ import (
 
 const Name tracker.ProviderName = "twelvedata"
 
-func NewProvider(currency string, apiKey string) (tracker.NamedProvider, error) {
+func NewProvider(currency string, apiKey string) (tracker.Provider, error) {
 	cfg := twelvedata.NewConfiguration()
 	cfg.DefaultHeader["Authorization"] = "apikey " + apiKey
 	cfg.DefaultHeader["X-API-Version"] = "last"
@@ -63,6 +65,23 @@ type twelvedataProvider struct {
 
 func (p *twelvedataProvider) Name() tracker.ProviderName {
 	return Name
+}
+
+func (p *twelvedataProvider) ResolveSymbols(ctx context.Context, query string) ([]string, error) {
+	rsp, _, err := p.client.ReferenceDataAPI.
+		GetSymbolSearch(ctx).
+		Symbol(query).
+		Execute()
+	if err != nil {
+		return nil, fmt.Errorf("failed to request symbol search via Twelve Data (cause: %w)", err)
+	}
+	symbolMap := make(map[string]string, len(rsp.Data))
+	for _, item := range rsp.Data {
+		symbolMap[item.Symbol] = item.Symbol
+	}
+	symbols := slices.Collect(maps.Keys(symbolMap))
+	slices.Sort(symbols)
+	return symbols, nil
 }
 
 func (p *twelvedataProvider) FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error) {

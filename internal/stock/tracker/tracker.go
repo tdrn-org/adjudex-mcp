@@ -35,6 +35,13 @@ func (name ProviderName) String() string {
 // Provider defines the interface for fetching stock quotes from an external data source.
 // Implementations should handle rate limiting, error wrapping, and source attribution.
 type Provider interface {
+	// Name returns the name of provider.
+	Name() ProviderName
+
+	// ResolveSymbols tries to resolve a given query string to a symbol. If a nil or empty array
+	// is returned, no symbol coulde resolved,
+	ResolveSymbols(ctx context.Context, query string) ([]string, error)
+
 	// FetchQuote returns the most recent quote for a symbol.
 	FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error)
 
@@ -42,13 +49,4 @@ type Provider interface {
 	FetchHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error)
 
 	io.Closer
-}
-
-// Provider defines the interface for fetching stock quotes from an external data source.
-// Implementations should handle rate limiting, error wrapping, and source attribution.
-type NamedProvider interface {
-	Provider
-
-	// Name returns the name of provider.
-	Name() ProviderName
 }

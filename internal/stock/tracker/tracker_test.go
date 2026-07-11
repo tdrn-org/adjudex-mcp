@@ -52,13 +52,15 @@ func TestAlphaVantageProvider(t *testing.T) {
 	require.NoError(t, provider.Close())
 }
 
-func testNamedProvider(t *testing.T, provider tracker.NamedProvider, symbol string, query bool) {
+func testNamedProvider(t *testing.T, provider tracker.Provider, symbol string, query bool) {
 	providerName := provider.Name()
 	require.NotEmpty(t, providerName)
 	t.Log(providerName)
 	if !query {
 		return
 	}
+	_, err := provider.ResolveSymbols(t.Context(), symbol)
+	require.NoError(t, err)
 	quote, err := provider.FetchQuote(t.Context(), symbol)
 	require.NoError(t, err)
 	t.Log(quote)

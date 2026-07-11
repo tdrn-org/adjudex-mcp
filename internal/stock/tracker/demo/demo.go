@@ -28,7 +28,7 @@ import (
 
 const Name tracker.ProviderName = "demo"
 
-func NewProvider(currency string) tracker.NamedProvider {
+func NewProvider(currency string) tracker.Provider {
 	return &demoProvider{
 		currency: currency,
 	}
@@ -40,6 +40,10 @@ type demoProvider struct {
 
 func (p *demoProvider) Name() tracker.ProviderName {
 	return Name
+}
+
+func (p *demoProvider) ResolveSymbols(_ context.Context, query string) ([]string, error) {
+	return []string{query}, nil
 }
 
 func (p *demoProvider) FetchQuote(_ context.Context, symbol string) (*domain.Quote, error) {
