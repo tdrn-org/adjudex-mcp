@@ -14,4 +14,4 @@ FROM
 WHERE
     a.symbol = $1
 ORDER BY
-    a.timestamp
+    a.timestamp DESC

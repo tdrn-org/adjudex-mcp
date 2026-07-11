@@ -15,4 +15,4 @@ WHERE
     a.symbol = $1 AND
     a.timestamp BETWEEN $2 AND $3
 ORDER BY
-    a.timestamp
+    a.timestamp ASC
