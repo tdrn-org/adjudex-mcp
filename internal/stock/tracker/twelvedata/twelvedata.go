@@ -231,8 +231,8 @@ func (p *twelvedataProvider) loadExchangeRate(ctx context.Context, symbol string
 	if split <= 0 {
 		return math.NaN(), fmt.Errorf("invalid symbol '%s'", symbol)
 	}
-	fromCurrency := symbol[:split-1]
-	toCurrency := symbol[split:]
+	fromCurrency := symbol[:split]
+	toCurrency := symbol[split+1:]
 	if fromCurrency == toCurrency {
 		return 1.0, nil
 	}
