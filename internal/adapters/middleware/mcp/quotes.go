@@ -45,14 +45,9 @@ func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
 
-		// Store-First: check cache before hitting API
-		quote, err := runtime.DataStore().GetLatestQuote(ctx, args.Symbol)
+		quote, err := runtime.QuoteService().ResolveQuote(ctx, args.Symbol)
 		if err != nil {
-			runtime.Logger().Info("quote not in store, fetching live", "symbol", args.Symbol)
-			quote, err = runtime.StockTracker().FetchQuote(ctx, args.Symbol)
-			if err != nil {
-				return nil, fmt.Errorf("fetching quote for %q: %w", args.Symbol, err)
-			}
+			return nil, fmt.Errorf("resolving quote for %q: %w", args.Symbol, err)
 		}
 		return newToolResult(quote)
 	})
@@ -75,7 +70,7 @@ func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 
 		now := time.Now()
 		to := now
-		from := now.AddDate(0, -1, 0) // default: 1 month
+		from := now.AddDate(0, -1, 0)
 
 		if args.From != "" {
 			var err error
@@ -92,11 +87,10 @@ func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 			}
 		}
 
-		// Store-First: check cache before hitting API
 		quotes, err := runtime.DataStore().GetQuotes(ctx, args.Symbol, from, to)
 		if err != nil || len(quotes) == 0 {
 			runtime.Logger().Info("quotes not in store, fetching live", "symbol", args.Symbol)
-			quotes, err = runtime.StockTracker().FetchHistory(ctx, args.Symbol, from, to)
+			quotes, err = runtime.QuoteService().FetchHistory(ctx, args.Symbol, from, to)
 			if err != nil {
 				return nil, fmt.Errorf("fetching history for %q: %w", args.Symbol, err)
 			}
@@ -132,18 +126,16 @@ func addQuoteIndicatorTool(server *mcp.Server, runtime Runtime) {
 		indicatorType := domain.IndicatorType(args.Type)
 		switch indicatorType {
 		case domain.IndicatorSMA, domain.IndicatorEMA, domain.IndicatorRSI, domain.IndicatorMACD:
-			// valid
 		default:
 			return nil, fmt.Errorf("unknown indicator type %q (valid: sma, ema, rsi, macd)", args.Type)
 		}
 
-		// Fetch quotes for the lookback window
 		now := time.Now()
-		from := now.AddDate(0, -3, 0) // 3 months for enough data
+		from := now.AddDate(0, -3, 0)
 		quotes, err := runtime.DataStore().GetQuotes(ctx, args.Symbol, from, now)
 		if err != nil || len(quotes) < args.Period {
 			runtime.Logger().Info("not enough quotes in store, fetching live", "symbol", args.Symbol)
-			quotes, err = runtime.StockTracker().FetchHistory(ctx, args.Symbol, from, now)
+			quotes, err = runtime.QuoteService().FetchHistory(ctx, args.Symbol, from, now)
 			if err != nil {
 				return nil, fmt.Errorf("fetching history for %q: %w", args.Symbol, err)
 			}
@@ -197,7 +189,6 @@ func computeEMA(quotes []domain.Quote, period int) []domain.IndicatorValue {
 	values := make([]domain.IndicatorValue, 0, len(quotes)-period+1)
 	multiplier := 2.0 / float64(period+1)
 
-	// First EMA = SMA
 	sum := 0.0
 	for i := 0; i < period; i++ {
 		sum += quotes[i].Close
