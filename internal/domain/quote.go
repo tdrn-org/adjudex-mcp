@@ -45,6 +45,7 @@ func (q *Quote) ApplyCurrency(currency string, exchangeRate float64) {
 	q.High *= exchangeRate
 	q.Low *= exchangeRate
 	q.Close *= exchangeRate
+	q.Price *= exchangeRate
 }
 
 type Quotes []Quote
