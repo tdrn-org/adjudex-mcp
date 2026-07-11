@@ -3,4 +3,4 @@ SELECT DISTINCT
 FROM
     position a
 ORDER BY
-    a.symbol
+    a.symbol ASC

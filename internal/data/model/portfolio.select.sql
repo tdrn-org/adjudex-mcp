@@ -7,4 +7,4 @@ SELECT
 FROM
     portfolio a
 ORDER BY
-    a.name
+    a.name ASC
