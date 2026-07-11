@@ -18,10 +18,20 @@ package model
 
 import (
 	_ "embed"
+	"time"
 
+	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/sqlite"
 )
 
 //go:embed schema.sqlite.1.sql
 var schemaSQLite1Script []byte
 var SqliteSchemaScriptOption sqlite.ConfigSetter = sqlite.WithSchemaScripts(schemaSQLite1Script)
+
+func ptrTime(t *time.Time) *int64 {
+	if t == nil {
+		return nil
+	}
+	dbTime := database.Time2DB(*t)
+	return &dbTime
+}

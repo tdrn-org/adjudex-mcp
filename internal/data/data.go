@@ -311,3 +311,82 @@ func (s *Store) modelToQuote(storeQuote *model.Quote) *domain.Quote {
 		SourceTimestamp: database.DB2Time(storeQuote.SourceTimestamp),
 	}
 }
+
+func (s *Store) CreateAlert(ctx context.Context, a *domain.Alert) error {
+	storeAlert, err := model.InsertAlert(ctx, s.driver, a)
+	a.ID, a.CreatedAt, a.UpdatedAt = storeAlert.ID, database.DB2Time(storeAlert.CreatedAt), database.DB2Time(storeAlert.UpdatedAt)
+	return err
+}
+
+func (s *Store) GetAlert(ctx context.Context, id string) (*domain.Alert, error) {
+	storeAlert, err := model.SelectAlertByID(ctx, s.driver, id)
+	if err != nil {
+		return nil, err
+	}
+	return s.modelToAlert(storeAlert), nil
+}
+
+func (s *Store) modelToAlert(storeAlert *model.Alert) *domain.Alert {
+	if storeAlert == nil {
+		return nil
+	}
+	var indicator *domain.IndicatorSpec
+	if storeAlert.IndicatorType != nil && storeAlert.IndicatorPeriod != nil {
+		indicator = &domain.IndicatorSpec{
+			Type:   domain.IndicatorType(*storeAlert.IndicatorType),
+			Period: *storeAlert.IndicatorPeriod,
+		}
+	}
+	var triggeredAt *time.Time
+	if storeAlert.TriggeredAt != nil {
+		time := database.DB2Time(*storeAlert.TriggeredAt)
+		triggeredAt = &time
+	}
+	alert := &domain.Alert{
+		ID:          storeAlert.ID,
+		Name:        storeAlert.Name,
+		Symbol:      storeAlert.Symbol,
+		Condition:   domain.AlertCondition(storeAlert.Condition),
+		Threshold:   storeAlert.Threshold,
+		Indicator:   indicator,
+		State:       domain.AlertState(storeAlert.State),
+		TriggeredAt: triggeredAt,
+		Message:     storeAlert.Message,
+		CreatedAt:   database.DB2Time(storeAlert.CreatedAt),
+		UpdatedAt:   database.DB2Time(storeAlert.UpdatedAt),
+	}
+	return alert
+}
+
+func (s *Store) ListAlerts(ctx context.Context, symbol string) ([]domain.Alert, error) {
+	storeAlerts, err := model.SelectAlertsBySymbol(ctx, s.driver, symbol)
+	if err != nil {
+		return nil, err
+	}
+	alerts := make([]domain.Alert, 0, len(storeAlerts))
+	for _, storeAlert := range storeAlerts {
+		alerts = append(alerts, *s.modelToAlert(storeAlert))
+	}
+	return alerts, nil
+}
+
+func (s *Store) ListArmedAlerts(ctx context.Context) ([]domain.Alert, error) {
+	storeAlerts, err := model.SelectAlertsByState(ctx, s.driver, domain.AlertStateArmed)
+	if err != nil {
+		return nil, err
+	}
+	alerts := make([]domain.Alert, 0, len(storeAlerts))
+	for _, storeAlert := range storeAlerts {
+		alerts = append(alerts, *s.modelToAlert(storeAlert))
+	}
+	return alerts, nil
+}
+
+func (s *Store) UpdateAlert(ctx context.Context, a *domain.Alert) error {
+	_, err := model.UpdateAlert(ctx, s.driver, a)
+	return err
+}
+
+func (s *Store) DeleteAlert(ctx context.Context, id string) error {
+	return model.DeleteAlertByID(ctx, s.driver, id)
+}

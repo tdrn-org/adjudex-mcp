@@ -13,7 +13,7 @@ CREATE TABLE quote(
     volume INTEGER NOT NULL,
     source TEXT NOT NULL,
     source_timestamp INTEGER NOT NULL,
-    PRIMARY KEY(symbol, timestamp)
+    PRIMARY KEY(symbol, source_timestamp)
 );
 --
 -- Portfolio

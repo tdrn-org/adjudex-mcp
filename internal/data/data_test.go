@@ -144,6 +144,55 @@ func TestQuote(t *testing.T) {
 	require.Equal(t, &quotes[1], quote)
 }
 
+func TestAlert(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	a1 := &domain.Alert{
+		Name:      t.Name() + " alert",
+		Symbol:    "XYZ",
+		Condition: domain.AlertPriceBelow,
+		Threshold: 35.0,
+		State:     domain.AlertStateArmed,
+		Message:   t.Name() + " alert",
+	}
+
+	// Create
+	err := store.CreateAlert(t.Context(), a1)
+	require.NoError(t, err)
+
+	// Get
+	a2, err := store.GetAlert(t.Context(), a1.ID)
+	require.NoError(t, err)
+	require.Equal(t, a1, a2)
+
+	// List (symbol)
+	as, err := store.ListAlerts(t.Context(), "XYZ")
+	require.NoError(t, err)
+	require.Len(t, as, 1)
+	require.Equal(t, a1, &as[0])
+
+	// List (armed)
+	as, err = store.ListArmedAlerts(t.Context())
+	require.NoError(t, err)
+	require.Len(t, as, 1)
+	require.Equal(t, a1, &as[0])
+
+	// Update
+	a2.Message = a2.Message + " (updated)"
+	err = store.UpdateAlert(t.Context(), a2)
+	require.NoError(t, err)
+
+	// Delete
+	err = store.DeleteAlert(t.Context(), a1.ID)
+	require.NoError(t, err)
+
+	// List
+	as, err = store.ListAlerts(t.Context(), "XYZ")
+	require.NoError(t, err)
+	require.Len(t, as, 0)
+}
+
 func newDataStore(t *testing.T) *data.Store {
 	driver, err := database.Open(memory.NewConfig(model.SqliteSchemaScriptOption))
 	require.NoError(t, err)

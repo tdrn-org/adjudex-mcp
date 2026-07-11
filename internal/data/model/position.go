@@ -100,7 +100,6 @@ func UpdatePosition(ctx context.Context, driver *database.Driver, portfolioID st
 		EntryPrice:  pos.EntryPrice,
 		EntryDate:   database.Time2DB(pos.EntryDate),
 		Notes:       pos.Notes,
-		CreatedAt:   database.Time2DB(tx.Now()),
 		UpdatedAt:   database.Time2DB(tx.Now()),
 	}
 	err = tx.ExecTx(txCtx, updatePositionByIDSQL,
