@@ -94,10 +94,10 @@ func (tp *TrackerPool) FetchQuote(ctx context.Context, symbol string) (*domain.Q
 	tp.mutex.RLock()
 	defer tp.mutex.RUnlock()
 
-	return tp.fetchQuote(ctx, symbol)
+	return tp.fetchAndSaveQuote(ctx, symbol)
 }
 
-func (tp *TrackerPool) fetchQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
+func (tp *TrackerPool) fetchAndSaveQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
 	tp.logger.Info("fetching quote...", slog.String("symbol", symbol))
 	for service, entry := range tp.entries {
 		if !entry.online {
@@ -111,6 +111,10 @@ func (tp *TrackerPool) fetchQuote(ctx context.Context, symbol string) (*domain.Q
 			continue
 		}
 		tp.logger.Debug("quote fetched", slog.String("symbol", symbol), slog.Float64("price", quote.Price), slog.String("currency", quote.Currency))
+		err = tp.runtime.DataStore().SaveQuote(ctx, quote)
+		if err != nil {
+			tp.runtime.Logger().Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
+		}
 		return quote, nil
 	}
 	return nil, domain.ErrNoQuote
@@ -120,10 +124,10 @@ func (tp *TrackerPool) FetchHistory(ctx context.Context, symbol string, from, to
 	tp.mutex.RLock()
 	defer tp.mutex.RUnlock()
 
-	return tp.fetchHistory(ctx, symbol, from, to)
+	return tp.fetchAndSaveHistory(ctx, symbol, from, to)
 }
 
-func (tp *TrackerPool) fetchHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error) {
+func (tp *TrackerPool) fetchAndSaveHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error) {
 	for service, entry := range tp.entries {
 		if !entry.online {
 			continue
@@ -134,6 +138,10 @@ func (tp *TrackerPool) fetchHistory(ctx context.Context, symbol string, from, to
 		if err != nil {
 			tp.runtime.Logger().Warn("failed to fetch history", slog.String("service", service), slog.String("symbol", symbol), slog.Any("err", err))
 			continue
+		}
+		err = tp.runtime.DataStore().SaveQuotes(ctx, quotes)
+		if err != nil {
+			tp.runtime.Logger().Warn("failed to save quotes", slog.String("symbol", symbol), slog.Any("err", err))
 		}
 		return quotes, nil
 	}
@@ -153,17 +161,11 @@ func (tp *TrackerPool) Run(ctx context.Context) {
 	}
 	for _, symbol := range symbols {
 		tp.logger.Debug("fetching quote...", slog.String("symbol", symbol))
-		quote, err := tp.fetchQuote(ctx, symbol)
+		_, err := tp.fetchAndSaveQuote(ctx, symbol)
 		if err != nil {
 			tp.logger.Warn("failed to fetch quote", slog.String("symbol", symbol), slog.Any("err", err))
 			continue
 		}
-		err = store.SaveQuote(ctx, quote)
-		if err != nil {
-			tp.logger.Warn("failed to store quote", slog.String("symbol", symbol), slog.Any("err", err))
-			continue
-		}
-		tp.logger.Debug("quote saved", slog.String("symbol", symbol), slog.Float64("price", quote.Price), slog.String("currency", quote.Currency))
 	}
 }
 
