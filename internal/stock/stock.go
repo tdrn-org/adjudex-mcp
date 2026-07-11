@@ -94,6 +94,10 @@ func (tp *TrackerPool) FetchQuote(ctx context.Context, symbol string) (*domain.Q
 	tp.mutex.RLock()
 	defer tp.mutex.RUnlock()
 
+	return tp.fetchQuote(ctx, symbol)
+}
+
+func (tp *TrackerPool) fetchQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
 	tp.logger.Info("fetching quote...", slog.String("symbol", symbol))
 	for service, entry := range tp.entries {
 		if !entry.online {
@@ -116,6 +120,10 @@ func (tp *TrackerPool) FetchHistory(ctx context.Context, symbol string, from, to
 	tp.mutex.RLock()
 	defer tp.mutex.RUnlock()
 
+	return tp.fetchHistory(ctx, symbol, from, to)
+}
+
+func (tp *TrackerPool) fetchHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error) {
 	for service, entry := range tp.entries {
 		if !entry.online {
 			continue
@@ -145,7 +153,7 @@ func (tp *TrackerPool) Run(ctx context.Context) {
 	}
 	for _, symbol := range symbols {
 		tp.logger.Debug("fetching quote...", slog.String("symbol", symbol))
-		quote, err := tp.FetchQuote(ctx, symbol)
+		quote, err := tp.fetchQuote(ctx, symbol)
 		if err != nil {
 			tp.logger.Warn("failed to fetch quote", slog.String("symbol", symbol), slog.Any("err", err))
 			continue
