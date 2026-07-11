@@ -51,8 +51,8 @@ func (q *Quote) ApplyCurrency(currency string, exchangeRate float64) {
 type Quotes []Quote
 
 func (qs Quotes) ApplyCurrency(currency string, exchangeRate float64) {
-	for _, q := range qs {
-		q.ApplyCurrency(currency, exchangeRate)
+	for i := range qs {
+		qs[i].ApplyCurrency(currency, exchangeRate)
 	}
 }
 
