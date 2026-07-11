@@ -31,8 +31,8 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/adapters/middleware/rest"
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
-	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/adjudex-mcp/internal/stock"
+	"github.com/tdrn-org/adjudex-mcp/internal/stock/tracker"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
 	"github.com/tdrn-org/go-database/sqlite"
@@ -266,12 +266,8 @@ func (runtime *serverRuntime) DataStore() *data.Store {
 	return runtime.server.dataStore
 }
 
-func (runtime *serverRuntime) FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
-	return runtime.server.stockTrackerPool.FetchQuote(ctx, symbol)
-}
-
-func (runtime *serverRuntime) FetchHistory(ctx context.Context, symbol string, from, to time.Time) ([]domain.Quote, error) {
-	return runtime.server.stockTrackerPool.FetchHistory(ctx, symbol, from, to)
+func (runtime *serverRuntime) StockTracker() tracker.Provider {
+	return runtime.server.stockTrackerPool
 }
 
 func (runtime *serverRuntime) Ping(ctx context.Context) error {

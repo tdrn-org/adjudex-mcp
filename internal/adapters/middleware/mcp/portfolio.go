@@ -244,7 +244,7 @@ func addPortfolioHoldingsTool(server *mcp.Server, runtime Runtime) {
 
 		holdings := make([]domain.Holding, 0, len(p.Positions))
 		for _, pos := range p.Positions {
-			quote, err := runtime.FetchQuote(ctx, pos.Symbol)
+			quote, err := runtime.StockTracker().FetchQuote(ctx, pos.Symbol)
 			if err != nil {
 				runtime.Logger().Warn("failed to fetch quote for holding", "symbol", pos.Symbol, "err", err)
 				continue
