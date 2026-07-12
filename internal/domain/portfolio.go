@@ -60,17 +60,46 @@ type Holding struct {
 // it is never persisted or mutated, only computed and consumed. This avoids
 // nil-check boilerplate and reduces GC pressure (stack allocation for ~224 bytes).
 func NewHolding(pos Position, currentPrice float64) Holding {
+	totalEntryPrice := pos.Quantity * pos.EntryPrice
 	marketValue := pos.Quantity * currentPrice
-	pnl := marketValue - (pos.Quantity * pos.EntryPrice)
-	var pnlPct float64
-	if pos.EntryPrice > 0 {
-		pnlPct = ((currentPrice - pos.EntryPrice) / pos.EntryPrice) * 100
+	pnl := marketValue - totalEntryPrice
+	var pnlPercent float64
+	if totalEntryPrice > 0 {
+		pnlPercent = (pnl / totalEntryPrice) * 100
 	}
 	return Holding{
 		Position:     pos,
 		CurrentPrice: currentPrice,
 		MarketValue:  marketValue,
 		PnL:          pnl,
-		PnLPercent:   pnlPct,
+		PnLPercent:   pnlPercent,
 	}
+}
+
+type Holdings []Holding
+
+type HoldingsSummary struct {
+	MarketValue float64
+	PnL         float64
+	PnLPercent  float64
+}
+
+func (holdings Holdings) Summarize() HoldingsSummary {
+	totalEntryPrice := 0.0
+	totalMarketValue := 0.0
+	for _, holding := range holdings {
+		totalEntryPrice += holding.Quantity * holding.EntryPrice
+		totalMarketValue += holding.MarketValue
+	}
+	pnl := totalMarketValue - totalEntryPrice
+	var pnlPercent float64
+	if totalEntryPrice > 0 {
+		pnlPercent = (pnl / totalEntryPrice) * 100
+	}
+	summary := HoldingsSummary{
+		MarketValue: totalMarketValue,
+		PnL:         pnl,
+		PnLPercent:  pnlPercent,
+	}
+	return summary
 }

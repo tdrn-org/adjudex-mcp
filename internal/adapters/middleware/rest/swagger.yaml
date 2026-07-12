@@ -2,43 +2,34 @@ basePath: /api/v1
 definitions:
   domain.Holding:
     properties:
-      createdAt:
+      created_at:
         type: string
-      currentPrice:
-        format: float64
+      current_price:
         type: number
-      entryDate:
+      entry_date:
         type: string
-      entryPrice:
-        format: float64
+      entry_price:
         type: number
       id:
         type: string
-      marketValue:
-        format: float64
+      market_value:
         type: number
       notes:
         type: string
-      pnL:
-        description: absolute profit/loss
-        format: float64
+      pnl:
         type: number
-      pnLPercent:
-        description: relative profit/loss percentage
-        format: float64
+      pnl_percent:
         type: number
       quantity:
-        format: float64
         type: number
       symbol:
-        description: WKN or ticker (e.g., "A413X6", "NVDA")
         type: string
-      updatedAt:
+      updated_at:
         type: string
     type: object
   domain.Portfolio:
     properties:
-      createdAt:
+      created_at:
         type: string
       description:
         type: string
@@ -50,29 +41,26 @@ definitions:
         items:
           $ref: '#/definitions/domain.Position'
         type: array
-      updatedAt:
+      updated_at:
         type: string
     type: object
   domain.Position:
     properties:
-      createdAt:
+      created_at:
         type: string
-      entryDate:
+      entry_date:
         type: string
-      entryPrice:
-        format: float64
+      entry_price:
         type: number
       id:
         type: string
       notes:
         type: string
       quantity:
-        format: float64
         type: number
       symbol:
-        description: WKN or ticker (e.g., "A413X6", "NVDA")
         type: string
-      updatedAt:
+      updated_at:
         type: string
     type: object
   domain.PriceHistory:
@@ -87,33 +75,26 @@ definitions:
   domain.Quote:
     properties:
       close:
-        format: float64
         type: number
       currency:
         type: string
       high:
-        format: float64
         type: number
       low:
-        format: float64
         type: number
       open:
-        format: float64
         type: number
       price:
-        format: float64
         type: number
       source:
-        description: provider identifier (e.g., "consorsbank", "yahoo", "mock")
         type: string
-      sourceTimestamp:
+      source_timestamp:
         type: string
       symbol:
         type: string
       timestamp:
         type: string
       volume:
-        format: int64
         type: integer
     type: object
   rest.ServerInfo:

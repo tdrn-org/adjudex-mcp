@@ -438,49 +438,40 @@ const docTemplate = `{
         "domain.Holding": {
             "type": "object",
             "properties": {
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
-                "currentPrice": {
-                    "type": "number",
-                    "format": "float64"
+                "current_price": {
+                    "type": "number"
                 },
-                "entryDate": {
+                "entry_date": {
                     "type": "string"
                 },
-                "entryPrice": {
-                    "type": "number",
-                    "format": "float64"
+                "entry_price": {
+                    "type": "number"
                 },
                 "id": {
                     "type": "string"
                 },
-                "marketValue": {
-                    "type": "number",
-                    "format": "float64"
+                "market_value": {
+                    "type": "number"
                 },
                 "notes": {
                     "type": "string"
                 },
-                "pnL": {
-                    "description": "absolute profit/loss",
-                    "type": "number",
-                    "format": "float64"
+                "pnl": {
+                    "type": "number"
                 },
-                "pnLPercent": {
-                    "description": "relative profit/loss percentage",
-                    "type": "number",
-                    "format": "float64"
+                "pnl_percent": {
+                    "type": "number"
                 },
                 "quantity": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "symbol": {
-                    "description": "WKN or ticker (e.g., \"A413X6\", \"NVDA\")",
                     "type": "string"
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -488,7 +479,7 @@ const docTemplate = `{
         "domain.Portfolio": {
             "type": "object",
             "properties": {
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
                 "description": {
@@ -506,7 +497,7 @@ const docTemplate = `{
                         "$ref": "#/definitions/domain.Position"
                     }
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -514,15 +505,14 @@ const docTemplate = `{
         "domain.Position": {
             "type": "object",
             "properties": {
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
-                "entryDate": {
+                "entry_date": {
                     "type": "string"
                 },
-                "entryPrice": {
-                    "type": "number",
-                    "format": "float64"
+                "entry_price": {
+                    "type": "number"
                 },
                 "id": {
                     "type": "string"
@@ -531,14 +521,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "quantity": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "symbol": {
-                    "description": "WKN or ticker (e.g., \"A413X6\", \"NVDA\")",
                     "type": "string"
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -561,33 +549,27 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "close": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "currency": {
                     "type": "string"
                 },
                 "high": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "low": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "open": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "price": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "source": {
-                    "description": "provider identifier (e.g., \"consorsbank\", \"yahoo\", \"mock\")",
                     "type": "string"
                 },
-                "sourceTimestamp": {
+                "source_timestamp": {
                     "type": "string"
                 },
                 "symbol": {
@@ -597,8 +579,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "volume": {
-                    "type": "integer",
-                    "format": "int64"
+                    "type": "integer"
                 }
             }
         },
