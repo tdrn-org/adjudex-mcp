@@ -50,4 +50,4 @@ api_key = ""
 
 [metrics]
 enabled = false
-path = "/metrcis"
+path = "/metrics"
