@@ -29,37 +29,38 @@ import (
 
 const defaultCurrency string = "EUR"
 const defaultQuoteSymbol string = "CRWV"
+const defaultSymbolQuery string = "A413X6"
 
 func TestDemoProvider(t *testing.T) {
 	provider := demo.NewProvider(defaultCurrency)
-	testNamedProvider(t, provider, defaultQuoteSymbol, true)
+	testNamedProvider(t, provider, defaultQuoteSymbol, defaultSymbolQuery, false)
 	require.NoError(t, provider.Close())
 }
 
 func TestTwelveDataProvider(t *testing.T) {
-	t.SkipNow()
-	provider, err := twelvedata.NewProvider(defaultCurrency, "")
+	apiKey := ""
+	provider, err := twelvedata.NewProvider(defaultCurrency, apiKey)
 	require.NoError(t, err)
-	testNamedProvider(t, provider, defaultQuoteSymbol, true)
+	testNamedProvider(t, provider, defaultQuoteSymbol, defaultSymbolQuery, apiKey == "")
 	require.NoError(t, provider.Close())
 }
 
 func TestAlphaVantageProvider(t *testing.T) {
-	t.SkipNow()
-	provider, err := alphavantage.NewProvider(defaultCurrency, "")
+	apiKey := ""
+	provider, err := alphavantage.NewProvider(defaultCurrency, apiKey)
 	require.NoError(t, err)
-	testNamedProvider(t, provider, defaultQuoteSymbol, true)
+	testNamedProvider(t, provider, defaultQuoteSymbol, defaultSymbolQuery, apiKey == "")
 	require.NoError(t, provider.Close())
 }
 
-func testNamedProvider(t *testing.T, provider tracker.Provider, symbol string, query bool) {
+func testNamedProvider(t *testing.T, provider tracker.Provider, query, symbol string, fast bool) {
 	providerName := provider.Name()
 	require.NotEmpty(t, providerName)
 	t.Log(providerName)
-	if !query {
+	if fast {
 		return
 	}
-	_, err := provider.ResolveSymbols(t.Context(), symbol)
+	_, err := provider.ResolveSymbols(t.Context(), query)
 	require.NoError(t, err)
 	quote, err := provider.FetchQuote(t.Context(), symbol)
 	require.NoError(t, err)

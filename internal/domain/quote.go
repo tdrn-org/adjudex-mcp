@@ -24,6 +24,12 @@ import (
 var ErrNoQuote error = errors.New("no quote")
 var ErrQuoteRateLimit error = errors.New("quote rate limit")
 
+type SymbolInfo struct {
+	Symbol string
+	Source string
+	Info   string
+}
+
 // Quote represents a single price snapshot for a symbol.
 type Quote struct {
 	Symbol          string

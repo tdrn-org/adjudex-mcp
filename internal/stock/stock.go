@@ -97,23 +97,15 @@ func (qs *QuoteService) addSource(provider tracker.Provider, online bool) {
 
 // ResolveSymbols resolves a search query (e.g., WKN) to a ticker symbol
 // using all configured providers. Returns the symbol and the provider that resolved it.
-func (qs *QuoteService) ResolveSymbols(ctx context.Context, query string) map[string][]tracker.ProviderName {
-	result := make(map[string][]tracker.ProviderName, 0)
+func (qs *QuoteService) ResolveSymbols(ctx context.Context, query string) []domain.SymbolInfo {
+	var result []domain.SymbolInfo
 	for providerName, source := range qs.sources {
-		symbols, err := source.provider.ResolveSymbols(ctx, query)
+		symbolInfos, err := source.provider.ResolveSymbols(ctx, query)
 		if err != nil {
 			qs.logger.Warn("failed to resolve symbol", slog.String("provider", providerName.String()), slog.Any("err", err))
 			continue
 		}
-		for _, symbol := range symbols {
-			providerNames, ok := result[symbol]
-			if ok {
-				providerNames = append(providerNames, providerName)
-			} else {
-				providerNames = []tracker.ProviderName{providerName}
-			}
-			result[symbol] = providerNames
-		}
+		result = append(result, symbolInfos...)
 	}
 	return result
 }

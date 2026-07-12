@@ -42,8 +42,8 @@ func (p *demoProvider) Name() tracker.ProviderName {
 	return Name
 }
 
-func (p *demoProvider) ResolveSymbols(_ context.Context, query string) ([]string, error) {
-	return []string{query}, nil
+func (p *demoProvider) ResolveSymbols(_ context.Context, query string) ([]domain.SymbolInfo, error) {
+	return []domain.SymbolInfo{{Symbol: query, Source: Name.String()}}, nil
 }
 
 func (p *demoProvider) FetchQuote(_ context.Context, symbol string) (*domain.Quote, error) {

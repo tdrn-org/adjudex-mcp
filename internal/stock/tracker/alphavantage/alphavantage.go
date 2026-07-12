@@ -68,8 +68,21 @@ func (p *alphavantageProvider) Name() tracker.ProviderName {
 	return Name
 }
 
-func (p *alphavantageProvider) ResolveSymbols(ctx context.Context, query string) ([]string, error) {
-	return nil, nil
+func (p *alphavantageProvider) ResolveSymbols(ctx context.Context, query string) ([]domain.SymbolInfo, error) {
+	symbolSearch, err := p.getSymbolSearch(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	symbolInfos := make([]domain.SymbolInfo, 0, len(symbolSearch.BestMatches))
+	for _, bestMatch := range symbolSearch.BestMatches {
+		symbolInfo := domain.SymbolInfo{
+			Symbol: bestMatch.Symbol,
+			Source: Name.String(),
+			Info:   fmt.Sprintf("%s/%s", bestMatch.Region, bestMatch.Currency),
+		}
+		symbolInfos = append(symbolInfos, symbolInfo)
+	}
+	return symbolInfos, nil
 }
 
 func (p *alphavantageProvider) FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error) {

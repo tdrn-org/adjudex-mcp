@@ -39,8 +39,8 @@ type Provider interface {
 	Name() ProviderName
 
 	// ResolveSymbols tries to resolve a given query string to a symbol. If a nil or empty array
-	// is returned, no symbol coulde resolved,
-	ResolveSymbols(ctx context.Context, query string) ([]string, error)
+	// is returned, no symbol info could be resolved,
+	ResolveSymbols(ctx context.Context, query string) ([]domain.SymbolInfo, error)
 
 	// FetchQuote returns the most recent quote for a symbol.
 	FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error)

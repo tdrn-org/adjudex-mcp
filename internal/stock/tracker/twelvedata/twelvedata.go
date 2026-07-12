@@ -20,10 +20,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
 	"math"
 	"net/http"
-	"slices"
 	"strings"
 	"time"
 
@@ -67,7 +65,7 @@ func (p *twelvedataProvider) Name() tracker.ProviderName {
 	return Name
 }
 
-func (p *twelvedataProvider) ResolveSymbols(ctx context.Context, query string) ([]string, error) {
+func (p *twelvedataProvider) ResolveSymbols(ctx context.Context, query string) ([]domain.SymbolInfo, error) {
 	rsp, _, err := p.client.ReferenceDataAPI.
 		GetSymbolSearch(ctx).
 		Symbol(query).
@@ -75,13 +73,16 @@ func (p *twelvedataProvider) ResolveSymbols(ctx context.Context, query string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to request symbol search via Twelve Data (cause: %w)", err)
 	}
-	symbolMap := make(map[string]string, len(rsp.Data))
+	symbolInfos := make([]domain.SymbolInfo, 0, len(rsp.Data))
 	for _, item := range rsp.Data {
-		symbolMap[item.Symbol] = item.Symbol
+		symbolInfo := domain.SymbolInfo{
+			Symbol: item.Symbol,
+			Source: Name.String(),
+			Info:   fmt.Sprintf("%s/%s/%s", item.Country, item.Exchange, item.Currency),
+		}
+		symbolInfos = append(symbolInfos, symbolInfo)
 	}
-	symbols := slices.Collect(maps.Keys(symbolMap))
-	slices.Sort(symbols)
-	return symbols, nil
+	return symbolInfos, nil
 }
 
 func (p *twelvedataProvider) FetchQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
