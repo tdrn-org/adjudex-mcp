@@ -18,6 +18,8 @@ package adjudexmcp
 
 import (
 	"context"
+	"fmt"
+	"time"
 )
 
 type jobFunc func(ctx context.Context)
@@ -33,5 +35,25 @@ func (s *Server) runJobs() {
 func (s *Server) evalAlerts(ctx context.Context) {
 	s.logger.Info("evaluating alerts...")
 
-	//TODO: Add logic
+	alerts, err := s.dataStore.ListArmedAlerts(ctx)
+	if err != nil {
+		s.logger.Error("failed to list armed alerts", "err", err)
+		return
+	}
+
+	for _, alert := range alerts {
+		quote, err := s.dataStore.GetLatestQuote(ctx, alert.Symbol)
+		if err != nil {
+			s.logger.Warn("failed to get latest quote for alert", "symbol", alert.Symbol, "err", err)
+			continue
+		}
+		if alert.Evaluate(quote.Price) {
+			now := time.Now()
+			alert.Fire(now, fmt.Sprintf("%s: %.2f", alert.Condition, quote.Price))
+			if err := s.dataStore.UpdateAlert(ctx, &alert); err != nil {
+				s.logger.Error("failed to update triggered alert", "alert", alert.Name, "err", err)
+			}
+			s.logger.Warn("alert triggered!", "alert", alert.Name, "symbol", alert.Symbol, "price", quote.Price)
+		}
+	}
 }
