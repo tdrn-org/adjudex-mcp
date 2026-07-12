@@ -26,10 +26,17 @@ import (
 
 const Namespace string = "adjudex"
 const SubsystemQuote string = "quote"
+const SubsystemPortfolio string = "portfolio"
 
 type Recorder struct {
-	enabled           bool
-	quotePriceCurrent *prometheus.GaugeVec
+	enabled              bool
+	quotePrice           *prometheus.GaugeVec
+	quotePriceHigh       *prometheus.GaugeVec
+	quotePriceLow        *prometheus.GaugeVec
+	quoteVolumeShares    *prometheus.GaugeVec
+	portfolioValueAmount *prometheus.GaugeVec
+	portfolioPnLAmount   *prometheus.GaugeVec
+	portfolioPnLRatio    *prometheus.GaugeVec
 }
 
 func NewRecorder(registry *prometheus.Registry) *Recorder {
@@ -40,11 +47,43 @@ func NewRecorder(registry *prometheus.Registry) *Recorder {
 		return recorder
 	}
 	factory := promauto.With(registry)
-	recorder.quotePriceCurrent = factory.NewGaugeVec(prometheus.GaugeOpts{
+	quoteLabels := []string{"symbol", "currency", "source"}
+	recorder.quotePrice = factory.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: Namespace,
 		Subsystem: SubsystemQuote,
-		Name:      "price_current",
-	}, []string{"symbol", "currency", "source"})
+		Name:      "price",
+	}, quoteLabels)
+	recorder.quotePriceHigh = factory.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: Namespace,
+		Subsystem: SubsystemQuote,
+		Name:      "price_high",
+	}, quoteLabels)
+	recorder.quotePriceLow = factory.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: Namespace,
+		Subsystem: SubsystemQuote,
+		Name:      "price_low",
+	}, quoteLabels)
+	recorder.quoteVolumeShares = factory.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: Namespace,
+		Subsystem: SubsystemQuote,
+		Name:      "volume_shares",
+	}, quoteLabels)
+	portfolioLabels := []string{"name", "currency"}
+	recorder.portfolioValueAmount = factory.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: Namespace,
+		Subsystem: SubsystemPortfolio,
+		Name:      "value_amount",
+	}, portfolioLabels)
+	recorder.portfolioPnLAmount = factory.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: Namespace,
+		Subsystem: SubsystemPortfolio,
+		Name:      "pnl_amount",
+	}, portfolioLabels)
+	recorder.portfolioPnLRatio = factory.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: Namespace,
+		Subsystem: SubsystemPortfolio,
+		Name:      "pnl_ratio",
+	}, portfolioLabels)
 	return recorder
 }
 
@@ -53,10 +92,30 @@ func (r *Recorder) RecordQuote(quote *domain.Quote) {
 		return
 	}
 
-	price, err := r.quotePriceCurrent.GetMetricWithLabelValues(quote.Symbol, quote.Currency, quote.Source)
+	quoteLabels := []string{quote.Symbol, quote.Currency, quote.Source}
+	r.setGauge("quote price", r.quotePrice, quote.Price, quoteLabels...)
+	r.setGauge("quote price high", r.quotePriceHigh, quote.High, quoteLabels...)
+	r.setGauge("quote price low", r.quotePriceHigh, quote.Low, quoteLabels...)
+	r.setGauge("quote volume", r.quoteVolumeShares, float64(quote.Volume), quoteLabels...)
+}
+
+func (r *Recorder) RecordPortfolio(portfolio *domain.Portfolio, holdingsSummary domain.HoldingsSummary) {
+	if !r.enabled {
+		return
+	}
+
+	// TODO: Use actual currency
+	portfolioLabels := []string{portfolio.Name, "EUR"}
+	r.setGauge("portfolio market value", r.portfolioValueAmount, holdingsSummary.MarketValue, portfolioLabels...)
+	r.setGauge("portfolio PnL amount", r.portfolioPnLAmount, holdingsSummary.PnL, portfolioLabels...)
+	r.setGauge("portfolio PnL ratio", r.portfolioPnLRatio, holdingsSummary.PnLPercent, portfolioLabels...)
+}
+
+func (r *Recorder) setGauge(name string, gaugeVec *prometheus.GaugeVec, value float64, labels ...string) {
+	gauge, err := gaugeVec.GetMetricWithLabelValues(labels...)
 	if err == nil {
-		price.Set(quote.Price)
+		gauge.Set(value)
 	} else {
-		slog.Warn("price metric failure", slog.Any("err", err))
+		slog.Warn("collect '"+name+"' metric failure", slog.Any("err", err))
 	}
 }

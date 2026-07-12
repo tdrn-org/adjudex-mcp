@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 )
 
 type jobFunc func(ctx context.Context)
@@ -61,21 +63,39 @@ func (s *Server) evalAlerts(ctx context.Context) {
 }
 
 func (s *Server) collectMetrics(ctx context.Context) {
-	s.collectQuoteMetrics(ctx)
-}
+	s.logger.Info("collecting metrics...")
 
-func (s *Server) collectQuoteMetrics(ctx context.Context) {
 	symbolMap, err := s.dataStore.ListSymbols(ctx)
 	if err != nil {
 		s.logger.Error("failed list symbols for metric collection", slog.Any("err", err))
 		return
 	}
+	symbolQuotes := make(map[string]*domain.Quote, len(symbolMap))
 	for symbol := range symbolMap {
 		quote, err := s.dataStore.GetLatestQuote(ctx, symbol)
 		if err != nil {
 			s.logger.Error("failed get latest quote for metric collection", slog.String("symbol", symbol), slog.Any("err", err))
-			continue
+			return
 		}
+		symbolQuotes[symbol] = quote
 		s.metricsRecorder.RecordQuote(quote)
+	}
+	portfolios, err := s.dataStore.ListPortfolios(ctx)
+	if err != nil {
+		s.logger.Error("failed list portfolios for metric collection", slog.Any("err", err))
+		return
+	}
+	for _, portfolio := range portfolios {
+		holdings := make(domain.Holdings, 0, len(portfolio.Positions))
+		for _, position := range portfolio.Positions {
+			positionQuote := symbolQuotes[position.Symbol]
+			if positionQuote != nil {
+				holding := domain.NewHolding(position, positionQuote.Price)
+				holdings = append(holdings, holding)
+			} else {
+				s.logger.Error("missing symbol quote in metric collection", slog.String("symbol", position.Symbol))
+			}
+		}
+		s.metricsRecorder.RecordPortfolio(&portfolio, holdings.Summarize())
 	}
 }
