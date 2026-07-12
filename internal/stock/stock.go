@@ -48,7 +48,7 @@ type QuoteService struct {
 	sources        map[tracker.ProviderName]*sourceProvider
 	sourceAffinity map[string]tracker.ProviderName // symbol → preferred provider
 	logger         *slog.Logger
-	mutex          sync.RWMutex
+	mutex          sync.Mutex
 }
 
 func NewQuoteService(runtime Runtime, cfg *config.QuoteServiceConfig) (*QuoteService, error) {
@@ -116,14 +116,14 @@ func (qs *QuoteService) ResolveQuote(ctx context.Context, symbol string) (*domai
 	store := qs.runtime.DataStore()
 	q, err := store.GetLatestQuote(ctx, symbol)
 	if err != nil {
-		qs.logger.Warn("failed to get latest quota", slog.String("symbol", symbol), slog.Any("err", err))
+		qs.logger.Warn("failed to get latest quote", slog.String("symbol", symbol), slog.Any("err", err))
 	}
 	if q != nil && time.Since(q.Timestamp) < time.Duration(qs.cfg.MaxAge) {
 		return q, nil // ✅ cache hit, 0 API calls
 	}
 
-	qs.mutex.RLock()
-	defer qs.mutex.RUnlock()
+	qs.mutex.Lock()
+	defer qs.mutex.Unlock()
 
 	quote, err := qs.fetchQuoteLocked(ctx, symbol, qs.sourceAffinity[symbol])
 	if err != nil {
@@ -166,14 +166,14 @@ func (qs *QuoteService) fetchQuoteLocked(ctx context.Context, symbol string, pre
 func (qs *QuoteService) FetchHistory(ctx context.Context, symbol string, from, to time.Time) (domain.Quotes, error) {
 	quotes, err := qs.fetchSavedHistory(ctx, symbol, from, to)
 	if err != nil {
-		qs.logger.Warn("failed to get quota history", slog.String("symbol", symbol), slog.Any("err", err))
+		qs.logger.Warn("failed to get quote history", slog.String("symbol", symbol), slog.Any("err", err))
 	}
 	if len(quotes) >= (int(to.Sub(from).Hours())+23)/24 {
 		return quotes, nil
 	}
 
-	qs.mutex.RLock()
-	defer qs.mutex.RUnlock()
+	qs.mutex.Lock()
+	defer qs.mutex.Unlock()
 
 	quotes, err = qs.fetchHistoryLocked(ctx, symbol, from, to, qs.sourceAffinity[symbol])
 	if err != nil {
@@ -249,20 +249,19 @@ func (qs *QuoteService) Run(ctx context.Context) {
 		qs.logger.Debug("fetching quote...", slog.String("symbol", symbol))
 		quote, err := qs.fetchQuoteLocked(ctx, symbol, "")
 		if err != nil {
-			// fetchQuoteLocked logs failures alrady
+			// fetchQuoteLocked logs failures already
 			continue
 		}
 		err = store.SaveQuote(ctx, quote)
 		if err != nil {
-			qs.logger.Warn("failed to save quota", slog.String("symbol", symbol), slog.Any("err", err))
+			qs.logger.Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
 		}
-		break
 	}
 }
 
 func (qs *QuoteService) Close() error {
-	qs.mutex.RLock()
-	defer qs.mutex.RUnlock()
+	qs.mutex.Lock()
+	defer qs.mutex.Unlock()
 
 	closeErrs := make([]error, 0, len(qs.sources))
 	for _, source := range qs.sources {
