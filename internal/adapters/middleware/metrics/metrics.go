@@ -68,7 +68,7 @@ func NewRecorder(registry *prometheus.Registry) *Recorder {
 		Subsystem: SubsystemQuote,
 		Name:      "volume_shares",
 	}, quoteLabels)
-	portfolioLabels := []string{"name", "currency"}
+	portfolioLabels := []string{"portfolio", "currency"}
 	recorder.portfolioValueAmount = factory.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: Namespace,
 		Subsystem: SubsystemPortfolio,
