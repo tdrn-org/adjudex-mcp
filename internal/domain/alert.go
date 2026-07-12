@@ -44,24 +44,24 @@ const (
 // IndicatorSpec describes which indicator an alert watches.
 // nil means the alert is price-based (not indicator-based).
 type IndicatorSpec struct {
-	Type   IndicatorType
-	Period int
+	Type   IndicatorType `json:"type"`
+	Period int           `json:"period"`
 }
 
 // Alert represents a notification trigger attached to a security.
 // It is evaluated on every quote update and fires when its condition is met.
 type Alert struct {
-	ID          string
-	Name        string // human-readable label
-	Symbol      string // WKN or ticker
-	Condition   AlertCondition
-	Threshold   float64        // trigger value (e.g., 30.0 for RSI < 30)
-	Indicator   *IndicatorSpec // nil if price-based condition
-	State       AlertState
-	TriggeredAt *time.Time
-	Message     string // human-readable summary when triggered
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Symbol      string         `json:"symbol"`
+	Condition   AlertCondition `json:"condition"`
+	Threshold   float64        `json:"threshold"`
+	Indicator   *IndicatorSpec `json:"indicator,omitempty"`
+	State       AlertState     `json:"state"`
+	TriggeredAt *time.Time     `json:"triggered_at,omitempty"`
+	Message     string         `json:"message,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 // Evaluate checks whether the alert should fire given a current value.

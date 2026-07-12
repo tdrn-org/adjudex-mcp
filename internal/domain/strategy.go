@@ -37,12 +37,12 @@ const (
 
 // Strategy represents a trading strategy definition (e.g., mean-reversion).
 type Strategy struct {
-	ID          string
-	Name        string
-	Description string
-	Parameters  StrategyParams
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Parameters  StrategyParams `json:"parameters"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 // StrategyParams holds the configurable parameters for a strategy.
@@ -57,31 +57,31 @@ type StrategyParams struct {
 
 // Trade represents a single executed or pending trade.
 type Trade struct {
-	ID         string
-	StrategyID string
-	Symbol     string
-	Direction  TradeDirection
-	Quantity   float64
-	Price      float64
-	ExecutedAt time.Time
-	Status     TradeStatus
-	PnL        float64 // filled after sell (exit) trade
-	Notes      string
+	ID         string         `json:"id"`
+	StrategyID string         `json:"strategy_id"`
+	Symbol     string         `json:"symbol"`
+	Direction  TradeDirection `json:"direction"`
+	Quantity   float64        `json:"quantity"`
+	Price      float64        `json:"price"`
+	ExecutedAt time.Time      `json:"executed_at"`
+	Status     TradeStatus    `json:"status"`
+	PnL        float64        `json:"pnl"`
+	Notes      string         `json:"notes,omitempty"`
 }
 
 // BacktestResult holds the outcome of a strategy backtest.
 type BacktestResult struct {
-	Strategy       Strategy
-	Symbol         string
-	From           time.Time
-	To             time.Time
-	TotalTrades    int
-	WinningTrades  int
-	LosingTrades   int
-	WinRate        float64 // percentage
-	TotalReturn    float64 // absolute
-	TotalReturnPct float64 // percentage
-	MaxDrawdown    float64 // maximum peak-to-trough decline
-	SharpeRatio    float64
-	Trades         []Trade
+	Strategy       Strategy  `json:"strategy"`
+	Symbol         string    `json:"symbol"`
+	From           time.Time `json:"from"`
+	To             time.Time `json:"to"`
+	TotalTrades    int       `json:"total_trades"`
+	WinningTrades  int       `json:"winning_trades"`
+	LosingTrades   int       `json:"losing_trades"`
+	WinRate        float64   `json:"win_rate"`
+	TotalReturn    float64   `json:"total_return"`
+	TotalReturnPct float64   `json:"total_return_pct"`
+	MaxDrawdown    float64   `json:"max_drawdown"`
+	SharpeRatio    float64   `json:"sharpe_ratio"`
+	Trades         []Trade   `json:"trades"`
 }

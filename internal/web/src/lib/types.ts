@@ -16,7 +16,7 @@ export interface Position {
   quantity: number;
   entry_price: number;
   entry_date: string;
-  notes: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -27,7 +27,7 @@ export interface Holding {
   quantity: number;
   entry_price: number;
   entry_date: string;
-  notes: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
   current_price: number;

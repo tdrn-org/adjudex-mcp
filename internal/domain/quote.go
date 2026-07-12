@@ -32,17 +32,17 @@ type SymbolInfo struct {
 
 // Quote represents a single price snapshot for a symbol.
 type Quote struct {
-	Symbol          string
-	Timestamp       time.Time
-	Currency        string
-	Open            float64
-	High            float64
-	Low             float64
-	Close           float64
-	Price           float64
-	Volume          int64
-	Source          string // provider identifier (e.g., "consorsbank", "yahoo", "mock")
-	SourceTimestamp time.Time
+	Symbol          string    `json:"symbol"`
+	Timestamp       time.Time `json:"timestamp"`
+	Currency        string    `json:"currency"`
+	Open            float64   `json:"open"`
+	High            float64   `json:"high"`
+	Low             float64   `json:"low"`
+	Close           float64   `json:"close"`
+	Price           float64   `json:"price"`
+	Volume          int64     `json:"volume"`
+	Source          string    `json:"source"`
+	SourceTimestamp time.Time `json:"source_timestamp"`
 }
 
 func (q *Quote) ApplyCurrency(currency string, exchangeRate float64) {
@@ -71,8 +71,8 @@ func (qs Quotes) Currency() string {
 
 // PriceHistory is a chronological series of quotes for a single symbol.
 type PriceHistory struct {
-	Symbol string
-	Quotes []Quote
+	Symbol string  `json:"symbol"`
+	Quotes []Quote `json:"quotes"`
 }
 
 // IndicatorType names the technical indicator.
@@ -87,9 +87,9 @@ const (
 
 // IndicatorValue holds a computed indicator value at a point in time.
 type IndicatorValue struct {
-	Symbol    string
-	Type      IndicatorType
-	Period    int
-	Value     float64
-	Timestamp time.Time
+	Symbol    string        `json:"symbol"`
+	Type      IndicatorType `json:"type"`
+	Period    int           `json:"period"`
+	Value     float64       `json:"value"`
+	Timestamp time.Time     `json:"timestamp"`
 }
