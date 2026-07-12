@@ -36,7 +36,7 @@ func NewRecorder(registry *prometheus.Registry) *Recorder {
 	recorder := &Recorder{
 		enabled: registry != nil,
 	}
-	if recorder.enabled {
+	if !recorder.enabled {
 		return recorder
 	}
 	factory := promauto.With(registry)
