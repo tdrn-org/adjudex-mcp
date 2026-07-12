@@ -26,7 +26,6 @@ import (
 )
 
 type Quote struct {
-	driver          *database.Driver
 	Symbol          string  `db:"symbol"`
 	Timestamp       int64   `db:"timestamp"`
 	Currency        string  `db:"currency"`
@@ -51,7 +50,6 @@ func InsertQuote(ctx context.Context, driver *database.Driver, q *domain.Quote) 
 	defer tx.RollbackUncommitedTx(txCtx)
 
 	quote := &Quote{
-		driver:          driver,
 		Symbol:          q.Symbol,
 		Timestamp:       database.Time2DB(q.Timestamp),
 		Currency:        q.Currency,
@@ -99,7 +97,6 @@ func SelectLatestQuote(ctx context.Context, driver *database.Driver, symbol stri
 	defer tx.RollbackUncommitedTx(txCtx)
 
 	quote := &Quote{
-		driver: driver,
 		Symbol: symbol,
 	}
 	row, err := tx.QueryRowTx(txCtx, selectQuoteSQL, quote.Symbol)
@@ -149,7 +146,6 @@ func SelectQuotes(ctx context.Context, driver *database.Driver, symbol string, f
 	quotes := make([]*Quote, 0)
 	for rows.Next() {
 		quote := &Quote{
-			driver: driver,
 			Symbol: symbol,
 		}
 		err = database.Scan(rows, quote)

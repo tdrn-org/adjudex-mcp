@@ -25,7 +25,6 @@ import (
 )
 
 type Portfolio struct {
-	driver      *database.Driver
 	ID          string `db:"id"`
 	Name        string `db:"name"`
 	Description string `db:"description"`
@@ -44,7 +43,6 @@ func InsertPortfolio(ctx context.Context, driver *database.Driver, p *domain.Por
 	defer tx.RollbackUncommitedTx(txCtx)
 
 	portfolio := &Portfolio{
-		driver:      driver,
 		ID:          database.NewID(),
 		Name:        p.Name,
 		Description: p.Description,
@@ -100,8 +98,7 @@ func SelectPortfolioByID(ctx context.Context, driver *database.Driver, id string
 	defer tx.RollbackUncommitedTx(txCtx)
 
 	portfolio := &Portfolio{
-		driver: driver,
-		ID:     id,
+		ID: id,
 	}
 	row, err := tx.QueryRowTx(txCtx, selectPortfolioByIDSQL, portfolio.ID)
 	if err != nil {
@@ -143,9 +140,7 @@ func SelectPortfolios(ctx context.Context, driver *database.Driver) ([]*Portfoli
 	defer rows.Close()
 	portfolios := make([]*Portfolio, 0)
 	for rows.Next() {
-		portfolio := &Portfolio{
-			driver: driver,
-		}
+		portfolio := &Portfolio{}
 		err = database.Scan(rows, portfolio)
 		if err != nil {
 			return nil, err

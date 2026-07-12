@@ -25,7 +25,6 @@ import (
 )
 
 type Position struct {
-	driver      *database.Driver
 	ID          string  `db:"id"`
 	PortfolioID string  `db:"portfolio_id"`
 	Symbol      string  `db:"symbol"`
@@ -48,7 +47,6 @@ func InsertPosition(ctx context.Context, driver *database.Driver, portfolioID st
 	defer tx.RollbackUncommitedTx(txCtx)
 
 	position := &Position{
-		driver:      driver,
 		ID:          database.NewID(),
 		PortfolioID: portfolioID,
 		Symbol:      pos.Symbol,
@@ -77,7 +75,6 @@ func InsertPosition(ctx context.Context, driver *database.Driver, portfolioID st
 	if err != nil {
 		return nil, err
 	}
-
 	return position, nil
 }
 
@@ -92,7 +89,6 @@ func UpdatePosition(ctx context.Context, driver *database.Driver, portfolioID st
 	defer tx.RollbackUncommitedTx(txCtx)
 
 	position := &Position{
-		driver:      driver,
 		ID:          pos.ID,
 		PortfolioID: portfolioID,
 		Symbol:      pos.Symbol,
@@ -142,7 +138,6 @@ func SelectPositionsByPortfolioID(ctx context.Context, driver *database.Driver, 
 	positions := make([]*Position, 0)
 	for rows.Next() {
 		position := &Position{
-			driver:      driver,
 			PortfolioID: portfolioID,
 		}
 		err = database.Scan(rows, position)

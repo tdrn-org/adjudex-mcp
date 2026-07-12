@@ -184,7 +184,7 @@ func (s *Store) AddPosition(ctx context.Context, portfolioID string, pos *domain
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	_, err = model.InsertPosition(txCtx, s.driver, portfolioID, pos)
+	position, err := model.InsertPosition(txCtx, s.driver, portfolioID, pos)
 	if err != nil {
 		return err
 	}
@@ -193,8 +193,15 @@ func (s *Store) AddPosition(ctx context.Context, portfolioID string, pos *domain
 		return err
 	}
 
-	return tx.CommitTx(txCtx)
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return err
+	}
+
+	pos.ID, pos.CreatedAt, pos.UpdatedAt = position.ID, database.DB2Time(position.CreatedAt), database.DB2Time(position.UpdatedAt)
+	return nil
 }
+
 func (s *Store) RemovePosition(ctx context.Context, portfolioID string, positionID string) error {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
@@ -221,7 +228,7 @@ func (s *Store) UpdatePosition(ctx context.Context, portfolioID string, pos *dom
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	_, err = model.UpdatePosition(txCtx, s.driver, portfolioID, pos)
+	position, err := model.UpdatePosition(txCtx, s.driver, portfolioID, pos)
 	if err != nil {
 		return err
 	}
@@ -230,7 +237,13 @@ func (s *Store) UpdatePosition(ctx context.Context, portfolioID string, pos *dom
 		return err
 	}
 
-	return tx.CommitTx(txCtx)
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return err
+	}
+
+	pos.UpdatedAt = database.DB2Time(position.UpdatedAt)
+	return nil
 }
 
 func (s *Store) ListSymbols(ctx context.Context) ([]string, error) {
@@ -313,9 +326,12 @@ func (s *Store) modelToQuote(storeQuote *model.Quote) *domain.Quote {
 }
 
 func (s *Store) CreateAlert(ctx context.Context, a *domain.Alert) error {
-	storeAlert, err := model.InsertAlert(ctx, s.driver, a)
-	a.ID, a.CreatedAt, a.UpdatedAt = storeAlert.ID, database.DB2Time(storeAlert.CreatedAt), database.DB2Time(storeAlert.UpdatedAt)
-	return err
+	alert, err := model.InsertAlert(ctx, s.driver, a)
+	if err != nil {
+		return err
+	}
+	a.ID, a.CreatedAt, a.UpdatedAt = alert.ID, database.DB2Time(alert.CreatedAt), database.DB2Time(alert.UpdatedAt)
+	return nil
 }
 
 func (s *Store) GetAlert(ctx context.Context, id string) (*domain.Alert, error) {
@@ -383,10 +399,129 @@ func (s *Store) ListArmedAlerts(ctx context.Context) ([]domain.Alert, error) {
 }
 
 func (s *Store) UpdateAlert(ctx context.Context, a *domain.Alert) error {
-	_, err := model.UpdateAlert(ctx, s.driver, a)
-	return err
+	alert, err := model.UpdateAlert(ctx, s.driver, a)
+	if err != nil {
+		return err
+	}
+	a.UpdatedAt = database.DB2Time(alert.UpdatedAt)
+	return nil
 }
 
 func (s *Store) DeleteAlert(ctx context.Context, id string) error {
 	return model.DeleteAlertByID(ctx, s.driver, id)
+}
+
+func (s *Store) RecordTrade(ctx context.Context, t *domain.Trade) error {
+	trade, err := model.InsertTrade(ctx, s.driver, t)
+	if err != nil {
+		return err
+	}
+	t.ID = trade.ID
+	return nil
+}
+
+func (s *Store) GetTrade(ctx context.Context, id string) (*domain.Trade, error) {
+	trade, err := model.SelectTradeByID(ctx, s.driver, id)
+	if err != nil {
+		return nil, err
+	}
+	return s.modelToTrade(trade), nil
+}
+
+func (s *Store) modelToTrade(storeTrade *model.Trade) *domain.Trade {
+	if storeTrade == nil {
+		return nil
+	}
+	trade := &domain.Trade{
+		ID:         storeTrade.ID,
+		StrategyID: storeTrade.StrategyID,
+		Symbol:     storeTrade.Symbol,
+		Direction:  domain.TradeDirection(storeTrade.Direction),
+		Quantity:   storeTrade.Quantity,
+		Price:      storeTrade.Price,
+		ExecutedAt: database.DB2Time(storeTrade.ExecutedAt),
+		Status:     domain.TradeStatus(storeTrade.Status),
+		PnL:        storeTrade.PnL,
+		Notes:      storeTrade.Notes,
+	}
+	return trade
+}
+
+func (s *Store) ListTrades(ctx context.Context, symbol string) ([]domain.Trade, error) {
+	storeTrades, err := model.SelectTradesBySymbol(ctx, s.driver, symbol)
+	if err != nil {
+		return nil, err
+	}
+	trades := make([]domain.Trade, 0, len(storeTrades))
+	for _, storeTrade := range storeTrades {
+		trades = append(trades, *s.modelToTrade(storeTrade))
+	}
+	return trades, nil
+}
+
+func (s *Store) ListTradesByStrategy(ctx context.Context, strategyID string) ([]domain.Trade, error) {
+	storeTrades, err := model.SelectTradesByStrategyID(ctx, s.driver, strategyID)
+	if err != nil {
+		return nil, err
+	}
+	trades := make([]domain.Trade, 0, len(storeTrades))
+	for _, storeTrade := range storeTrades {
+		trades = append(trades, *s.modelToTrade(storeTrade))
+	}
+	return trades, nil
+}
+
+func (s *Store) SaveStrategy(ctx context.Context, st *domain.Strategy) error {
+	strategy, err := model.InsertStrategy(ctx, s.driver, st)
+	if err != nil {
+		return err
+	}
+	st.ID, st.CreatedAt, st.UpdatedAt = strategy.ID, database.DB2Time(strategy.CreatedAt), database.DB2Time(strategy.UpdatedAt)
+	return nil
+}
+
+func (s *Store) GetStrategy(ctx context.Context, id string) (*domain.Strategy, error) {
+	strategy, err := model.SelectStrategyByID(ctx, s.driver, id)
+	if err != nil {
+		return nil, err
+	}
+	return s.modelToStrategy(strategy), nil
+}
+
+func (s *Store) modelToStrategy(storeStrategy *model.Strategy) *domain.Strategy {
+	if storeStrategy == nil {
+		return nil
+	}
+	strategy := &domain.Strategy{
+		ID:          storeStrategy.ID,
+		Name:        storeStrategy.Name,
+		Description: storeStrategy.Description,
+		Parameters: domain.StrategyParams{
+			RSIPeriod:    storeStrategy.RSIPeriod,
+			RSIThreshold: storeStrategy.RSIThreshold,
+			SMAPeriod:    storeStrategy.SMAPeriod,
+			SMATrigger:   storeStrategy.SMATrigger,
+			MaxPosition:  storeStrategy.MaxPosition,
+			StopLoss:     storeStrategy.StopLoss,
+		},
+		CreatedAt: database.DB2Time(storeStrategy.CreatedAt),
+		UpdatedAt: database.DB2Time(storeStrategy.UpdatedAt),
+	}
+	return strategy
+}
+
+func (s *Store) ListStrategies(ctx context.Context) ([]domain.Strategy, error) {
+	storeStrategies, err := model.SelectStrategies(ctx, s.driver)
+	if err != nil {
+		return nil, err
+	}
+	strategies := make([]domain.Strategy, 0, len(storeStrategies))
+	for _, storeStrategy := range storeStrategies {
+		strategies = append(strategies, *s.modelToStrategy(storeStrategy))
+	}
+	return strategies, nil
+}
+
+func (s *Store) DeleteStrategy(ctx context.Context, id string) error {
+	return model.DeleteStrategyByID(ctx, s.driver, id)
 }

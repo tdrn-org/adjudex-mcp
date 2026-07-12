@@ -193,6 +193,79 @@ func TestAlert(t *testing.T) {
 	require.Len(t, as, 0)
 }
 
+func TestTrade(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	t1 := &domain.Trade{
+		StrategyID: "strategy",
+		Symbol:     "XZY",
+		Direction:  domain.TradeBuy,
+		Quantity:   12.3,
+		Price:      45.6,
+		ExecutedAt: time.Date(2026, 7, 12, 10, 53, 0, 0, time.Local),
+		Status:     domain.TradeExecuted,
+		PnL:        7.8,
+		Notes:      t.Name() + " note",
+	}
+
+	// Record
+	err := store.RecordTrade(t.Context(), t1)
+	require.NoError(t, err)
+
+	// Get
+	t2, err := store.GetTrade(t.Context(), t1.ID)
+	require.NoError(t, err)
+	require.Equal(t, t1, t2)
+
+	// List (1 entry)
+	ts, err := store.ListTrades(t.Context(), t1.Symbol)
+	require.NoError(t, err)
+	require.Len(t, ts, 1)
+	require.Equal(t, t1, &ts[0])
+
+	// List by strategy (1 entry)
+	ts, err = store.ListTradesByStrategy(t.Context(), t1.StrategyID)
+	require.NoError(t, err)
+	require.Len(t, ts, 1)
+	require.Equal(t, t1, &ts[0])
+}
+
+func TestStrategy(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	st1 := &domain.Strategy{
+		Name:        t.Name() + " strategy",
+		Description: "strategy description",
+		Parameters:  domain.StrategyParams{},
+	}
+
+	// Save
+	err := store.SaveStrategy(t.Context(), st1)
+	require.NoError(t, err)
+
+	// Get
+	st2, err := store.GetStrategy(t.Context(), st1.ID)
+	require.NoError(t, err)
+	require.Equal(t, st1, st2)
+
+	// List (1 entry)
+	sts, err := store.ListStrategies(t.Context())
+	require.NoError(t, err)
+	require.Len(t, sts, 1)
+	require.Equal(t, st1, &sts[0])
+
+	// Delete
+	err = store.DeleteStrategy(t.Context(), st1.ID)
+	require.NoError(t, err)
+
+	// List (0 entries)
+	sts, err = store.ListStrategies(t.Context())
+	require.NoError(t, err)
+	require.Len(t, sts, 0)
+}
+
 func newDataStore(t *testing.T) *data.Store {
 	driver, err := database.Open(memory.NewConfig(model.SqliteSchemaScriptOption))
 	require.NoError(t, err)

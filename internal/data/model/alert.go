@@ -25,7 +25,6 @@ import (
 )
 
 type Alert struct {
-	driver          *database.Driver
 	ID              string  `db:"id"`
 	Name            string  `db:"name"`
 	Symbol          string  `db:"symbol"`
@@ -57,7 +56,6 @@ func InsertAlert(ctx context.Context, driver *database.Driver, a *domain.Alert) 
 		indicatorPeriod = &a.Indicator.Period
 	}
 	alert := &Alert{
-		driver:          driver,
 		ID:              database.NewID(),
 		Name:            a.Name,
 		Symbol:          a.Symbol,
@@ -160,8 +158,7 @@ func SelectAlertByID(ctx context.Context, driver *database.Driver, id string) (*
 	defer tx.RollbackUncommitedTx(txCtx)
 
 	alert := &Alert{
-		driver: driver,
-		ID:     id,
+		ID: id,
 	}
 	row, err := tx.QueryRowTx(txCtx, selectAlertByIDSQL, alert.ID)
 	if err != nil {
@@ -211,7 +208,6 @@ func SelectAlertsBySymbol(ctx context.Context, driver *database.Driver, symbol s
 	alerts := make([]*Alert, 0)
 	for rows.Next() {
 		alert := &Alert{
-			driver: driver,
 			Symbol: symbol,
 		}
 		err = database.Scan(rows, alert)
@@ -247,8 +243,7 @@ func SelectAlertsByState(ctx context.Context, driver *database.Driver, state dom
 	alerts := make([]*Alert, 0)
 	for rows.Next() {
 		alert := &Alert{
-			driver: driver,
-			State:  string(state),
+			State: string(state),
 		}
 		err = database.Scan(rows, alert)
 		if err != nil {
