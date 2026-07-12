@@ -83,9 +83,9 @@ func TestPortfolio(t *testing.T) {
 	require.NoError(t, err)
 
 	// List symbols (2 entries)
-	symbols, err := store.ListSymbols(t.Context())
+	symbolMap, err := store.ListSymbols(t.Context())
 	require.NoError(t, err)
-	require.Len(t, symbols, 2)
+	require.Len(t, symbolMap, 2)
 
 	// Remove
 	err = store.RemovePosition(t.Context(), p2.ID, p2.Positions[1].ID)

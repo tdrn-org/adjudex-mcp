@@ -211,12 +211,16 @@ func SelectPositionSymbols(ctx context.Context, driver *database.Driver) (map[st
 	symbolMap := make(map[string]time.Time, 0)
 	for rows.Next() {
 		var symbol string
-		var timestamp int64
+		var timestamp *int64
 		err = rows.Scan(&symbol, &timestamp)
 		if err != nil {
 			return nil, err
 		}
-		symbolMap[symbol] = database.DB2Time(timestamp)
+		if timestamp != nil {
+			symbolMap[symbol] = database.DB2Time(*timestamp)
+		} else {
+			symbolMap[symbol] = time.Time{}
+		}
 	}
 
 	err = tx.CommitTx(txCtx)
