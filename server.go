@@ -35,6 +35,7 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
 	"github.com/tdrn-org/adjudex-mcp/internal/stock"
+	"github.com/tdrn-org/adjudex-mcp/internal/web"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
 	"github.com/tdrn-org/go-database/sqlite"
@@ -73,6 +74,7 @@ func StartServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 		s.startMetrics,
 		s.startQuoteService,
 		s.startRestAPI,
+		s.startWebUI,
 		s.startMCPHandler,
 		s.startJobTicker,
 	}
@@ -229,6 +231,11 @@ func (s *Server) startQuoteService(_ context.Context, cfg *config.Config) error 
 func (s *Server) startRestAPI(_ context.Context, _ *config.Config) error {
 	runtime := &serverRuntime{server: s}
 	rest.NewAPI(runtime).Mount(s.httpServer)
+	return nil
+}
+
+func (s *Server) startWebUI(_ context.Context, _ *config.Config) error {
+	s.httpServer.Handle("/{path...}", web.Handler())
 	return nil
 }
 

@@ -34,6 +34,17 @@ go.work.sum
 # Build artifacts
 build/
 
+# SvelteKit build output (generated, not committed)
+internal/web/static/
+
+# SvelteKit source dependencies (generated)
+web/node_modules/
+web/.svelte-kit/
+web/package-lock.json
+
+# Log files
+*.log
+
 # Local configs
 *-local.toml
 adjudex
