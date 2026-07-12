@@ -26,8 +26,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tdrn-org/adjudex-mcp/config"
 	"github.com/tdrn-org/adjudex-mcp/internal/adapters/middleware/mcp"
+	"github.com/tdrn-org/adjudex-mcp/internal/adapters/middleware/metrics"
 	"github.com/tdrn-org/adjudex-mcp/internal/adapters/middleware/rest"
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
@@ -46,6 +49,7 @@ type Server struct {
 	dataStore           *data.Store
 	httpServer          *httpserver.Instance
 	baseURL             *url.URL
+	metricsRecorder     *metrics.Recorder
 	quoteService        *stock.QuoteService
 	jobTicker           *time.Ticker
 	jobTickerShutdown   chan any
@@ -66,6 +70,7 @@ func StartServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 	startFuncs := []func(context.Context, *config.Config) error{
 		s.startStore,
 		s.startHttpServer,
+		s.startMetrics,
 		s.startQuoteService,
 		s.startRestAPI,
 		s.startMCPHandler,
@@ -183,6 +188,18 @@ func (s *Server) startHttpServer(ctx context.Context, cfg *config.Config) error 
 	return nil
 }
 
+func (s *Server) startMetrics(ctx context.Context, cfg *config.Config) error {
+	if cfg.Metrics.Enabled {
+		s.logger.Info("enabling metrics endpoint...", slog.String("path", cfg.Metrics.Path))
+		registry := prometheus.NewRegistry()
+		s.metricsRecorder = metrics.NewRecorder(registry)
+		s.httpServer.Handle("GET "+cfg.Metrics.Path, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	} else {
+		s.metricsRecorder = metrics.NewRecorder(nil)
+	}
+	return nil
+}
+
 func (s *Server) shutdownHttpServer(ctx context.Context) error {
 	if s.httpServer == nil {
 		return nil
@@ -264,6 +281,10 @@ func (runtime *serverRuntime) Logger() *slog.Logger {
 
 func (runtime *serverRuntime) DataStore() *data.Store {
 	return runtime.server.dataStore
+}
+
+func (runtime *serverRuntime) MetricsRecorder() *metrics.Recorder {
+	return runtime.server.metricsRecorder
 }
 
 func (runtime *serverRuntime) QuoteService() *stock.QuoteService {

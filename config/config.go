@@ -32,6 +32,7 @@ type Config struct {
 	Server       ServerConfig       `toml:"server"`
 	Store        StoreConfig        `toml:"store"`
 	QuoteService QuoteServiceConfig `toml:"quote_service"`
+	Metrics      MetricsConfig      `toml:"metrics"`
 }
 
 //go:embed defaults.toml
