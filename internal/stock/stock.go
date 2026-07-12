@@ -114,18 +114,18 @@ func (qs *QuoteService) ResolveSymbols(ctx context.Context, query string) []doma
 // with a maxAge freshness check, provider affinity, and fallback across all providers.
 func (qs *QuoteService) ResolveQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
 	store := qs.runtime.DataStore()
-	q, err := store.GetLatestQuote(ctx, symbol)
+	quote, err := store.GetLatestQuote(ctx, symbol)
 	if err != nil {
 		qs.logger.Warn("failed to get latest quote", slog.String("symbol", symbol), slog.Any("err", err))
 	}
-	if q != nil && time.Since(q.Timestamp) < time.Duration(qs.cfg.MaxAge) {
-		return q, nil // ✅ cache hit, 0 API calls
+	if quote != nil && time.Since(quote.Timestamp) < time.Duration(qs.cfg.MaxAge) {
+		return quote, nil // ✅ cache hit, 0 API calls
 	}
 
 	qs.mutex.Lock()
 	defer qs.mutex.Unlock()
 
-	quote, err := qs.fetchQuoteLocked(ctx, symbol, qs.sourceAffinity[symbol])
+	quote, err = qs.fetchQuoteLocked(ctx, symbol, qs.sourceAffinity[symbol])
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (qs *QuoteService) ResolveQuote(ctx context.Context, symbol string) (*domai
 	if err != nil {
 		qs.logger.Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
 	}
-	qs.sourceAffinity[symbol] = tracker.ProviderName(q.Source)
+	qs.sourceAffinity[symbol] = tracker.ProviderName(quote.Source)
 	return quote, nil
 }
 
