@@ -244,7 +244,7 @@ func (s *Store) SaveQuote(ctx context.Context, q *domain.Quote) error {
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	err = model.DeleteQuoteByPK(txCtx, s.driver, q.Symbol, q.Timestamp)
+	err = model.DeleteQuoteByPK(txCtx, s.driver, q.Symbol, q.SourceTimestamp)
 	if err != nil {
 		return err
 	}
