@@ -1,10 +1,154 @@
 basePath: /api/v1
 definitions:
+  domain.Holding:
+    properties:
+      createdAt:
+        type: string
+      currentPrice:
+        format: float64
+        type: number
+      entryDate:
+        type: string
+      entryPrice:
+        format: float64
+        type: number
+      id:
+        type: string
+      marketValue:
+        format: float64
+        type: number
+      notes:
+        type: string
+      pnL:
+        description: absolute profit/loss
+        format: float64
+        type: number
+      pnLPercent:
+        description: relative profit/loss percentage
+        format: float64
+        type: number
+      quantity:
+        format: float64
+        type: number
+      symbol:
+        description: WKN or ticker (e.g., "A413X6", "NVDA")
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  domain.Portfolio:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      positions:
+        items:
+          $ref: '#/definitions/domain.Position'
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  domain.Position:
+    properties:
+      createdAt:
+        type: string
+      entryDate:
+        type: string
+      entryPrice:
+        format: float64
+        type: number
+      id:
+        type: string
+      notes:
+        type: string
+      quantity:
+        format: float64
+        type: number
+      symbol:
+        description: WKN or ticker (e.g., "A413X6", "NVDA")
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  domain.PriceHistory:
+    properties:
+      quotes:
+        items:
+          $ref: '#/definitions/domain.Quote'
+        type: array
+      symbol:
+        type: string
+    type: object
+  domain.Quote:
+    properties:
+      close:
+        format: float64
+        type: number
+      currency:
+        type: string
+      high:
+        format: float64
+        type: number
+      low:
+        format: float64
+        type: number
+      open:
+        format: float64
+        type: number
+      price:
+        format: float64
+        type: number
+      source:
+        description: provider identifier (e.g., "consorsbank", "yahoo", "mock")
+        type: string
+      sourceTimestamp:
+        type: string
+      symbol:
+        type: string
+      timestamp:
+        type: string
+      volume:
+        format: int64
+        type: integer
+    type: object
   rest.ServerInfo:
     properties:
       version:
-        description: The server version
         type: string
+    type: object
+  rest.portfolioCreateRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  rest.positionAddRequest:
+    properties:
+      entry_date:
+        type: string
+      entry_price:
+        type: number
+      notes:
+        type: string
+      quantity:
+        type: number
+      symbol:
+        type: string
+    type: object
+  rest.positionUpdateRequest:
+    properties:
+      entry_price:
+        type: number
+      notes:
+        type: string
+      quantity:
+        type: number
     type: object
 host: localhost:9123
 info:
@@ -21,7 +165,7 @@ paths:
     get:
       description: Get server software version details.
       produces:
-      - text/plain
+      - application/json
       responses:
         "200":
           description: OK
@@ -47,4 +191,248 @@ paths:
           schema:
             type: string
       summary: Ping the server
+  /api/v1/portfolios:
+    get:
+      description: Returns all portfolios without positions for performance.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Portfolio'
+            type: array
+        "500":
+          description: server error
+          schema:
+            type: string
+      summary: List all portfolios
+    post:
+      consumes:
+      - application/json
+      description: Creates a portfolio and returns it with its ID.
+      parameters:
+      - description: Portfolio data
+        in: body
+        name: portfolio
+        required: true
+        schema:
+          $ref: '#/definitions/rest.portfolioCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Portfolio'
+        "400":
+          description: bad request
+          schema:
+            type: string
+      summary: Create a new portfolio
+  /api/v1/portfolios/{id}:
+    delete:
+      description: Deletes a portfolio and all its positions.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            type: string
+      summary: Delete a portfolio
+    get:
+      description: Returns a single portfolio with all positions.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Portfolio'
+        "404":
+          description: not found
+          schema:
+            type: string
+      summary: Get portfolio by ID
+  /api/v1/portfolios/{id}/holdings:
+    get:
+      description: Returns the portfolio with all positions enriched with current
+        market data.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Holding'
+            type: array
+        "404":
+          description: not found
+          schema:
+            type: string
+      summary: Get portfolio holdings with live PnL
+  /api/v1/portfolios/{id}/positions:
+    post:
+      consumes:
+      - application/json
+      description: Adds a new position and returns it with its ID.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Position data
+        in: body
+        name: position
+        required: true
+        schema:
+          $ref: '#/definitions/rest.positionAddRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Position'
+        "400":
+          description: bad request
+          schema:
+            type: string
+      summary: Add a position to a portfolio
+  /api/v1/portfolios/{id}/positions/{posId}:
+    delete:
+      description: Removes a position from a portfolio.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Position ID
+        in: path
+        name: posId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            type: string
+      summary: Remove a position
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing position. Only provided fields are changed
+        (PATCH semantics).
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Position ID
+        in: path
+        name: posId
+        required: true
+        type: string
+      - description: Position updates
+        in: body
+        name: position
+        required: true
+        schema:
+          $ref: '#/definitions/rest.positionUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Position'
+        "400":
+          description: bad request
+          schema:
+            type: string
+      summary: Update a position
+  /api/v1/quotes/{symbol}:
+    get:
+      description: Returns the latest quote for a symbol (cached or live).
+      parameters:
+      - description: Ticker symbol
+        in: path
+        name: symbol
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Quote'
+        "404":
+          description: not found
+          schema:
+            type: string
+      summary: Get latest quote
+  /api/v1/quotes/{symbol}/history:
+    get:
+      description: Returns historical quotes for a symbol within a date range.
+      parameters:
+      - description: Ticker symbol
+        in: path
+        name: symbol
+        required: true
+        type: string
+      - description: Start date (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: End date (RFC3339)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PriceHistory'
+        "404":
+          description: not found
+          schema:
+            type: string
+      summary: Get quote history
 swagger: "2.0"

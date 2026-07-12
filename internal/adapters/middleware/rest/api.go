@@ -132,7 +132,7 @@ type ServerInfo struct {
 //	@Summary		List all portfolios
 //	@Description	Returns all portfolios without positions for performance.
 //	@Produce		json
-//	@Success		200	{array}	domain.Portfolio
+//	@Success		200	{array}		domain.Portfolio
 //	@Failure		500	{string}	string	"server error"
 //	@Router			/api/v1/portfolios [get]
 func (api *API) PortfolioList(w http.ResponseWriter, r *http.Request) {
@@ -199,7 +199,7 @@ type portfolioCreateRequest struct {
 //
 //	@Summary		Delete a portfolio
 //	@Description	Deletes a portfolio and all its positions.
-//	@Param			id	path	string	true	"Portfolio ID"
+//	@Param			id	path		string	true	"Portfolio ID"
 //	@Success		200	{object}	map[string]string
 //	@Failure		404	{string}	string	"not found"
 //	@Router			/api/v1/portfolios/{id} [delete]
@@ -252,8 +252,8 @@ func (api *API) PortfolioHoldings(w http.ResponseWriter, r *http.Request) {
 //	@Description	Adds a new position and returns it with its ID.
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		path	string					true	"Portfolio ID"
-//	@Param			position	body	positionAddRequest		true	"Position data"
+//	@Param			id			path		string				true	"Portfolio ID"
+//	@Param			position	body		positionAddRequest	true	"Position data"
 //	@Success		201			{object}	domain.Position
 //	@Failure		400			{string}	string	"bad request"
 //	@Router			/api/v1/portfolios/{id}/positions [post]
@@ -299,9 +299,9 @@ type positionAddRequest struct {
 //	@Description	Updates an existing position. Only provided fields are changed (PATCH semantics).
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		path	string					true	"Portfolio ID"
-//	@Param			posId	path	string					true	"Position ID"
-//	@Param			position	body	positionUpdateRequest	true	"Position updates"
+//	@Param			id			path		string					true	"Portfolio ID"
+//	@Param			posId		path		string					true	"Position ID"
+//	@Param			position	body		positionUpdateRequest	true	"Position updates"
 //	@Success		200			{object}	domain.Position
 //	@Failure		400			{string}	string	"bad request"
 //	@Router			/api/v1/portfolios/{id}/positions/{posId} [put]
@@ -358,8 +358,8 @@ type positionUpdateRequest struct {
 //
 //	@Summary		Remove a position
 //	@Description	Removes a position from a portfolio.
-//	@Param			id		path	string	true	"Portfolio ID"
-//	@Param			posId	path	string	true	"Position ID"
+//	@Param			id		path		string	true	"Portfolio ID"
+//	@Param			posId	path		string	true	"Position ID"
 //	@Success		200		{object}	map[string]string
 //	@Failure		404		{string}	string	"not found"
 //	@Router			/api/v1/portfolios/{id}/positions/{posId} [delete]

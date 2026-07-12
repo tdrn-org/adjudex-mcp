@@ -19,7 +19,7 @@
             "get": {
                 "description": "Get server software version details.",
                 "produces": [
-                    "text/plain"
+                    "application/json"
                 ],
                 "summary": "Query server info",
                 "responses": {
@@ -60,15 +60,592 @@
                     }
                 }
             }
+        },
+        "/api/v1/portfolios": {
+            "get": {
+                "description": "Returns all portfolios without positions for performance.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List all portfolios",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Portfolio"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a portfolio and returns it with its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create a new portfolio",
+                "parameters": [
+                    {
+                        "description": "Portfolio data",
+                        "name": "portfolio",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/rest.portfolioCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Portfolio"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/portfolios/{id}": {
+            "get": {
+                "description": "Returns a single portfolio with all positions.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get portfolio by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Portfolio"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a portfolio and all its positions.",
+                "summary": "Delete a portfolio",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/portfolios/{id}/holdings": {
+            "get": {
+                "description": "Returns the portfolio with all positions enriched with current market data.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get portfolio holdings with live PnL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Holding"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/portfolios/{id}/positions": {
+            "post": {
+                "description": "Adds a new position and returns it with its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Add a position to a portfolio",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Position data",
+                        "name": "position",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/rest.positionAddRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Position"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/portfolios/{id}/positions/{posId}": {
+            "put": {
+                "description": "Updates an existing position. Only provided fields are changed (PATCH semantics).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Update a position",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Position ID",
+                        "name": "posId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Position updates",
+                        "name": "position",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/rest.positionUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Position"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes a position from a portfolio.",
+                "summary": "Remove a position",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Portfolio ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Position ID",
+                        "name": "posId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/quotes/{symbol}": {
+            "get": {
+                "description": "Returns the latest quote for a symbol (cached or live).",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get latest quote",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticker symbol",
+                        "name": "symbol",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Quote"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/quotes/{symbol}/history": {
+            "get": {
+                "description": "Returns historical quotes for a symbol within a date range.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get quote history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticker symbol",
+                        "name": "symbol",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PriceHistory"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "domain.Holding": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "currentPrice": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "entryDate": {
+                    "type": "string"
+                },
+                "entryPrice": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "marketValue": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "pnL": {
+                    "description": "absolute profit/loss",
+                    "type": "number",
+                    "format": "float64"
+                },
+                "pnLPercent": {
+                    "description": "relative profit/loss percentage",
+                    "type": "number",
+                    "format": "float64"
+                },
+                "quantity": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "symbol": {
+                    "description": "WKN or ticker (e.g., \"A413X6\", \"NVDA\")",
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Portfolio": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "positions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Position"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Position": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "entryDate": {
+                    "type": "string"
+                },
+                "entryPrice": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "symbol": {
+                    "description": "WKN or ticker (e.g., \"A413X6\", \"NVDA\")",
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.PriceHistory": {
+            "type": "object",
+            "properties": {
+                "quotes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Quote"
+                    }
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Quote": {
+            "type": "object",
+            "properties": {
+                "close": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "high": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "low": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "open": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "price": {
+                    "type": "number",
+                    "format": "float64"
+                },
+                "source": {
+                    "description": "provider identifier (e.g., \"consorsbank\", \"yahoo\", \"mock\")",
+                    "type": "string"
+                },
+                "sourceTimestamp": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "volume": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "rest.ServerInfo": {
             "type": "object",
             "properties": {
                 "version": {
-                    "description": "The server version",
                     "type": "string"
+                }
+            }
+        },
+        "rest.portfolioCreateRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "rest.positionAddRequest": {
+            "type": "object",
+            "properties": {
+                "entry_date": {
+                    "type": "string"
+                },
+                "entry_price": {
+                    "type": "number"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "number"
+                },
+                "symbol": {
+                    "type": "string"
+                }
+            }
+        },
+        "rest.positionUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "entry_price": {
+                    "type": "number"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "number"
                 }
             }
         }
