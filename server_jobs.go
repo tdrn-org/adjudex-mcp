@@ -59,3 +59,23 @@ func (s *Server) evalAlerts(ctx context.Context) {
 		}
 	}
 }
+
+func (s *Server) collectMetrics(ctx context.Context) {
+	s.collectQuoteMetrics(ctx)
+}
+
+func (s *Server) collectQuoteMetrics(ctx context.Context) {
+	symbolMap, err := s.dataStore.ListSymbols(ctx)
+	if err != nil {
+		s.logger.Error("failed list symbols for metric collection", slog.Any("err", err))
+		return
+	}
+	for symbol := range symbolMap {
+		quote, err := s.dataStore.GetLatestQuote(ctx, symbol)
+		if err != nil {
+			s.logger.Error("failed get latest quote for metric collection", slog.String("symbol", symbol), slog.Any("err", err))
+			continue
+		}
+		s.metricsRecorder.RecordQuote(quote)
+	}
+}

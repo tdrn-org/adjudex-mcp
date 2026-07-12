@@ -252,6 +252,7 @@ func (s *Server) startJobTicker(_ context.Context, cfg *config.Config) error {
 	s.jobTickerShutdown = make(chan any)
 	s.jobs = append(s.jobs, s.quoteService.FetchQuotes)
 	s.jobs = append(s.jobs, s.evalAlerts)
+	s.jobs = append(s.jobs, s.collectMetrics)
 	s.jobTickerShutdownWG.Go(func() {
 		for stopped := false; !stopped; {
 			select {

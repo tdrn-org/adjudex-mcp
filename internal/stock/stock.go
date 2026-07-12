@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/tdrn-org/adjudex-mcp/config"
-	"github.com/tdrn-org/adjudex-mcp/internal/adapters/middleware/metrics"
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/adjudex-mcp/internal/stock/tracker"
@@ -37,7 +36,6 @@ import (
 
 type Runtime interface {
 	DataStore() *data.Store
-	MetricsRecorder() *metrics.Recorder
 	Logger() *slog.Logger
 }
 
@@ -257,7 +255,6 @@ func (qs *QuoteService) FetchQuotes(ctx context.Context) {
 			// fetchQuoteLocked logs failures already
 			continue
 		}
-		qs.runtime.MetricsRecorder().RecordQuote(quote)
 		err = store.SaveQuote(ctx, quote)
 		if err != nil {
 			qs.logger.Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
