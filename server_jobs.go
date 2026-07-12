@@ -20,14 +20,18 @@ import (
 	"context"
 )
 
+type jobFunc func(ctx context.Context)
+
 func (s *Server) runJobs() {
 	s.logger.Info("running jobs...")
 	ctx := context.Background()
 	for _, job := range s.jobs {
-		job.Run(ctx)
+		job(ctx)
 	}
 }
 
-type jobRunner interface {
-	Run(ctx context.Context)
+func (s *Server) evalAlerts(ctx context.Context) {
+	s.logger.Info("evaluating alerts...")
+
+	//TODO: Add logic
 }

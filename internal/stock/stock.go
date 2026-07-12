@@ -234,7 +234,7 @@ func (qs *QuoteService) fetchHistoryLocked(ctx context.Context, symbol string, f
 	return nil, domain.ErrNoQuote
 }
 
-func (qs *QuoteService) Run(ctx context.Context) {
+func (qs *QuoteService) FetchQuotes(ctx context.Context) {
 	qs.logger.Info("fetching quotes...")
 
 	qs.mutex.Lock()

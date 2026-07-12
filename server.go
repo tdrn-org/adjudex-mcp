@@ -50,7 +50,7 @@ type Server struct {
 	jobTicker           *time.Ticker
 	jobTickerShutdown   chan any
 	jobTickerShutdownWG sync.WaitGroup
-	jobs                []jobRunner
+	jobs                []jobFunc
 	logger              *slog.Logger
 }
 
@@ -226,7 +226,8 @@ func (s *Server) startJobTicker(_ context.Context, cfg *config.Config) error {
 	s.logger.Info("starting job ticker...", slog.String("schedule", schedule.String()))
 	s.jobTicker = time.NewTicker(schedule)
 	s.jobTickerShutdown = make(chan any)
-	s.jobs = append(s.jobs, s.quoteService)
+	s.jobs = append(s.jobs, s.quoteService.FetchQuotes)
+	s.jobs = append(s.jobs, s.evalAlerts)
 	s.jobTickerShutdownWG.Go(func() {
 		for stopped := false; !stopped; {
 			select {
