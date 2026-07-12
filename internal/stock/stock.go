@@ -131,7 +131,6 @@ func (qs *QuoteService) ResolveQuote(ctx context.Context, symbol string) (*domai
 	if err != nil {
 		return nil, err
 	}
-	qs.runtime.MetricsRecorder().RecordQuote(quote)
 	err = store.SaveQuote(ctx, quote)
 	if err != nil {
 		qs.logger.Error("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
@@ -258,6 +257,7 @@ func (qs *QuoteService) FetchQuotes(ctx context.Context) {
 			// fetchQuoteLocked logs failures already
 			continue
 		}
+		qs.runtime.MetricsRecorder().RecordQuote(quote)
 		err = store.SaveQuote(ctx, quote)
 		if err != nil {
 			qs.logger.Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
