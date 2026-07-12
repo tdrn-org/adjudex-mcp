@@ -17,9 +17,9 @@ endif
 endif
 
 NPM := $(shell command -v npm 2> /dev/null)
-NPMOPTS ?= --no-progress --no-color --no-fund
+NPMOPTS ?= --no-progress --no-color --no-fund --legacy-peer-deps
 
-WEB ?= 0
+WEB ?= 1
 
 .DEFAULT_GOAL := help
 

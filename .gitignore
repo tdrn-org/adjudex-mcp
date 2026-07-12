@@ -38,9 +38,9 @@ build/
 internal/web/static/
 
 # SvelteKit source dependencies (generated)
-web/node_modules/
-web/.svelte-kit/
-web/package-lock.json
+internal/web/node_modules/
+internal/web/.svelte-kit/
+internal/web/package-lock.json
 
 # Log files
 *.log
