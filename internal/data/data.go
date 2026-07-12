@@ -246,7 +246,7 @@ func (s *Store) UpdatePosition(ctx context.Context, portfolioID string, pos *dom
 	return nil
 }
 
-func (s *Store) ListSymbols(ctx context.Context) ([]string, error) {
+func (s *Store) ListSymbols(ctx context.Context) (map[string]time.Time, error) {
 	return model.SelectPositionSymbols(ctx, s.driver)
 }
 

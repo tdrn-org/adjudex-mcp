@@ -19,6 +19,7 @@ package model
 import (
 	"context"
 	_ "embed"
+	"time"
 
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/go-database"
@@ -194,7 +195,7 @@ func DeletePositionsByPortfolioID(ctx context.Context, driver *database.Driver, 
 //go:embed position.select_symbols.sql
 var selectPositionSymbolsSQL string
 
-func SelectPositionSymbols(ctx context.Context, driver *database.Driver) ([]string, error) {
+func SelectPositionSymbols(ctx context.Context, driver *database.Driver) (map[string]time.Time, error) {
 	txCtx, tx, err := driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -207,14 +208,15 @@ func SelectPositionSymbols(ctx context.Context, driver *database.Driver) ([]stri
 	}
 	defer rows.Close()
 
-	symbols := make([]string, 0)
+	symbolMap := make(map[string]time.Time, 0)
 	for rows.Next() {
 		var symbol string
-		err = rows.Scan(&symbol)
+		var timestamp int64
+		err = rows.Scan(&symbol, &timestamp)
 		if err != nil {
 			return nil, err
 		}
-		symbols = append(symbols, symbol)
+		symbolMap[symbol] = database.DB2Time(timestamp)
 	}
 
 	err = tx.CommitTx(txCtx)
@@ -222,5 +224,5 @@ func SelectPositionSymbols(ctx context.Context, driver *database.Driver) ([]stri
 		return nil, err
 	}
 
-	return symbols, nil
+	return symbolMap, nil
 }

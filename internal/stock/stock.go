@@ -241,11 +241,14 @@ func (qs *QuoteService) Run(ctx context.Context) {
 	defer qs.mutex.Unlock()
 
 	store := qs.runtime.DataStore()
-	symbols, err := store.ListSymbols(ctx)
+	symbolMap, err := store.ListSymbols(ctx)
 	if err != nil {
 		qs.logger.Error("failed to list symbols", slog.Any("err", err))
 	}
-	for _, symbol := range symbols {
+	for symbol, lastQuote := range symbolMap {
+		if time.Since(lastQuote) < time.Duration(qs.cfg.MaxAge) {
+			continue
+		}
 		qs.logger.Debug("fetching quote...", slog.String("symbol", symbol))
 		quote, err := qs.fetchQuoteLocked(ctx, symbol, "")
 		if err != nil {

@@ -30,9 +30,10 @@ type PortfolioStore interface {
 	AddPosition(ctx context.Context, portfolioID string, pos *Position) error
 	RemovePosition(ctx context.Context, portfolioID string, positionID string) error
 	UpdatePosition(ctx context.Context, portfolioID string, pos *Position) error
-	// ListSymbols returns all distinct symbols across all portfolios and positions.
+	// ListSymbols returns all distinct symbols across all portfolios and positions
+	// including the timestamp of their latest quote.
 	// Used by the background quote poller to know which symbols to fetch.
-	ListSymbols(ctx context.Context) ([]string, error)
+	ListSymbols(ctx context.Context) (map[string]time.Time, error)
 }
 
 // QuoteStore defines the persistence interface for quote data.
