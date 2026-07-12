@@ -301,7 +301,7 @@ func (runtime *serverRuntime) QuoteService() *stock.QuoteService {
 func (runtime *serverRuntime) Ping(ctx context.Context) error {
 	err := runtime.server.dataStore.Ping(ctx)
 	if err != nil {
-		runtime.server.logger.Warn("data store ping failure", slog.Any("err", err))
+		runtime.server.logger.Error("data store ping failure", slog.Any("err", err))
 		return err
 	}
 	return nil

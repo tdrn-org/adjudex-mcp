@@ -134,7 +134,7 @@ func (qs *QuoteService) ResolveQuote(ctx context.Context, symbol string) (*domai
 	qs.runtime.MetricsRecorder().RecordQuote(quote)
 	err = store.SaveQuote(ctx, quote)
 	if err != nil {
-		qs.logger.Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
+		qs.logger.Error("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
 	}
 	qs.sourceAffinity[symbol] = tracker.ProviderName(quote.Source)
 	return quote, nil
