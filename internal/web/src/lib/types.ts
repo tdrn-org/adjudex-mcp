@@ -60,3 +60,13 @@ export interface PriceHistory {
 export interface ServerInfo {
   version: string;
 }
+
+export interface PortfolioSummary {
+  id: string;
+  name: string;
+  currency: string;
+  market_value: number;
+  pnl: number;
+  pnl_percent: number;
+  position_count: number;
+}

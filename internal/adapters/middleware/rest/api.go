@@ -72,6 +72,7 @@ func (api *API) Mount(server *httpserver.Instance) {
 
 	server.HandleFunc("GET "+basePath+"/portfolios", api.PortfolioList)
 	server.HandleFunc("POST "+basePath+"/portfolios", api.PortfolioCreate)
+	server.HandleFunc("GET "+basePath+"/portfolios/summaries", api.PortfolioSummaries)
 	server.HandleFunc("GET "+basePath+"/portfolios/{id}", api.PortfolioGet)
 	server.HandleFunc("DELETE "+basePath+"/portfolios/{id}", api.PortfolioDelete)
 	server.HandleFunc("GET "+basePath+"/portfolios/{id}/holdings", api.PortfolioHoldings)
@@ -213,8 +214,61 @@ func (api *API) PortfolioDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // =============================================================================
-// Position Handlers
+// Portfolio Summary Handler
 // =============================================================================
+
+type PortfolioSummary struct {
+	ID            string  `json:"id"`
+	Name          string  `json:"name"`
+	Currency      string  `json:"currency"`
+	MarketValue   float64 `json:"market_value"`
+	PnL           float64 `json:"pnl"`
+	PnLPercent    float64 `json:"pnl_percent"`
+	PositionCount int     `json:"position_count"`
+}
+
+// GET @BasePath/portfolios/summaries
+func (api *API) PortfolioSummaries(w http.ResponseWriter, r *http.Request) {
+	ps, err := api.runtime.DataStore().ListPortfolios(r.Context())
+	if err != nil {
+		api.sendError(w, r, http.StatusInternalServerError, fmt.Errorf("listing portfolios: %w", err))
+		return
+	}
+
+	summaries := make([]PortfolioSummary, 0, len(ps))
+	for _, p := range ps {
+		full, err := api.runtime.DataStore().GetPortfolio(r.Context(), p.ID)
+		if err != nil {
+			api.runtime.Logger().Warn("failed to get portfolio for summary", "id", p.ID, "err", err)
+			continue
+		}
+
+		holdings := make([]domain.Holding, 0, len(full.Positions))
+		for _, pos := range full.Positions {
+			quote, err := api.runtime.QuoteService().ResolveQuote(r.Context(), pos.Symbol)
+			if err != nil {
+				api.runtime.Logger().Warn("failed to resolve quote for summary", "symbol", pos.Symbol, "err", err)
+				continue
+			}
+			holdings = append(holdings, domain.NewHolding(pos, quote.Price))
+		}
+
+		summary := domain.Holdings(holdings).Summarize()
+		summaries = append(summaries, PortfolioSummary{
+			ID:            p.ID,
+			Name:          p.Name,
+			Currency:      summary.Currency,
+			MarketValue:   summary.MarketValue,
+			PnL:           summary.PnL,
+			PnLPercent:    summary.PnLPercent,
+			PositionCount: len(full.Positions),
+		})
+	}
+
+	api.sendJSON(w, r, http.StatusOK, summaries)
+}
+
+// DELETE @BasePath/portfolios/{id}
 
 // GET @BasePath/portfolios/{id}/holdings
 //
