@@ -104,8 +104,7 @@ func (r *Recorder) RecordPortfolio(portfolio *domain.Portfolio, holdingsSummary 
 		return
 	}
 
-	// TODO: Use actual currency
-	portfolioLabels := []string{portfolio.Name, "EUR"}
+	portfolioLabels := []string{portfolio.Name, holdingsSummary.Currency}
 	r.setGauge("portfolio market value", r.portfolioValueAmount, holdingsSummary.MarketValue, portfolioLabels...)
 	r.setGauge("portfolio PnL amount", r.portfolioPnLAmount, holdingsSummary.PnL, portfolioLabels...)
 	r.setGauge("portfolio PnL ratio", r.portfolioPnLRatio, holdingsSummary.PnLPercent, portfolioLabels...)
