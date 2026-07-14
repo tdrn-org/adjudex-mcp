@@ -36,11 +36,12 @@ func addTradeRecordTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "trade_record",
 		Description: "Records a new trade (buy or sell). The created trade details are returned.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"strategy_id":{"type":"string","description":"ID of the strategy that triggered this trade."},"symbol":{"type":"string","description":"The ticker symbol."},"direction":{"type":"string","description":"Trade direction: buy or sell."},"quantity":{"type":"number","description":"Number of shares."},"price":{"type":"number","description":"Execution price per share."},"executed_at":{"type":"string","description":"Execution timestamp (RFC3339 format)."},"status":{"type":"string","description":"Trade status: pending, executed, cancelled. Defaults to executed."},"pnl":{"type":"number","description":"Profit/loss for sell trades. Defaults to 0."},"notes":{"type":"string","description":"Optional notes."}},"required":["strategy_id","symbol","direction","quantity","price","executed_at"]}`),
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"strategy_id":{"type":"string","description":"ID of the strategy that triggered this trade."},"symbol":{"type":"string","description":"The ticker symbol."},"currency":{"type":"string","description":"The currency of the trade (e.g. USD, EUR). Defaults to USD."},"direction":{"type":"string","description":"Trade direction: buy or sell."},"quantity":{"type":"number","description":"Number of shares."},"price":{"type":"number","description":"Execution price per share."},"executed_at":{"type":"string","description":"Execution timestamp (RFC3339 format)."},"status":{"type":"string","description":"Trade status: pending, executed, cancelled. Defaults to executed."},"pnl":{"type":"number","description":"Profit/loss for sell trades. Defaults to 0."},"notes":{"type":"string","description":"Optional notes."}},"required":["strategy_id","symbol","direction","quantity","price","executed_at"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			StrategyID string  `json:"strategy_id"`
 			Symbol     string  `json:"symbol"`
+			Currency   string  `json:"currency"`
 			Direction  string  `json:"direction"`
 			Quantity   float64 `json:"quantity"`
 			Price      float64 `json:"price"`
@@ -70,9 +71,15 @@ func addTradeRecordTool(server *mcp.Server, runtime Runtime) {
 			status = domain.TradeExecuted
 		}
 
+		currency := args.Currency
+		if currency == "" {
+			currency = "USD"
+		}
+
 		t := &domain.Trade{
 			StrategyID: args.StrategyID,
 			Symbol:     args.Symbol,
+			Currency:   currency,
 			Direction:  direction,
 			Quantity:   args.Quantity,
 			Price:      args.Price,

@@ -271,8 +271,14 @@ func (api *API) PositionAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	currency := req.Currency
+	if currency == "" {
+		currency = "USD"
+	}
+
 	pos := &domain.Position{
 		Symbol:     req.Symbol,
+		Currency:   currency,
 		Quantity:   req.Quantity,
 		EntryPrice: req.EntryPrice,
 		EntryDate:  entryDate,
@@ -287,6 +293,7 @@ func (api *API) PositionAdd(w http.ResponseWriter, r *http.Request) {
 
 type positionAddRequest struct {
 	Symbol     string  `json:"symbol"`
+	Currency   string  `json:"currency"`
 	Quantity   float64 `json:"quantity"`
 	EntryPrice float64 `json:"entry_price"`
 	EntryDate  string  `json:"entry_date"`
@@ -334,6 +341,9 @@ func (api *API) PositionUpdate(w http.ResponseWriter, r *http.Request) {
 	if req.Quantity != nil {
 		pos.Quantity = *req.Quantity
 	}
+	if req.Currency != nil {
+		pos.Currency = *req.Currency
+	}
 	if req.EntryPrice != nil {
 		pos.EntryPrice = *req.EntryPrice
 	}
@@ -349,6 +359,7 @@ func (api *API) PositionUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 type positionUpdateRequest struct {
+	Currency   *string  `json:"currency"`
 	Quantity   *float64 `json:"quantity"`
 	EntryPrice *float64 `json:"entry_price"`
 	Notes      *string  `json:"notes"`

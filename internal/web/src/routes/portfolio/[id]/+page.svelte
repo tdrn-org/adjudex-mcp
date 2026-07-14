@@ -3,11 +3,11 @@
 
   let { data } = $props();
 
-  function formatCurrency(value: number): string {
+  function formatCurrency(value: number, currency?: string): string {
     if (value == null || isNaN(value)) return '—';
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
-      currency: 'EUR',
+      currency: currency || 'EUR',
     }).format(value);
   }
 
@@ -112,11 +112,11 @@
                     {/if}
                   </td>
                   <td class="px-6 py-4 text-right text-slate-300">{h.quantity}</td>
-                  <td class="px-6 py-4 text-right text-slate-400">{formatCurrency(h.entry_price)}</td>
-                  <td class="px-6 py-4 text-right text-white font-medium">{formatCurrency(h.current_price)}</td>
-                  <td class="px-6 py-4 text-right text-slate-300">{formatCurrency(h.market_value)}</td>
+                  <td class="px-6 py-4 text-right text-slate-400">{formatCurrency(h.entry_price, h.currency)}</td>
+                  <td class="px-6 py-4 text-right text-white font-medium">{formatCurrency(h.current_price, h.currency)}</td>
+                  <td class="px-6 py-4 text-right text-slate-300">{formatCurrency(h.market_value, h.currency)}</td>
                   <td class="px-6 py-4 text-right font-medium {h.pnl >= 0 ? 'text-positive' : 'text-negative'}">
-                    {formatCurrency(h.pnl)}
+                    {formatCurrency(h.pnl, h.currency)}
                   </td>
                   <td class="px-6 py-4 text-right font-medium {h.pnl_percent >= 0 ? 'text-positive' : 'text-negative'}">
                     {formatPercent(h.pnl_percent)}

@@ -13,6 +13,7 @@ export interface Portfolio {
 export interface Position {
   id: string;
   symbol: string;
+  currency: string;
   quantity: number;
   entry_price: number;
   entry_date: string;
@@ -24,6 +25,7 @@ export interface Position {
 export interface Holding {
   id: string;
   symbol: string;
+  currency: string;
   quantity: number;
   entry_price: number;
   entry_date: string;

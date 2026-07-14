@@ -121,11 +121,12 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "position_add",
 		Description: "Adds a new position to a portfolio. The created position details are returned.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio to add the position to."},"symbol":{"type":"string","description":"The ticker symbol or WKN of the security."},"quantity":{"type":"number","description":"The number of shares or units."},"entry_price":{"type":"number","description":"The purchase price per share."},"entry_date":{"type":"string","description":"The date of purchase (RFC3339 format, e.g. 2026-07-11T00:00:00Z)."},"notes":{"type":"string","description":"Optional notes about this position."}},"required":["portfolio_id","symbol","quantity","entry_price","entry_date"]}`),
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio to add the position to."},"symbol":{"type":"string","description":"The ticker symbol or WKN of the security."},"currency":{"type":"string","description":"The currency of the position (e.g. USD, EUR). Defaults to USD."},"quantity":{"type":"number","description":"The number of shares or units."},"entry_price":{"type":"number","description":"The purchase price per share."},"entry_date":{"type":"string","description":"The date of purchase (RFC3339 format, e.g. 2026-07-11T00:00:00Z)."},"notes":{"type":"string","description":"Optional notes about this position."}},"required":["portfolio_id","symbol","quantity","entry_price","entry_date"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			PortfolioID string  `json:"portfolio_id"`
 			Symbol      string  `json:"symbol"`
+			Currency    string  `json:"currency"`
 			Quantity    float64 `json:"quantity"`
 			EntryPrice  float64 `json:"entry_price"`
 			EntryDate   string  `json:"entry_date"`
@@ -140,8 +141,14 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("parsing entry_date: %w", err)
 		}
 
+		currency := args.Currency
+		if currency == "" {
+			currency = "USD"
+		}
+
 		pos := &domain.Position{
 			Symbol:     args.Symbol,
+			Currency:   currency,
 			Quantity:   args.Quantity,
 			EntryPrice: args.EntryPrice,
 			EntryDate:  entryDate,
@@ -179,11 +186,12 @@ func addPositionUpdateTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "position_update",
 		Description: "Updates an existing position. Only the provided fields are updated (PATCH semantics).",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio."},"position_id":{"type":"string","description":"ID of the position to update."},"quantity":{"type":"number","description":"New quantity."},"entry_price":{"type":"number","description":"New entry price."},"notes":{"type":"string","description":"New notes."}},"required":["portfolio_id","position_id"]}`),
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio."},"position_id":{"type":"string","description":"ID of the position to update."},"currency":{"type":"string","description":"New currency."},"quantity":{"type":"number","description":"New quantity."},"entry_price":{"type":"number","description":"New entry price."},"notes":{"type":"string","description":"New notes."}},"required":["portfolio_id","position_id"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			PortfolioID string   `json:"portfolio_id"`
 			PositionID  string   `json:"position_id"`
+			Currency    *string  `json:"currency"`
 			Quantity    *float64 `json:"quantity"`
 			EntryPrice  *float64 `json:"entry_price"`
 			Notes       *string  `json:"notes"`
@@ -209,6 +217,9 @@ func addPositionUpdateTool(server *mcp.Server, runtime Runtime) {
 
 		if args.Quantity != nil {
 			pos.Quantity = *args.Quantity
+		}
+		if args.Currency != nil {
+			pos.Currency = *args.Currency
 		}
 		if args.EntryPrice != nil {
 			pos.EntryPrice = *args.EntryPrice

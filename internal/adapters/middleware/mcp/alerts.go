@@ -38,11 +38,12 @@ func addAlertCreateTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "alert_create",
 		Description: "Creates a new alert for a symbol. The alert fires when its condition is met on the next quote update.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"name":{"type":"string","description":"A human-readable label for the alert."},"symbol":{"type":"string","description":"The ticker symbol to watch."},"condition":{"type":"string","description":"Alert condition: price_above, price_below, rsi_above, rsi_below, sma_cross_above, sma_cross_below, volume_spike."},"threshold":{"type":"number","description":"The trigger value (e.g. 30.0 for RSI < 30)."},"indicator_type":{"type":"string","description":"Optional indicator type (sma, ema, rsi, macd). Required for indicator-based conditions."},"indicator_period":{"type":"integer","description":"Optional indicator period (e.g. 14 for RSI-14). Required for indicator-based conditions."}},"required":["name","symbol","condition","threshold"]}`),
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"name":{"type":"string","description":"A human-readable label for the alert."},"symbol":{"type":"string","description":"The ticker symbol to watch."},"currency":{"type":"string","description":"The currency of the alert threshold (e.g. USD, EUR). Defaults to USD."},"condition":{"type":"string","description":"Alert condition: price_above, price_below, rsi_above, rsi_below, sma_cross_above, sma_cross_below, volume_spike."},"threshold":{"type":"number","description":"The trigger value (e.g. 30.0 for RSI < 30)."},"indicator_type":{"type":"string","description":"Optional indicator type (sma, ema, rsi, macd). Required for indicator-based conditions."},"indicator_period":{"type":"integer","description":"Optional indicator period (e.g. 14 for RSI-14). Required for indicator-based conditions."}},"required":["name","symbol","condition","threshold"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Name            string  `json:"name"`
 			Symbol          string  `json:"symbol"`
+			Currency        string  `json:"currency"`
 			Condition       string  `json:"condition"`
 			Threshold       float64 `json:"threshold"`
 			IndicatorType   *string `json:"indicator_type"`
@@ -68,9 +69,15 @@ func addAlertCreateTool(server *mcp.Server, runtime Runtime) {
 			}
 		}
 
+		currency := args.Currency
+		if currency == "" {
+			currency = "USD"
+		}
+
 		a := &domain.Alert{
 			Name:      args.Name,
 			Symbol:    args.Symbol,
+			Currency:  currency,
 			Condition: condition,
 			Threshold: args.Threshold,
 			Indicator: indicator,

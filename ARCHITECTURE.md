@@ -411,3 +411,29 @@ functionality (stdio/SSE) also benefits from this fix.
     distributable builds.
   - Version bumped to v0.3.0.
   - Zero new non-tdrn-org dependencies.
+
+---
+
+## ADR-010: JSON snake_case Convention for Domain Types
+
+**Date**: 2026-07-12
+**Status**: Accepted
+
+**Decision**: Add explicit `json:"snake_case"` tags to every exported field in all
+domain types across `internal/domain/` — Portfolio, Position, Holding, Quote,
+PriceHistory, IndicatorValue, Alert, IndicatorSpec, Strategy, StrategyParams
+(already tagged), Trade, BacktestResult.
+
+**Reason**: Go's `encoding/json` defaults to the exact struct field name
+(PascalCase) when no `json` tag is present. The SvelteKit frontend consumed these
+as `portfolio.CreatedAt` vs. the expected `portfolio.created_at` — all fields
+rendered as empty/undefined with zero console errors. Adding tags is a
+mechanical, stdlib-only change that fixes the mismatch at the source. 
+
+**Consequences**:
+- All JSON output from REST API and MCP tools now uses snake_case.
+- TypeScript interfaces in `internal/web/src/lib/types.ts` match 1:1.
+- `json:"..."` is stdlib (`encoding/json`) — does not violate domain isolation.
+- MCP tools are unaffected: `encoding/json` handles marshal/unmarshal transparently.
+- Future domain types MUST include `json:"..."` tags on all exported fields. 
+  This is now a non-negotiable convention.

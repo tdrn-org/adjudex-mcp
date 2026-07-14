@@ -87,9 +87,13 @@ type HoldingsSummary struct {
 }
 
 func (holdings Holdings) Summarize() HoldingsSummary {
+	currency := ""
 	totalEntryPrice := 0.0
 	totalMarketValue := 0.0
 	for _, holding := range holdings {
+		if currency == "" {
+			currency = holding.Currency
+		}
 		totalEntryPrice += holding.Quantity * holding.EntryPrice
 		totalMarketValue += holding.MarketValue
 	}
@@ -98,10 +102,10 @@ func (holdings Holdings) Summarize() HoldingsSummary {
 	if totalEntryPrice > 0 {
 		pnlPercent = (pnl / totalEntryPrice) * 100
 	}
-	summary := HoldingsSummary{
+	return HoldingsSummary{
+		Currency:    currency,
 		MarketValue: totalMarketValue,
 		PnL:         pnl,
 		PnLPercent:  pnlPercent,
 	}
-	return summary
 }
