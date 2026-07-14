@@ -118,6 +118,7 @@ func (s *Store) modelToPortfolio(storeP *model.Portfolio, storePoss []*model.Pos
 		pos := domain.Position{
 			ID:         storePos.ID,
 			Symbol:     storePos.Symbol,
+			Currency:   storePos.Currency,
 			Quantity:   storePos.Quantity,
 			EntryPrice: storePos.EntryPrice,
 			EntryDate:  database.DB2Time(storePos.EntryDate),
@@ -362,6 +363,7 @@ func (s *Store) modelToAlert(storeAlert *model.Alert) *domain.Alert {
 		ID:          storeAlert.ID,
 		Name:        storeAlert.Name,
 		Symbol:      storeAlert.Symbol,
+		Currency:    storeAlert.Currency,
 		Condition:   domain.AlertCondition(storeAlert.Condition),
 		Threshold:   storeAlert.Threshold,
 		Indicator:   indicator,
@@ -436,6 +438,7 @@ func (s *Store) modelToTrade(storeTrade *model.Trade) *domain.Trade {
 		ID:         storeTrade.ID,
 		StrategyID: storeTrade.StrategyID,
 		Symbol:     storeTrade.Symbol,
+		Currency:   storeTrade.Currency,
 		Direction:  domain.TradeDirection(storeTrade.Direction),
 		Quantity:   storeTrade.Quantity,
 		Price:      storeTrade.Price,

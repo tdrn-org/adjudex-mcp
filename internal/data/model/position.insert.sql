@@ -3,6 +3,7 @@ INSERT INTO
         id,
         portfolio_id,
         symbol,
+        currency,
         quantity,
         entry_price,
         entry_date,
@@ -19,5 +20,6 @@ VALUES(
     $6,
     $7,
     $8,
-    $9
+    $9,
+    $10
 )

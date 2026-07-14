@@ -54,6 +54,7 @@ type Alert struct {
 	ID          string         `json:"id"`
 	Name        string         `json:"name"`
 	Symbol      string         `json:"symbol"`
+	Currency    string         `json:"currency"`
 	Condition   AlertCondition `json:"condition"`
 	Threshold   float64        `json:"threshold"`
 	Indicator   *IndicatorSpec `json:"indicator,omitempty"`

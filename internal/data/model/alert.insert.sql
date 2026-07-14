@@ -3,6 +3,7 @@ INSERT INTO
         id,
         name,
         symbol,
+        currency,
         condition,
         threshold,
         indicator_type,
@@ -25,5 +26,6 @@ VALUES(
     $9,
     $10,
     $11,
-    $12
+    $12,
+    $13
 )

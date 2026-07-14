@@ -1,6 +1,7 @@
 SELECT
     a.name,
     a.symbol,
+    a.currency,
     a.condition,
     a.threshold,
     a.indicator_type,

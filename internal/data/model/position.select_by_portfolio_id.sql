@@ -1,6 +1,7 @@
 SELECT
     a.id,
     a.symbol,
+    a.currency,
     a.quantity,
     a.entry_price,
     a.entry_date,

@@ -1,6 +1,7 @@
 SELECT
     a.id,
     a.strategy_id,
+    a.currency,
     a.direction,
     a.quantity,
     a.price,

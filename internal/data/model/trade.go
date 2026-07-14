@@ -28,6 +28,7 @@ type Trade struct {
 	ID         string  `db:"id"`
 	StrategyID string  `db:"strategy_id"`
 	Symbol     string  `db:"symbol"`
+	Currency   string  `db:"currency"`
 	Direction  string  `db:"direction"`
 	Quantity   float64 `db:"quantity"`
 	Price      float64 `db:"price"`
@@ -51,6 +52,7 @@ func InsertTrade(ctx context.Context, driver *database.Driver, t *domain.Trade) 
 		ID:         database.NewID(),
 		StrategyID: t.StrategyID,
 		Symbol:     t.Symbol,
+		Currency:   t.Currency,
 		Direction:  string(t.Direction),
 		Quantity:   t.Quantity,
 		Price:      t.Price,
@@ -63,6 +65,7 @@ func InsertTrade(ctx context.Context, driver *database.Driver, t *domain.Trade) 
 		trade.ID,
 		trade.StrategyID,
 		trade.Symbol,
+		trade.Currency,
 		trade.Direction,
 		trade.Quantity,
 		trade.Price,
@@ -102,6 +105,7 @@ func SelectTradeByID(ctx context.Context, driver *database.Driver, id string) (*
 	err = database.ScanRow(row, trade,
 		"strategy_id",
 		"symbol",
+		"currency",
 		"direction",
 		"quantity",
 		"price",

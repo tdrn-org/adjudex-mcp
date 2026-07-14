@@ -1,6 +1,7 @@
 SELECT
     a.id,
     a.symbol,
+    a.currency,
     a.direction,
     a.quantity,
     a.price,

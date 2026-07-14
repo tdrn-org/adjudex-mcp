@@ -88,6 +88,7 @@ const (
 // IndicatorValue holds a computed indicator value at a point in time.
 type IndicatorValue struct {
 	Symbol    string        `json:"symbol"`
+	Currency  string        `json:"currency"`
 	Type      IndicatorType `json:"type"`
 	Period    int           `json:"period"`
 	Value     float64       `json:"value"`

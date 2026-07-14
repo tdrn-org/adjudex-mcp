@@ -45,6 +45,7 @@ func TestPortfolio(t *testing.T) {
 		Positions: []domain.Position{
 			{
 				Symbol:     "XZY",
+				Currency:   "USD",
 				Quantity:   12.0,
 				EntryPrice: 123.4,
 				EntryDate:  time.Date(2026, 7, 10, 23, 56, 0, 0, time.Local),
@@ -69,6 +70,7 @@ func TestPortfolio(t *testing.T) {
 	// Add
 	p2.Positions = append(p2.Positions, domain.Position{
 		Symbol:     "ABC",
+		Currency:   "USD",
 		Quantity:   24.0,
 		EntryPrice: 246.8,
 		EntryDate:  time.Date(2026, 7, 11, 06, 49, 0, 0, time.Local),
@@ -151,6 +153,7 @@ func TestAlert(t *testing.T) {
 	a1 := &domain.Alert{
 		Name:      t.Name() + " alert",
 		Symbol:    "XYZ",
+		Currency:  "USD",
 		Condition: domain.AlertPriceBelow,
 		Threshold: 35.0,
 		State:     domain.AlertStateArmed,
@@ -200,6 +203,7 @@ func TestTrade(t *testing.T) {
 	t1 := &domain.Trade{
 		StrategyID: "strategy",
 		Symbol:     "XZY",
+		Currency:   "USD",
 		Direction:  domain.TradeBuy,
 		Quantity:   12.3,
 		Price:      45.6,

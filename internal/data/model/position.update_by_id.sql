@@ -2,10 +2,11 @@ UPDATE
     position
 SET
     symbol = $1,
-    quantity = $2,
-    entry_price = $3,
-    entry_date = $4,
-    notes = $5,
-    updated_at = $6
+    currency = $2,
+    quantity = $3,
+    entry_price = $4,
+    entry_date = $5,
+    notes = $6,
+    updated_at = $7
 WHERE
-    id = $1
+    id = $8

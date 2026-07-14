@@ -29,6 +29,7 @@ type Position struct {
 	ID          string  `db:"id"`
 	PortfolioID string  `db:"portfolio_id"`
 	Symbol      string  `db:"symbol"`
+	Currency    string  `db:"currency"`
 	Quantity    float64 `db:"quantity"`
 	EntryPrice  float64 `db:"entry_price"`
 	EntryDate   int64   `db:"entry_date"`
@@ -51,6 +52,7 @@ func InsertPosition(ctx context.Context, driver *database.Driver, portfolioID st
 		ID:          database.NewID(),
 		PortfolioID: portfolioID,
 		Symbol:      pos.Symbol,
+		Currency:    pos.Currency,
 		Quantity:    pos.Quantity,
 		EntryPrice:  pos.EntryPrice,
 		EntryDate:   database.Time2DB(pos.EntryDate),
@@ -62,6 +64,7 @@ func InsertPosition(ctx context.Context, driver *database.Driver, portfolioID st
 		position.ID,
 		position.PortfolioID,
 		position.Symbol,
+		position.Currency,
 		position.Quantity,
 		position.EntryPrice,
 		position.EntryDate,
@@ -93,6 +96,7 @@ func UpdatePosition(ctx context.Context, driver *database.Driver, portfolioID st
 		ID:          pos.ID,
 		PortfolioID: portfolioID,
 		Symbol:      pos.Symbol,
+		Currency:    pos.Currency,
 		Quantity:    pos.Quantity,
 		EntryPrice:  pos.EntryPrice,
 		EntryDate:   database.Time2DB(pos.EntryDate),
@@ -101,6 +105,7 @@ func UpdatePosition(ctx context.Context, driver *database.Driver, portfolioID st
 	}
 	err = tx.ExecTx(txCtx, updatePositionByIDSQL,
 		position.Symbol,
+		position.Currency,
 		position.Quantity,
 		position.EntryPrice,
 		position.EntryDate,

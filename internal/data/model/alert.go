@@ -28,6 +28,7 @@ type Alert struct {
 	ID              string  `db:"id"`
 	Name            string  `db:"name"`
 	Symbol          string  `db:"symbol"`
+	Currency        string  `db:"currency"`
 	Condition       string  `db:"condition"`
 	Threshold       float64 `db:"threshold"`
 	IndicatorType   *string `db:"indicator_type"`
@@ -59,6 +60,7 @@ func InsertAlert(ctx context.Context, driver *database.Driver, a *domain.Alert) 
 		ID:              database.NewID(),
 		Name:            a.Name,
 		Symbol:          a.Symbol,
+		Currency:        a.Currency,
 		Condition:       string(a.Condition),
 		Threshold:       a.Threshold,
 		IndicatorType:   indicatorType,
@@ -73,6 +75,7 @@ func InsertAlert(ctx context.Context, driver *database.Driver, a *domain.Alert) 
 		alert.ID,
 		alert.Name,
 		alert.Symbol,
+		alert.Currency,
 		alert.Condition,
 		alert.Threshold,
 		alert.IndicatorType,
@@ -114,6 +117,7 @@ func UpdateAlert(ctx context.Context, driver *database.Driver, a *domain.Alert) 
 		ID:              database.NewID(),
 		Name:            a.Name,
 		Symbol:          a.Symbol,
+		Currency:        a.Currency,
 		Condition:       string(a.Condition),
 		Threshold:       a.Threshold,
 		IndicatorType:   indicatorType,
@@ -126,6 +130,7 @@ func UpdateAlert(ctx context.Context, driver *database.Driver, a *domain.Alert) 
 	err = tx.ExecTx(txCtx, updateAlertByIDSQL,
 		alert.Name,
 		alert.Symbol,
+		alert.Currency,
 		alert.Condition,
 		alert.Threshold,
 		alert.IndicatorType,
@@ -167,6 +172,7 @@ func SelectAlertByID(ctx context.Context, driver *database.Driver, id string) (*
 	err = database.ScanRow(row, alert,
 		"name",
 		"symbol",
+		"currency",
 		"condition",
 		"threshold",
 		"indicator_type",

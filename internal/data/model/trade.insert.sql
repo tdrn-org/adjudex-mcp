@@ -3,6 +3,7 @@ INSERT INTO
         id,
         strategy_id,
         symbol,
+        currency,
         direction,
         quantity,
         price,
@@ -21,5 +22,6 @@ VALUES(
     $7,
     $8,
     $9,
-    $10
+    $10,
+    $11
 )

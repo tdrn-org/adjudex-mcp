@@ -37,6 +37,7 @@ type Portfolio struct {
 type Position struct {
 	ID         string    `json:"id"`
 	Symbol     string    `json:"symbol"`
+	Currency   string    `json:"currency"`
 	Quantity   float64   `json:"quantity"`
 	EntryPrice float64   `json:"entry_price"`
 	EntryDate  time.Time `json:"entry_date"`
@@ -79,9 +80,10 @@ func NewHolding(pos Position, currentPrice float64) Holding {
 type Holdings []Holding
 
 type HoldingsSummary struct {
-	MarketValue float64
-	PnL         float64
-	PnLPercent  float64
+	Currency    string  `json:"currency"`
+	MarketValue float64 `json:"market_value"`
+	PnL         float64 `json:"pnl"`
+	PnLPercent  float64 `json:"pnl_percent"`
 }
 
 func (holdings Holdings) Summarize() HoldingsSummary {

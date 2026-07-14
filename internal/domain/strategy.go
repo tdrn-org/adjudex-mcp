@@ -60,6 +60,7 @@ type Trade struct {
 	ID         string         `json:"id"`
 	StrategyID string         `json:"strategy_id"`
 	Symbol     string         `json:"symbol"`
+	Currency   string         `json:"currency"`
 	Direction  TradeDirection `json:"direction"`
 	Quantity   float64        `json:"quantity"`
 	Price      float64        `json:"price"`
@@ -72,7 +73,6 @@ type Trade struct {
 // BacktestResult holds the outcome of a strategy backtest.
 type BacktestResult struct {
 	Strategy       Strategy  `json:"strategy"`
-	Symbol         string    `json:"symbol"`
 	From           time.Time `json:"from"`
 	To             time.Time `json:"to"`
 	TotalTrades    int       `json:"total_trades"`
