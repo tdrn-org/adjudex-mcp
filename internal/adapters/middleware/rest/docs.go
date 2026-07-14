@@ -441,6 +441,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "currency": {
+                    "type": "string"
+                },
                 "current_price": {
                     "type": "number"
                 },
@@ -506,6 +509,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
+                    "type": "string"
+                },
+                "currency": {
                     "type": "string"
                 },
                 "entry_date": {
@@ -605,6 +611,9 @@ const docTemplate = `{
         "rest.positionAddRequest": {
             "type": "object",
             "properties": {
+                "currency": {
+                    "type": "string"
+                },
                 "entry_date": {
                     "type": "string"
                 },
@@ -625,6 +634,9 @@ const docTemplate = `{
         "rest.positionUpdateRequest": {
             "type": "object",
             "properties": {
+                "currency": {
+                    "type": "string"
+                },
                 "entry_price": {
                     "type": "number"
                 },

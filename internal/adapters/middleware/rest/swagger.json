@@ -435,6 +435,9 @@
                 "created_at": {
                     "type": "string"
                 },
+                "currency": {
+                    "type": "string"
+                },
                 "current_price": {
                     "type": "number"
                 },
@@ -500,6 +503,9 @@
             "type": "object",
             "properties": {
                 "created_at": {
+                    "type": "string"
+                },
+                "currency": {
                     "type": "string"
                 },
                 "entry_date": {
@@ -599,6 +605,9 @@
         "rest.positionAddRequest": {
             "type": "object",
             "properties": {
+                "currency": {
+                    "type": "string"
+                },
                 "entry_date": {
                     "type": "string"
                 },
@@ -619,6 +628,9 @@
         "rest.positionUpdateRequest": {
             "type": "object",
             "properties": {
+                "currency": {
+                    "type": "string"
+                },
                 "entry_price": {
                     "type": "number"
                 },
