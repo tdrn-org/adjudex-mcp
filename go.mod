@@ -60,7 +60,7 @@ require (
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/mattn/go-isatty v0.0.23 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.24.1
@@ -69,7 +69,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/tdrn-org/go-cache v0.0.4
 	github.com/tdrn-org/go-diff v0.1.3
-	github.com/tdrn-org/go-log v0.5.7
+	github.com/tdrn-org/go-log v0.5.8
 	github.com/twelvedata/twelvedata-go v1.0.14
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
