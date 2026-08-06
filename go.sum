@@ -122,8 +122,8 @@ github.com/tdrn-org/go-conf v0.0.7 h1:GqouJA8e6gH/WEl2Q19xwFc2dNLYZHrMafl+5uqTwy
 github.com/tdrn-org/go-conf v0.0.7/go.mod h1:76oTxkZg72d1Smp/31s8C6DQq+fXCoEv3bOiXe1M6/Y=
 github.com/tdrn-org/go-database v0.1.1 h1:8ZuZzTMYNdC8GxCK/0/RN/VsSNqZqVf5hdoRLV4FZEY=
 github.com/tdrn-org/go-database v0.1.1/go.mod h1:As+nuKQ3sWpQihDkZg7MQruo1qDbcAmXw6omHqCzm3g=
-github.com/tdrn-org/go-diff v0.1.3 h1:JKt3dM1f+nJqGi/1OoOe/4RI95clZMB5iAs8duXcPXg=
-github.com/tdrn-org/go-diff v0.1.3/go.mod h1:1uisqWhRRecdjC03N3ULIaq6smN7WTyhyE2nV7RLR1I=
+github.com/tdrn-org/go-diff v0.1.4 h1:BmUep7q5W09KV51PbjGBOq4e2NE9qU5F5UPqf/2W9uI=
+github.com/tdrn-org/go-diff v0.1.4/go.mod h1:apUNQ6p1tC2OPkcKZ1dGe7Ey3StQKoxtfK0zvmVRbmU=
 github.com/tdrn-org/go-httpserver v0.1.1 h1:M41K99LvyCNLboyGM0IhiZ7Qbw9OmfrhISngBP748ys=
 github.com/tdrn-org/go-httpserver v0.1.1/go.mod h1:SofrD2yk0GXAKPUeR4klYIQYFvW9hqz7jbavX//rq3Q=
 github.com/tdrn-org/go-log v0.5.8 h1:JtpcrYEw3nEmp5Rh6qZYQjw09IjS8KtKeyPzZvn2um4=
