@@ -200,8 +200,16 @@ func TestTrade(t *testing.T) {
 	store := newDataStore(t)
 	defer store.Close()
 
+	st1 := &domain.Strategy{
+		Name:        t.Name() + " strategy",
+		Description: "strategy description",
+		Parameters:  domain.StrategyParams{},
+	}
+	err := store.SaveStrategy(t.Context(), st1)
+	require.NoError(t, err)
+
 	t1 := &domain.Trade{
-		StrategyID: "strategy",
+		StrategyID: st1.ID,
 		Symbol:     "XZY",
 		Currency:   "USD",
 		Direction:  domain.TradeBuy,
@@ -214,7 +222,7 @@ func TestTrade(t *testing.T) {
 	}
 
 	// Record
-	err := store.RecordTrade(t.Context(), t1)
+	err = store.RecordTrade(t.Context(), t1)
 	require.NoError(t, err)
 
 	// Get

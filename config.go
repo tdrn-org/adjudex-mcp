@@ -18,7 +18,6 @@ package adjudexmcp
 
 import (
 	"log/slog"
-	"reflect"
 
 	"github.com/rs/cors"
 	"github.com/tdrn-org/adjudex-mcp/config"
@@ -40,7 +39,6 @@ func applyLoggingConfig(cfg *config.LoggingConfig) {
 		SyslogAddress:  cfg.SyslogAddress,
 		SyslogEncoding: cfg.SyslogEncoding,
 		SyslogFacility: cfg.SyslogFacility,
-		SyslogAppName:  reflect.TypeFor[Server]().PkgPath(),
 	}
 	logger, _ := logConfig.GetLogger(loglevel.LevelVar())
 	slog.SetDefault(logger)

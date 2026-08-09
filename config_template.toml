@@ -1,26 +1,53 @@
-#
-# adjudex configuration file
-#
-
-#
-# Logging configuration (level, target, format, ...)
-#
-# level: log level (debug|info|warn|error)
-# target: log target (see https://pkg.go.dev/github.com/tdrn-org/go-log#Target)
-# color: color mode (auto|off|on)
-# file_name: log file to use (in case of a file related log target)
-# file_size_limit: log file rotation limit (0 means no rotation)
-# syslog_network: network type to use for syslog logging (in case of syslog log target)
-# syslog_address: syslog server address
-# syslog_encoding: syslog message format (rfc3164|rfc3164+framing|rfc5424|rfc5424+framing)
-# syslog_facility: syslog facility 0-23 (see https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1)
 [logging]
 #level = "info"
 #target = "stdout"
 #color = "auto"
 #file_name = "./adjudex.log"
 #file_size_limit = 0
-#syslog_network = "tcp"
-#syslog_address = "localhost:601"
-#syslog_encoding = "rfc5424"
+#syslog_network = "unixgram"
+#syslog_address = "/dev/log"
+#syslog_encoding = "local"
 #syslog_facility = 4
+
+[server]
+#address = "localhost:0"
+#protocol = "http"
+#cert_file = ""
+#key_file = ""
+#public_url = ""
+#trusted_proxies = [ ]
+#trusted_headers = [ ]
+#allowed_origins = [ ]
+#access_log = ""
+#access_log_size_limit = 0
+#session_cookie_name = "adjudex-session"
+
+[store]
+#type = "memory"
+
+[store.memory]
+
+[store.sqlite]
+#file = "./adjudex.db"
+
+[quote_service]
+#currency = "USD"
+#max_age = "1h"
+
+[quote_service.demo]
+#enabled = false
+#online = true
+
+[quote_service.alphavantage]
+#enabled = false
+#online = false
+#api_key = ""
+
+[quote_service.twelvedata]
+#enabled = false
+#online = true
+#api_key = ""
+
+[metrics]
+#enabled = false
+#path = "/metrics"
