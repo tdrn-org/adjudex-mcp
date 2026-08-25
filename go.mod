@@ -66,7 +66,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/cors v1.11.1
 	github.com/swaggo/swag v1.16.6
-	github.com/tdrn-org/go-cache v0.0.6
+	github.com/tdrn-org/go-cache v0.1.2
 	github.com/tdrn-org/go-diff v0.1.4
 	github.com/tdrn-org/go-log v0.6.1
 	github.com/twelvedata/twelvedata-go v1.0.14
