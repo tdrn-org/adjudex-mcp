@@ -3,7 +3,7 @@ module github.com/tdrn-org/adjudex-mcp
 go 1.26.5
 
 require (
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	github.com/tdrn-org/go-conf v0.0.8
 	github.com/tdrn-org/go-database v0.1.3
 	github.com/tdrn-org/go-httpserver v0.1.3
@@ -47,7 +47,6 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.48.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
