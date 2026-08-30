@@ -25,23 +25,13 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 )
 
-type jobFunc func(ctx context.Context)
-
-func (s *Server) runJobs() {
-	s.logger.Info("running jobs...")
-	ctx := context.Background()
-	for _, job := range s.jobs {
-		job(ctx)
-	}
-}
-
-func (s *Server) evalAlerts(ctx context.Context) {
+func (s *Server) evalAlerts(ctx context.Context, last, now time.Time) error {
 	s.logger.Info("evaluating alerts...")
 
 	alerts, err := s.dataStore.ListArmedAlerts(ctx)
 	if err != nil {
 		s.logger.Error("failed to list armed alerts", slog.Any("err", err))
-		return
+		return err
 	}
 
 	for _, alert := range alerts {
@@ -60,22 +50,23 @@ func (s *Server) evalAlerts(ctx context.Context) {
 			}
 		}
 	}
+	return nil
 }
 
-func (s *Server) collectMetrics(ctx context.Context) {
+func (s *Server) collectMetrics(ctx context.Context, last, now time.Time) error {
 	s.logger.Info("collecting metrics...")
 
 	symbolMap, err := s.dataStore.ListSymbols(ctx)
 	if err != nil {
 		s.logger.Error("failed list symbols for metric collection", slog.Any("err", err))
-		return
+		return err
 	}
 	symbolQuotes := make(map[string]*domain.Quote, len(symbolMap))
 	for symbol := range symbolMap {
 		quote, err := s.dataStore.GetLatestQuote(ctx, symbol)
 		if err != nil {
 			s.logger.Error("failed get latest quote for metric collection", slog.String("symbol", symbol), slog.Any("err", err))
-			return
+			return err
 		}
 		symbolQuotes[symbol] = quote
 		s.metricsRecorder.RecordQuote(quote)
@@ -83,7 +74,7 @@ func (s *Server) collectMetrics(ctx context.Context) {
 	portfolios, err := s.dataStore.ListPortfolios(ctx)
 	if err != nil {
 		s.logger.Error("failed list portfolios for metric collection", slog.Any("err", err))
-		return
+		return err
 	}
 	for _, portfolio := range portfolios {
 		holdings := make(domain.Holdings, 0, len(portfolio.Positions))
@@ -98,4 +89,5 @@ func (s *Server) collectMetrics(ctx context.Context) {
 		}
 		s.metricsRecorder.RecordPortfolio(&portfolio, holdings.Summarize())
 	}
+	return nil
 }

@@ -234,7 +234,7 @@ func (qs *QuoteService) fetchHistoryLocked(ctx context.Context, symbol string, f
 	return nil, domain.ErrNoQuote
 }
 
-func (qs *QuoteService) FetchQuotes(ctx context.Context) {
+func (qs *QuoteService) FetchQuotes(ctx context.Context, last, now time.Time) error {
 	qs.logger.Info("fetching quotes...")
 
 	qs.mutex.Lock()
@@ -260,6 +260,7 @@ func (qs *QuoteService) FetchQuotes(ctx context.Context) {
 			qs.logger.Warn("failed to save quote", slog.String("symbol", symbol), slog.Any("err", err))
 		}
 	}
+	return nil
 }
 
 func (qs *QuoteService) Close() error {

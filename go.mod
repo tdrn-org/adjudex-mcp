@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
+	github.com/adhocore/gronx v1.20.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
@@ -68,6 +69,7 @@ require (
 	github.com/tdrn-org/go-cache v0.1.2
 	github.com/tdrn-org/go-config-toml v0.0.2
 	github.com/tdrn-org/go-diff v0.1.4
+	github.com/tdrn-org/go-jobticker v0.0.1
 	github.com/tdrn-org/go-log v0.6.1
 	github.com/twelvedata/twelvedata-go v1.0.14
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
