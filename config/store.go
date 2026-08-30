@@ -17,9 +17,7 @@
 package config
 
 import (
-	"fmt"
-	"log/slog"
-
+	"github.com/tdrn-org/go-config-toml"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
 	"github.com/tdrn-org/go-database/sqlite"
@@ -36,33 +34,24 @@ type StoreConfig struct {
 
 type DatabaseType database.Type
 
-var knownDatabaseTypes map[string]DatabaseType = map[string]DatabaseType{
+var databaseTypeMarshalMap map[DatabaseType]string = map[DatabaseType]string{
+	DatabaseType(memory.Type): string(memory.Type),
+	DatabaseType(sqlite.Type): string(sqlite.Type),
+}
+
+var databaseTypeUnmarshalMap map[string]DatabaseType = map[string]DatabaseType{
 	string(memory.Type): DatabaseType(memory.Type),
 	string(sqlite.Type): DatabaseType(sqlite.Type),
 }
 
-func (t *DatabaseType) Value() string {
-	for value, databaseType := range knownDatabaseTypes {
-		if *t == databaseType {
-			return value
-		}
-	}
-	slog.Warn("unexpected database type", slog.Any("t", *t))
-	return ""
+func (t DatabaseType) MarshalText() ([]byte, error) {
+	return config.MarshalEnum(t, databaseTypeMarshalMap)
 }
 
-func (t *DatabaseType) MarshalTOML() ([]byte, error) {
-	return []byte(`"` + t.Value() + `"`), nil
-}
-
-func (t *DatabaseType) UnmarshalTOML(value any) error {
-	databaseTypeString, ok := value.(string)
-	if !ok {
-		return fmt.Errorf("unexpected database type type %v", value)
-	}
-	databaseType, ok := knownDatabaseTypes[databaseTypeString]
-	if !ok {
-		return fmt.Errorf("unknown database type: '%s'", databaseTypeString)
+func (t *DatabaseType) UnmarshalText(text []byte) error {
+	databaseType, err := config.UnmarshalEnum(databaseTypeUnmarshalMap, text)
+	if err != nil {
+		return nil
 	}
 	*t = databaseType
 	return nil

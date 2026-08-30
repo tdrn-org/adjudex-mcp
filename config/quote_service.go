@@ -16,9 +16,11 @@
 
 package config
 
+import "github.com/tdrn-org/go-config-toml"
+
 type QuoteServiceConfig struct {
 	Currency     string                    `toml:"currency"`
-	MaxAge       DurationSpec              `toml:"max_age"`
+	MaxAge       config.DurationSpec       `toml:"max_age"`
 	Demo         DemoQuoteTrackerConfig    `toml:"demo"`
 	AlphaVantage AlphaVantageTrackerConfig `toml:"alphavantage"`
 	TwelveData   TwelveDataTrackerConfig   `toml:"twelvedata"`

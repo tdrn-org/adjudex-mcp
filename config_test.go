@@ -24,6 +24,6 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
-	_, err := config.Load("testdata/adjudex.toml", true)
+	_, err := config.Load("testdata/adjudex.toml")
 	require.NoError(t, err)
 }

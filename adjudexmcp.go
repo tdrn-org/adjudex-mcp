@@ -76,7 +76,7 @@ func (cmd *runCmd) Run(ctx context.Context, args *cmdLine) error {
 	if path == "" {
 		path = config.DefaultPath()
 	}
-	config, err := config.Load(path, false)
+	config, err := config.Load(path)
 	if err != nil {
 		return err
 	}
