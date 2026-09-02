@@ -26,12 +26,34 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
+	"github.com/tdrn-org/go-finance"
 )
 
 func TestUpdateScheme(t *testing.T) {
 	store := newDataStore(t)
 	err := store.Close()
 	require.NoError(t, err)
+}
+
+func TestSymbol(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	s1 := &finance.Symbol{
+		Exchange: "XNGS",
+		Ticker:   "AAPL",
+		ISIN:     "US0378331005",
+		WKN:      "865985",
+		FIGI:     "BBG000B9XRY4",
+		Name:     "Apple Inc.",
+		Type:     finance.SecurityTypeEquity,
+	}
+	s2, err := store.MergeSymbol(t.Context(), s1)
+	require.NoError(t, err)
+	require.Equal(t, s1, s2)
+	s3, err := store.MergeSymbol(t.Context(), s1)
+	require.NoError(t, err)
+	require.Equal(t, s1, s3)
 }
 
 func TestPortfolio(t *testing.T) {

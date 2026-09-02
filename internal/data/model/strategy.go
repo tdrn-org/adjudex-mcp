@@ -41,68 +41,50 @@ type Strategy struct {
 //go:embed strategy.insert.sql
 var insertStrategySQL string
 
-func InsertStrategy(ctx context.Context, driver *database.Driver, st *domain.Strategy) (*Strategy, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	strategy := &Strategy{
+func InsertStrategy(ctx context.Context, tx *database.Tx, strategy *domain.Strategy) (*Strategy, error) {
+	s := &Strategy{
 		ID:           database.NewID(),
-		Name:         st.Name,
-		Description:  st.Description,
-		RSIPeriod:    st.Parameters.RSIPeriod,
-		RSIThreshold: st.Parameters.RSIThreshold,
-		SMAPeriod:    st.Parameters.SMAPeriod,
-		SMATrigger:   st.Parameters.SMATrigger,
-		MaxPosition:  st.Parameters.MaxPosition,
-		StopLoss:     st.Parameters.StopLoss,
+		Name:         strategy.Name,
+		Description:  strategy.Description,
+		RSIPeriod:    strategy.Parameters.RSIPeriod,
+		RSIThreshold: strategy.Parameters.RSIThreshold,
+		SMAPeriod:    strategy.Parameters.SMAPeriod,
+		SMATrigger:   strategy.Parameters.SMATrigger,
+		MaxPosition:  strategy.Parameters.MaxPosition,
+		StopLoss:     strategy.Parameters.StopLoss,
 		CreatedAt:    database.Time2DB(tx.Now()),
 		UpdatedAt:    database.Time2DB(tx.Now()),
 	}
-	err = tx.ExecTx(txCtx, insertStrategySQL,
-		strategy.ID,
-		strategy.Name,
-		strategy.Description,
-		strategy.RSIPeriod,
-		strategy.RSIThreshold,
-		strategy.SMAPeriod,
-		strategy.SMATrigger,
-		strategy.MaxPosition,
-		strategy.StopLoss,
-		strategy.CreatedAt,
-		strategy.UpdatedAt)
+	err := tx.ExecTx(ctx, insertStrategySQL,
+		s.ID,
+		s.Name,
+		s.Description,
+		s.RSIPeriod,
+		s.RSIThreshold,
+		s.SMAPeriod,
+		s.SMATrigger,
+		s.MaxPosition,
+		s.StopLoss,
+		s.CreatedAt,
+		s.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return strategy, nil
+	return s, nil
 }
 
 //go:embed strategy.select_by_id.sql
 var selectStrategyByIDSQL string
 
-func SelectStrategyByID(ctx context.Context, driver *database.Driver, id string) (*Strategy, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	strategy := &Strategy{
+func SelectStrategyByID(ctx context.Context, tx *database.Tx, id string) (*Strategy, error) {
+	s := &Strategy{
 		ID: id,
 	}
-	row, err := tx.QueryRowTx(txCtx, selectStrategyByIDSQL, strategy.ID)
+	row, err := tx.QueryRowTx(ctx, selectStrategyByIDSQL, s.ID)
 	if err != nil {
 		return nil, err
 	}
-	err = database.ScanRow(row, strategy,
+	err = database.ScanRow(row, s,
 		"name",
 		"description",
 		"rsi_period",
@@ -114,66 +96,37 @@ func SelectStrategyByID(ctx context.Context, driver *database.Driver, id string)
 		"created_at",
 		"updated_at")
 	if database.NoRows(err) {
-		strategy = nil
+		s = nil
 	} else if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return strategy, nil
+	return s, nil
 }
 
 //go:embed strategy.select.sql
 var selectStrategySQL string
 
-func SelectStrategies(ctx context.Context, driver *database.Driver) ([]*Strategy, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	rows, err := tx.QueryTx(txCtx, selectStrategySQL)
+func SelectStrategies(ctx context.Context, tx *database.Tx) ([]*Strategy, error) {
+	rows, err := tx.QueryTx(ctx, selectStrategySQL)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	strategies := make([]*Strategy, 0)
+	ss := make([]*Strategy, 0)
 	for rows.Next() {
-		strategy := &Strategy{}
-		err = database.Scan(rows, strategy)
+		s := &Strategy{}
+		err = database.Scan(rows, s)
 		if err != nil {
 			return nil, err
 		}
-		strategies = append(strategies, strategy)
+		ss = append(ss, s)
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return strategies, nil
+	return ss, nil
 }
 
 //go:embed strategy.delete_by_id.sql
 var deleteStrategyByIDSQL string
 
-func DeleteStrategyByID(ctx context.Context, driver *database.Driver, id string) error {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	err = tx.ExecTx(txCtx, deleteStrategyByIDSQL, id)
-	if err != nil {
-		return err
-	}
-
-	return tx.CommitTx(txCtx)
+func DeleteStrategyByID(ctx context.Context, tx *database.Tx, id string) error {
+	return tx.ExecTx(ctx, deleteStrategyByIDSQL, id)
 }

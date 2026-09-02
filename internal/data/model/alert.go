@@ -43,133 +43,103 @@ type Alert struct {
 //go:embed alert.insert.sql
 var insertAlertSQL string
 
-func InsertAlert(ctx context.Context, driver *database.Driver, a *domain.Alert) (*Alert, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
+func InsertAlert(ctx context.Context, tx *database.Tx, alert *domain.Alert) (*Alert, error) {
 	var indicatorType *string
 	var indicatorPeriod *int
-	if a.Indicator != nil {
-		indicatorType = (*string)(&a.Indicator.Type)
-		indicatorPeriod = &a.Indicator.Period
+	if alert.Indicator != nil {
+		indicatorType = stringPtr(string(alert.Indicator.Type))
+		indicatorPeriod = &alert.Indicator.Period
 	}
-	alert := &Alert{
+	a := &Alert{
 		ID:              database.NewID(),
-		Name:            a.Name,
-		Symbol:          a.Symbol,
-		Currency:        a.Currency,
-		Condition:       string(a.Condition),
-		Threshold:       a.Threshold,
+		Name:            alert.Name,
+		Symbol:          alert.Symbol,
+		Currency:        alert.Currency,
+		Condition:       string(alert.Condition),
+		Threshold:       alert.Threshold,
 		IndicatorType:   indicatorType,
 		IndicatorPeriod: indicatorPeriod,
-		State:           string(a.State),
-		TriggeredAt:     ptrTime(a.TriggeredAt),
-		Message:         a.Message,
+		State:           string(alert.State),
+		TriggeredAt:     ptrTime(alert.TriggeredAt),
+		Message:         alert.Message,
 		CreatedAt:       database.Time2DB(tx.Now()),
 		UpdatedAt:       database.Time2DB(tx.Now()),
 	}
-	err = tx.ExecTx(txCtx, insertAlertSQL,
-		alert.ID,
-		alert.Name,
-		alert.Symbol,
-		alert.Currency,
-		alert.Condition,
-		alert.Threshold,
-		alert.IndicatorType,
-		alert.IndicatorPeriod,
-		alert.State,
-		alert.TriggeredAt,
-		alert.Message,
-		alert.CreatedAt,
-		alert.UpdatedAt)
+	err := tx.ExecTx(ctx, insertAlertSQL,
+		a.ID,
+		a.Name,
+		a.Symbol,
+		a.Currency,
+		a.Condition,
+		a.Threshold,
+		a.IndicatorType,
+		a.IndicatorPeriod,
+		a.State,
+		a.TriggeredAt,
+		a.Message,
+		a.CreatedAt,
+		a.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return alert, nil
+	return a, nil
 }
 
 //go:embed alert.update_by_id.sql
 var updateAlertByIDSQL string
 
-func UpdateAlert(ctx context.Context, driver *database.Driver, a *domain.Alert) (*Alert, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
+func UpdateAlert(ctx context.Context, tx *database.Tx, alert *domain.Alert) (*Alert, error) {
 	var indicatorType *string
 	var indicatorPeriod *int
-	if a.Indicator != nil {
-		indicatorType = (*string)(&a.Indicator.Type)
-		indicatorPeriod = &a.Indicator.Period
+	if alert.Indicator != nil {
+		indicatorType = stringPtr(string(alert.Indicator.Type))
+		indicatorPeriod = &alert.Indicator.Period
 	}
-	alert := &Alert{
-		ID:              database.NewID(),
-		Name:            a.Name,
-		Symbol:          a.Symbol,
-		Currency:        a.Currency,
-		Condition:       string(a.Condition),
-		Threshold:       a.Threshold,
+	a := &Alert{
+		ID:              alert.ID,
+		Name:            alert.Name,
+		Symbol:          alert.Symbol,
+		Currency:        alert.Currency,
+		Condition:       string(alert.Condition),
+		Threshold:       alert.Threshold,
 		IndicatorType:   indicatorType,
 		IndicatorPeriod: indicatorPeriod,
-		State:           string(a.State),
-		TriggeredAt:     ptrTime(a.TriggeredAt),
-		Message:         a.Message,
+		State:           string(alert.State),
+		TriggeredAt:     ptrTime(alert.TriggeredAt),
+		Message:         alert.Message,
 		UpdatedAt:       database.Time2DB(tx.Now()),
 	}
-	err = tx.ExecTx(txCtx, updateAlertByIDSQL,
-		alert.Name,
-		alert.Symbol,
-		alert.Currency,
-		alert.Condition,
-		alert.Threshold,
-		alert.IndicatorType,
-		alert.IndicatorPeriod,
-		alert.State,
-		alert.TriggeredAt,
-		alert.Message,
-		alert.UpdatedAt,
-		alert.ID)
+	err := tx.ExecTx(ctx, updateAlertByIDSQL,
+		a.Name,
+		a.Symbol,
+		a.Currency,
+		a.Condition,
+		a.Threshold,
+		a.IndicatorType,
+		a.IndicatorPeriod,
+		a.State,
+		a.TriggeredAt,
+		a.Message,
+		a.UpdatedAt,
+		a.ID)
 	if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return alert, nil
+	return a, nil
 }
 
 //go:embed alert.select_by_id.sql
 var selectAlertByIDSQL string
 
-func SelectAlertByID(ctx context.Context, driver *database.Driver, id string) (*Alert, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	alert := &Alert{
+func SelectAlertByID(ctx context.Context, tx *database.Tx, id string) (*Alert, error) {
+	a := &Alert{
 		ID: id,
 	}
-	row, err := tx.QueryRowTx(txCtx, selectAlertByIDSQL, alert.ID)
+	row, err := tx.QueryRowTx(ctx, selectAlertByIDSQL, a.ID)
 	if err != nil {
 		return nil, err
 	}
-	err = database.ScanRow(row, alert,
+	err = database.ScanRow(row, a,
 		"name",
 		"symbol",
 		"currency",
@@ -183,103 +153,62 @@ func SelectAlertByID(ctx context.Context, driver *database.Driver, id string) (*
 		"created_at",
 		"updated_at")
 	if database.NoRows(err) {
-		alert = nil
+		a = nil
 	} else if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return alert, nil
+	return a, nil
 }
 
 //go:embed alert.select_by_symbol.sql
 var selectAlertBySymbolSQL string
 
-func SelectAlertsBySymbol(ctx context.Context, driver *database.Driver, symbol string) ([]*Alert, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	rows, err := tx.QueryTx(txCtx, selectAlertBySymbolSQL, symbol)
+func SelectAlertsBySymbol(ctx context.Context, tx *database.Tx, symbol string) ([]*Alert, error) {
+	rows, err := tx.QueryTx(ctx, selectAlertBySymbolSQL, symbol)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	alerts := make([]*Alert, 0)
+	as := make([]*Alert, 0)
 	for rows.Next() {
-		alert := &Alert{
+		a := &Alert{
 			Symbol: symbol,
 		}
-		err = database.Scan(rows, alert)
+		err = database.Scan(rows, a)
 		if err != nil {
 			return nil, err
 		}
-		alerts = append(alerts, alert)
+		as = append(as, a)
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return alerts, nil
+	return as, nil
 }
 
 //go:embed alert.select_by_state.sql
 var selectAlertByStateSQL string
 
-func SelectAlertsByState(ctx context.Context, driver *database.Driver, state domain.AlertState) ([]*Alert, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	rows, err := tx.QueryTx(txCtx, selectAlertByStateSQL, state)
+func SelectAlertsByState(ctx context.Context, tx *database.Tx, state domain.AlertState) ([]*Alert, error) {
+	rows, err := tx.QueryTx(ctx, selectAlertByStateSQL, state)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	alerts := make([]*Alert, 0)
+	as := make([]*Alert, 0)
 	for rows.Next() {
-		alert := &Alert{
+		a := &Alert{
 			State: string(state),
 		}
-		err = database.Scan(rows, alert)
+		err = database.Scan(rows, a)
 		if err != nil {
 			return nil, err
 		}
-		alerts = append(alerts, alert)
+		as = append(as, a)
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return alerts, nil
+	return as, nil
 }
 
 //go:embed alert.delete_by_id.sql
 var deleteAlertByIDSQL string
 
-func DeleteAlertByID(ctx context.Context, driver *database.Driver, id string) error {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	err = tx.ExecTx(txCtx, deleteAlertByIDSQL, id)
-	if err != nil {
-		return err
-	}
-
-	return tx.CommitTx(txCtx)
+func DeleteAlertByID(ctx context.Context, tx *database.Tx, id string) error {
+	return tx.ExecTx(ctx, deleteAlertByIDSQL, id)
 }

@@ -1,0 +1,21 @@
+INSERT INTO
+    symbol(
+        id,
+        exchange,
+        ticker,
+        isin,
+        wkn,
+        figi,
+        name,
+        type
+    )
+VALUES(
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8
+)

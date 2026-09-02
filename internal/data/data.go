@@ -18,12 +18,14 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/go-database"
+	"github.com/tdrn-org/go-finance"
 )
 
 type Store struct {
@@ -46,6 +48,54 @@ func (s *Store) Close() error {
 	return s.driver.Close()
 }
 
+func (s *Store) MergeSymbol(ctx context.Context, sym *finance.Symbol) (*finance.Symbol, error) {
+	if sym.IsEmpty() {
+		return nil, fmt.Errorf("cannot merge empty symbol")
+	}
+
+	txCtx, tx, err := s.driver.BeginTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeSym, err := model.SelectSymbolBySymbol(txCtx, tx, sym)
+	if err != nil {
+		return nil, err
+	}
+	if storeSym != nil {
+		storeSym.MergeSymbol(sym)
+		err = storeSym.Update(txCtx, tx)
+	} else {
+		storeSym, err = model.InsertSymbol(txCtx, tx, sym)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.modelToSymbol(storeSym), nil
+}
+
+func (s *Store) modelToSymbol(storeSym *model.Symbol) *finance.Symbol {
+	if storeSym == nil {
+		return nil
+	}
+	return &finance.Symbol{
+		Exchange: storeSym.Exchange,
+		Ticker:   storeSym.Ticker,
+		ISIN:     storeSym.ISIN,
+		WKN:      storeSym.WKN,
+		FIGI:     storeSym.FIGI,
+		Name:     storeSym.Name,
+		Type:     finance.SecurityType(storeSym.Type),
+	}
+}
+
 func (s *Store) CreatePortfolio(ctx context.Context, p *domain.Portfolio) error {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
@@ -53,13 +103,13 @@ func (s *Store) CreatePortfolio(ctx context.Context, p *domain.Portfolio) error 
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	storeP, err := model.InsertPortfolio(txCtx, s.driver, p)
+	storeP, err := model.InsertPortfolio(txCtx, tx, p)
 	if err != nil {
 		return err
 	}
 	storePoss := make([]*model.Position, 0, len(p.Positions))
 	for _, pos := range p.Positions {
-		storePos, err := model.InsertPosition(txCtx, s.driver, storeP.ID, &pos)
+		storePos, err := model.InsertPosition(txCtx, tx, storeP.ID, &pos)
 		if err != nil {
 			return err
 		}
@@ -85,11 +135,11 @@ func (s *Store) GetPortfolio(ctx context.Context, id string) (*domain.Portfolio,
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	storeP, err := model.SelectPortfolioByID(txCtx, s.driver, id)
+	storeP, err := model.SelectPortfolioByID(txCtx, tx, id)
 	if err != nil {
 		return nil, err
 	}
-	storePoss, err := model.SelectPositionsByPortfolioID(txCtx, s.driver, storeP.ID)
+	storePoss, err := model.SelectPositionsByPortfolioID(txCtx, tx, storeP.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -138,13 +188,13 @@ func (s *Store) ListPortfolios(ctx context.Context) ([]domain.Portfolio, error) 
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	storePs, err := model.SelectPortfolios(txCtx, s.driver)
+	storePs, err := model.SelectPortfolios(txCtx, tx)
 	if err != nil {
 		return nil, err
 	}
 	ps := make([]domain.Portfolio, 0, len(storePs))
 	for _, storeP := range storePs {
-		storePoss, err := model.SelectPositionsByPortfolioID(txCtx, s.driver, storeP.ID)
+		storePoss, err := model.SelectPositionsByPortfolioID(txCtx, tx, storeP.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -166,11 +216,11 @@ func (s *Store) DeletePortfolio(ctx context.Context, id string) error {
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	err = model.DeletePositionsByPortfolioID(txCtx, s.driver, id)
+	err = model.DeletePositionsByPortfolioID(txCtx, tx, id)
 	if err != nil {
 		return err
 	}
-	err = model.DeletePortfolioByID(txCtx, s.driver, id)
+	err = model.DeletePortfolioByID(txCtx, tx, id)
 	if err != nil {
 		return err
 	}
@@ -185,11 +235,11 @@ func (s *Store) AddPosition(ctx context.Context, portfolioID string, pos *domain
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	position, err := model.InsertPosition(txCtx, s.driver, portfolioID, pos)
+	position, err := model.InsertPosition(txCtx, tx, portfolioID, pos)
 	if err != nil {
 		return err
 	}
-	err = model.TouchPortfolioByID(txCtx, s.driver, portfolioID)
+	err = model.TouchPortfolioByID(txCtx, tx, portfolioID)
 	if err != nil {
 		return err
 	}
@@ -210,11 +260,11 @@ func (s *Store) RemovePosition(ctx context.Context, portfolioID string, position
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	err = model.DeletePositionByID(txCtx, s.driver, positionID)
+	err = model.DeletePositionByID(txCtx, tx, positionID)
 	if err != nil {
 		return err
 	}
-	err = model.TouchPortfolioByID(txCtx, s.driver, portfolioID)
+	err = model.TouchPortfolioByID(txCtx, tx, portfolioID)
 	if err != nil {
 		return err
 	}
@@ -229,11 +279,11 @@ func (s *Store) UpdatePosition(ctx context.Context, portfolioID string, pos *dom
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	position, err := model.UpdatePosition(txCtx, s.driver, portfolioID, pos)
+	position, err := model.UpdatePosition(txCtx, tx, portfolioID, pos)
 	if err != nil {
 		return err
 	}
-	err = model.TouchPortfolioByID(txCtx, s.driver, portfolioID)
+	err = model.TouchPortfolioByID(txCtx, tx, portfolioID)
 	if err != nil {
 		return err
 	}
@@ -258,11 +308,11 @@ func (s *Store) SaveQuote(ctx context.Context, q *domain.Quote) error {
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	err = model.DeleteQuoteByPK(txCtx, s.driver, q.Symbol, q.SourceTimestamp)
+	err = model.DeleteQuoteByPK(txCtx, tx, q.Symbol, q.SourceTimestamp)
 	if err != nil {
 		return err
 	}
-	_, err = model.InsertQuote(txCtx, s.driver, q)
+	_, err = model.InsertQuote(txCtx, tx, q)
 	if err != nil {
 		return err
 	}
@@ -288,10 +338,22 @@ func (s *Store) SaveQuotes(ctx context.Context, quotes []domain.Quote) error {
 }
 
 func (s *Store) GetQuotes(ctx context.Context, symbol string, from, to time.Time) ([]domain.Quote, error) {
-	storeQuotes, err := model.SelectQuotes(ctx, s.driver, symbol, from, to)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeQuotes, err := model.SelectQuotes(txCtx, tx, symbol, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	quotes := make([]domain.Quote, 0, len(storeQuotes))
 	for _, storeQuote := range storeQuotes {
 		quotes = append(quotes, *s.modelToQuote(storeQuote))
@@ -300,10 +362,22 @@ func (s *Store) GetQuotes(ctx context.Context, symbol string, from, to time.Time
 }
 
 func (s *Store) GetLatestQuote(ctx context.Context, symbol string) (*domain.Quote, error) {
-	storeQuote, err := model.SelectLatestQuote(ctx, s.driver, symbol)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeQuote, err := model.SelectLatestQuote(txCtx, tx, symbol)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	return s.modelToQuote(storeQuote), nil
 }
 
@@ -327,19 +401,43 @@ func (s *Store) modelToQuote(storeQuote *model.Quote) *domain.Quote {
 }
 
 func (s *Store) CreateAlert(ctx context.Context, a *domain.Alert) error {
-	alert, err := model.InsertAlert(ctx, s.driver, a)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	alert, err := model.InsertAlert(txCtx, tx, a)
+	if err != nil {
+		return err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return err
+	}
+
 	a.ID, a.CreatedAt, a.UpdatedAt = alert.ID, database.DB2Time(alert.CreatedAt), database.DB2Time(alert.UpdatedAt)
 	return nil
 }
 
 func (s *Store) GetAlert(ctx context.Context, id string) (*domain.Alert, error) {
-	storeAlert, err := model.SelectAlertByID(ctx, s.driver, id)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeAlert, err := model.SelectAlertByID(txCtx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	return s.modelToAlert(storeAlert), nil
 }
 
@@ -377,7 +475,13 @@ func (s *Store) modelToAlert(storeAlert *model.Alert) *domain.Alert {
 }
 
 func (s *Store) ListAlerts(ctx context.Context, symbol string) ([]domain.Alert, error) {
-	storeAlerts, err := model.SelectAlertsBySymbol(ctx, s.driver, symbol)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeAlerts, err := model.SelectAlertsBySymbol(txCtx, tx, symbol)
 	if err != nil {
 		return nil, err
 	}
@@ -385,11 +489,23 @@ func (s *Store) ListAlerts(ctx context.Context, symbol string) ([]domain.Alert, 
 	for _, storeAlert := range storeAlerts {
 		alerts = append(alerts, *s.modelToAlert(storeAlert))
 	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	return alerts, nil
 }
 
 func (s *Store) ListArmedAlerts(ctx context.Context) ([]domain.Alert, error) {
-	storeAlerts, err := model.SelectAlertsByState(ctx, s.driver, domain.AlertStateArmed)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeAlerts, err := model.SelectAlertsByState(txCtx, tx, domain.AlertStateArmed)
 	if err != nil {
 		return nil, err
 	}
@@ -397,36 +513,89 @@ func (s *Store) ListArmedAlerts(ctx context.Context) ([]domain.Alert, error) {
 	for _, storeAlert := range storeAlerts {
 		alerts = append(alerts, *s.modelToAlert(storeAlert))
 	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	return alerts, nil
 }
 
 func (s *Store) UpdateAlert(ctx context.Context, a *domain.Alert) error {
-	alert, err := model.UpdateAlert(ctx, s.driver, a)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	alert, err := model.UpdateAlert(txCtx, tx, a)
+	if err != nil {
+		return err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return err
+	}
+
 	a.UpdatedAt = database.DB2Time(alert.UpdatedAt)
 	return nil
 }
 
 func (s *Store) DeleteAlert(ctx context.Context, id string) error {
-	return model.DeleteAlertByID(ctx, s.driver, id)
-}
-
-func (s *Store) RecordTrade(ctx context.Context, t *domain.Trade) error {
-	trade, err := model.InsertTrade(ctx, s.driver, t)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	err = model.DeleteAlertByID(txCtx, tx, id)
+	if err != nil {
+		return err
+	}
+
+	return tx.CommitTx(txCtx)
+}
+
+func (s *Store) RecordTrade(ctx context.Context, t *domain.Trade) error {
+	txCtx, tx, err := s.driver.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	trade, err := model.InsertTrade(txCtx, tx, t)
+	if err != nil {
+		return err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return err
+	}
+
 	t.ID = trade.ID
 	return nil
 }
 
 func (s *Store) GetTrade(ctx context.Context, id string) (*domain.Trade, error) {
-	trade, err := model.SelectTradeByID(ctx, s.driver, id)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	trade, err := model.SelectTradeByID(txCtx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	return s.modelToTrade(trade), nil
 }
 
@@ -451,10 +620,22 @@ func (s *Store) modelToTrade(storeTrade *model.Trade) *domain.Trade {
 }
 
 func (s *Store) ListTrades(ctx context.Context, symbol string) ([]domain.Trade, error) {
-	storeTrades, err := model.SelectTradesBySymbol(ctx, s.driver, symbol)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeTrades, err := model.SelectTradesBySymbol(txCtx, tx, symbol)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	trades := make([]domain.Trade, 0, len(storeTrades))
 	for _, storeTrade := range storeTrades {
 		trades = append(trades, *s.modelToTrade(storeTrade))
@@ -463,10 +644,22 @@ func (s *Store) ListTrades(ctx context.Context, symbol string) ([]domain.Trade, 
 }
 
 func (s *Store) ListTradesByStrategy(ctx context.Context, strategyID string) ([]domain.Trade, error) {
-	storeTrades, err := model.SelectTradesByStrategyID(ctx, s.driver, strategyID)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeTrades, err := model.SelectTradesByStrategyID(txCtx, tx, strategyID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	trades := make([]domain.Trade, 0, len(storeTrades))
 	for _, storeTrade := range storeTrades {
 		trades = append(trades, *s.modelToTrade(storeTrade))
@@ -475,19 +668,43 @@ func (s *Store) ListTradesByStrategy(ctx context.Context, strategyID string) ([]
 }
 
 func (s *Store) SaveStrategy(ctx context.Context, st *domain.Strategy) error {
-	strategy, err := model.InsertStrategy(ctx, s.driver, st)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	strategy, err := model.InsertStrategy(txCtx, tx, st)
+	if err != nil {
+		return err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return err
+	}
+
 	st.ID, st.CreatedAt, st.UpdatedAt = strategy.ID, database.DB2Time(strategy.CreatedAt), database.DB2Time(strategy.UpdatedAt)
 	return nil
 }
 
 func (s *Store) GetStrategy(ctx context.Context, id string) (*domain.Strategy, error) {
-	strategy, err := model.SelectStrategyByID(ctx, s.driver, id)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	strategy, err := model.SelectStrategyByID(txCtx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	return s.modelToStrategy(strategy), nil
 }
 
@@ -514,10 +731,22 @@ func (s *Store) modelToStrategy(storeStrategy *model.Strategy) *domain.Strategy 
 }
 
 func (s *Store) ListStrategies(ctx context.Context) ([]domain.Strategy, error) {
-	storeStrategies, err := model.SelectStrategies(ctx, s.driver)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	storeStrategies, err := model.SelectStrategies(txCtx, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.CommitTx(txCtx)
+	if err != nil {
+		return nil, err
+	}
+
 	strategies := make([]domain.Strategy, 0, len(storeStrategies))
 	for _, storeStrategy := range storeStrategies {
 		strategies = append(strategies, *s.modelToStrategy(storeStrategy))
@@ -526,5 +755,16 @@ func (s *Store) ListStrategies(ctx context.Context) ([]domain.Strategy, error) {
 }
 
 func (s *Store) DeleteStrategy(ctx context.Context, id string) error {
-	return model.DeleteStrategyByID(ctx, s.driver, id)
+	txCtx, tx, err := s.driver.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.RollbackUncommitedTx(txCtx)
+
+	err = model.DeleteStrategyByID(txCtx, tx, id)
+	if err != nil {
+		return err
+	}
+
+	return tx.CommitTx(txCtx)
 }

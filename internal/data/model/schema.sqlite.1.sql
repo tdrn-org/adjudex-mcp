@@ -1,4 +1,22 @@
 --
+-- Symbol
+--
+CREATE TABLE symbol(
+    id TEXT NOT NULL,
+    exchange TEXT NOT NULL,
+    ticker TEXT NOT NULL,
+    isin TEXT NOT NULL,
+    wkn TEXT NOT NULL,
+    figi TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    PRIMARY KEY(id),
+    UNIQUE(exchange,ticker),
+    UNIQUE(isin),
+    UNIQUE(wkn),
+    UNIQUE(figi)
+);
+--
 -- Quote
 --
 CREATE TABLE quote(

@@ -42,68 +42,50 @@ type Quote struct {
 //go:embed quote.insert.sql
 var insertQuoteSQL string
 
-func InsertQuote(ctx context.Context, driver *database.Driver, q *domain.Quote) (*Quote, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
+func InsertQuote(ctx context.Context, tx *database.Tx, quote *domain.Quote) (*Quote, error) {
+	q := &Quote{
+		Symbol:          quote.Symbol,
+		Timestamp:       database.Time2DB(quote.Timestamp),
+		Currency:        quote.Currency,
+		Open:            quote.Open,
+		High:            quote.High,
+		Low:             quote.Low,
+		Close:           quote.Close,
+		Price:           quote.Price,
+		Volume:          quote.Volume,
+		Source:          quote.Source,
+		SourceTimestamp: database.Time2DB(quote.SourceTimestamp),
+	}
+	err := tx.ExecTx(ctx, insertQuoteSQL,
+		q.Symbol,
+		q.Timestamp,
+		q.Currency,
+		q.Open,
+		q.High,
+		q.Low,
+		q.Close,
+		q.Price,
+		q.Volume,
+		q.Source,
+		q.SourceTimestamp)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	quote := &Quote{
-		Symbol:          q.Symbol,
-		Timestamp:       database.Time2DB(q.Timestamp),
-		Currency:        q.Currency,
-		Open:            q.Open,
-		High:            q.High,
-		Low:             q.Low,
-		Close:           q.Close,
-		Price:           q.Price,
-		Volume:          q.Volume,
-		Source:          q.Source,
-		SourceTimestamp: database.Time2DB(q.SourceTimestamp),
-	}
-	err = tx.ExecTx(txCtx, insertQuoteSQL,
-		quote.Symbol,
-		quote.Timestamp,
-		quote.Currency,
-		quote.Open,
-		quote.High,
-		quote.Low,
-		quote.Close,
-		quote.Price,
-		quote.Volume,
-		quote.Source,
-		quote.SourceTimestamp)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return quote, nil
+	return q, nil
 }
 
 //go:embed quote.select.sql
 var selectQuoteSQL string
 
-func SelectLatestQuote(ctx context.Context, driver *database.Driver, symbol string) (*Quote, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	quote := &Quote{
+func SelectLatestQuote(ctx context.Context, tx *database.Tx, symbol string) (*Quote, error) {
+	q := &Quote{
 		Symbol: symbol,
 	}
-	row, err := tx.QueryRowTx(txCtx, selectQuoteSQL, quote.Symbol)
+	row, err := tx.QueryRowTx(ctx, selectQuoteSQL, q.Symbol)
 	if err != nil {
 		return nil, err
 	}
-	err = database.ScanRow(row, quote,
+	err = database.ScanRow(row, q,
 		"timestamp",
 		"currency",
 		"open",
@@ -115,68 +97,39 @@ func SelectLatestQuote(ctx context.Context, driver *database.Driver, symbol stri
 		"source",
 		"source_timestamp")
 	if database.NoRows(err) {
-		quote = nil
+		q = nil
 	} else if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return quote, nil
+	return q, nil
 }
 
 //go:embed quote.select_by_time_range.sql
 var selectQuoteByTimerangeSQL string
 
-func SelectQuotes(ctx context.Context, driver *database.Driver, symbol string, from, to time.Time) ([]*Quote, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	rows, err := tx.QueryTx(txCtx, selectQuoteByTimerangeSQL, symbol, database.Time2DB(from), database.Time2DB(to))
+func SelectQuotes(ctx context.Context, tx *database.Tx, symbol string, from, to time.Time) ([]*Quote, error) {
+	rows, err := tx.QueryTx(ctx, selectQuoteByTimerangeSQL, symbol, database.Time2DB(from), database.Time2DB(to))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	quotes := make([]*Quote, 0)
+	qs := make([]*Quote, 0)
 	for rows.Next() {
-		quote := &Quote{
+		q := &Quote{
 			Symbol: symbol,
 		}
-		err = database.Scan(rows, quote)
+		err = database.Scan(rows, q)
 		if err != nil {
 			return nil, err
 		}
-		quotes = append(quotes, quote)
+		qs = append(qs, q)
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return quotes, nil
+	return qs, nil
 }
 
 //go:embed quote.delete_by_pk.sql
 var deleteQuoteByPKSQL string
 
-func DeleteQuoteByPK(ctx context.Context, driver *database.Driver, symbol string, timestamp time.Time) error {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	err = tx.ExecTx(txCtx, deleteQuoteByPKSQL, symbol, database.Time2DB(timestamp))
-	if err != nil {
-		return err
-	}
-
-	return tx.CommitTx(txCtx)
+func DeleteQuoteByPK(ctx context.Context, tx *database.Tx, symbol string, timestamp time.Time) error {
+	return tx.ExecTx(ctx, deleteQuoteByPKSQL, symbol, database.Time2DB(timestamp))
 }

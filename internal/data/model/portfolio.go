@@ -35,141 +35,83 @@ type Portfolio struct {
 //go:embed portfolio.insert.sql
 var insertPortfolioSQL string
 
-func InsertPortfolio(ctx context.Context, driver *database.Driver, p *domain.Portfolio) (*Portfolio, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	portfolio := &Portfolio{
+func InsertPortfolio(ctx context.Context, tx *database.Tx, portfolio *domain.Portfolio) (*Portfolio, error) {
+	p := &Portfolio{
 		ID:          database.NewID(),
-		Name:        p.Name,
-		Description: p.Description,
+		Name:        portfolio.Name,
+		Description: portfolio.Description,
 		CreatedAt:   database.Time2DB(tx.Now()),
 		UpdatedAt:   database.Time2DB(tx.Now()),
 	}
-	err = tx.ExecTx(txCtx, insertPortfolioSQL,
-		portfolio.ID,
-		portfolio.Name,
-		portfolio.Description,
-		portfolio.CreatedAt,
-		portfolio.UpdatedAt)
+	err := tx.ExecTx(ctx, insertPortfolioSQL,
+		p.ID,
+		p.Name,
+		p.Description,
+		p.CreatedAt,
+		p.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return portfolio, nil
+	return p, nil
 }
 
 //go:embed portfolio.update_by_id.2.sql
 var updatePortfolioByID2SQL string
 
-func TouchPortfolioByID(ctx context.Context, driver *database.Driver, portfolioID string) error {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	err = tx.ExecTx(txCtx, updatePortfolioByID2SQL,
+func TouchPortfolioByID(ctx context.Context, tx *database.Tx, id string) error {
+	return tx.ExecTx(ctx, updatePortfolioByID2SQL,
 		database.Time2DB(tx.Now()),
-		portfolioID)
-	if err != nil {
-		return err
-	}
-
-	return tx.CommitTx(txCtx)
+		id)
 }
 
 //go:embed portfolio.select_by_id.sql
 var selectPortfolioByIDSQL string
 
-func SelectPortfolioByID(ctx context.Context, driver *database.Driver, id string) (*Portfolio, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	portfolio := &Portfolio{
+func SelectPortfolioByID(ctx context.Context, tx *database.Tx, id string) (*Portfolio, error) {
+	p := &Portfolio{
 		ID: id,
 	}
-	row, err := tx.QueryRowTx(txCtx, selectPortfolioByIDSQL, portfolio.ID)
+	row, err := tx.QueryRowTx(ctx, selectPortfolioByIDSQL, p.ID)
 	if err != nil {
 		return nil, err
 	}
-	err = database.ScanRow(row, portfolio,
+	err = database.ScanRow(row, p,
 		"name",
 		"description",
 		"created_at",
 		"updated_at")
 	if database.NoRows(err) {
-		portfolio = nil
+		p = nil
 	} else if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return portfolio, nil
+	return p, nil
 }
 
 //go:embed portfolio.select.sql
 var selectPortfolioSQL string
 
-func SelectPortfolios(ctx context.Context, driver *database.Driver) ([]*Portfolio, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	rows, err := tx.QueryTx(txCtx, selectPortfolioSQL)
+func SelectPortfolios(ctx context.Context, tx *database.Tx) ([]*Portfolio, error) {
+	rows, err := tx.QueryTx(ctx, selectPortfolioSQL)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	portfolios := make([]*Portfolio, 0)
+	ps := make([]*Portfolio, 0)
 	for rows.Next() {
-		portfolio := &Portfolio{}
-		err = database.Scan(rows, portfolio)
+		p := &Portfolio{}
+		err = database.Scan(rows, p)
 		if err != nil {
 			return nil, err
 		}
-		portfolios = append(portfolios, portfolio)
+		ps = append(ps, p)
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return portfolios, nil
+	return ps, nil
 }
 
 //go:embed portfolio.delete_by_id.sql
 var deletePortfolioByIDSQL string
 
-func DeletePortfolioByID(ctx context.Context, driver *database.Driver, id string) error {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	err = tx.ExecTx(txCtx, deletePortfolioByIDSQL, id)
-	if err != nil {
-		return err
-	}
-
-	return tx.CommitTx(txCtx)
+func DeletePortfolioByID(ctx context.Context, tx *database.Tx, id string) error {
+	return tx.ExecTx(ctx, deletePortfolioByIDSQL, id)
 }

@@ -41,68 +41,50 @@ type Trade struct {
 //go:embed trade.insert.sql
 var insertTradeSQL string
 
-func InsertTrade(ctx context.Context, driver *database.Driver, t *domain.Trade) (*Trade, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	trade := &Trade{
+func InsertTrade(ctx context.Context, tx *database.Tx, trade *domain.Trade) (*Trade, error) {
+	t := &Trade{
 		ID:         database.NewID(),
-		StrategyID: t.StrategyID,
-		Symbol:     t.Symbol,
-		Currency:   t.Currency,
-		Direction:  string(t.Direction),
-		Quantity:   t.Quantity,
-		Price:      t.Price,
-		ExecutedAt: database.Time2DB(t.ExecutedAt),
-		Status:     string(t.Status),
-		PnL:        t.PnL,
-		Notes:      t.Notes,
+		StrategyID: trade.StrategyID,
+		Symbol:     trade.Symbol,
+		Currency:   trade.Currency,
+		Direction:  string(trade.Direction),
+		Quantity:   trade.Quantity,
+		Price:      trade.Price,
+		ExecutedAt: database.Time2DB(trade.ExecutedAt),
+		Status:     string(trade.Status),
+		PnL:        trade.PnL,
+		Notes:      trade.Notes,
 	}
-	err = tx.ExecTx(txCtx, insertTradeSQL,
-		trade.ID,
-		trade.StrategyID,
-		trade.Symbol,
-		trade.Currency,
-		trade.Direction,
-		trade.Quantity,
-		trade.Price,
-		trade.ExecutedAt,
-		trade.Status,
-		trade.PnL,
-		trade.Notes)
+	err := tx.ExecTx(ctx, insertTradeSQL,
+		t.ID,
+		t.StrategyID,
+		t.Symbol,
+		t.Currency,
+		t.Direction,
+		t.Quantity,
+		t.Price,
+		t.ExecutedAt,
+		t.Status,
+		t.PnL,
+		t.Notes)
 	if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return trade, nil
+	return t, nil
 }
 
 //go:embed trade.select_by_id.sql
 var selectTradeByIDSQL string
 
-func SelectTradeByID(ctx context.Context, driver *database.Driver, id string) (*Trade, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	trade := &Trade{
+func SelectTradeByID(ctx context.Context, tx *database.Tx, id string) (*Trade, error) {
+	t := &Trade{
 		ID: id,
 	}
-	row, err := tx.QueryRowTx(txCtx, selectTradeByIDSQL, trade.ID)
+	row, err := tx.QueryRowTx(ctx, selectTradeByIDSQL, t.ID)
 	if err != nil {
 		return nil, err
 	}
-	err = database.ScanRow(row, trade,
+	err = database.ScanRow(row, t,
 		"strategy_id",
 		"symbol",
 		"currency",
@@ -114,85 +96,55 @@ func SelectTradeByID(ctx context.Context, driver *database.Driver, id string) (*
 		"pnl",
 		"notes")
 	if database.NoRows(err) {
-		trade = nil
+		t = nil
 	} else if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return trade, nil
+	return t, nil
 }
 
 //go:embed trade.select_by_symbol.sql
 var selectTradeBySymbolSQL string
 
-func SelectTradesBySymbol(ctx context.Context, driver *database.Driver, symbol string) ([]*Trade, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	rows, err := tx.QueryTx(txCtx, selectTradeBySymbolSQL, symbol)
+func SelectTradesBySymbol(ctx context.Context, tx *database.Tx, symbol string) ([]*Trade, error) {
+	rows, err := tx.QueryTx(ctx, selectTradeBySymbolSQL, symbol)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	trades := make([]*Trade, 0)
+	ts := make([]*Trade, 0)
 	for rows.Next() {
-		trade := &Trade{
+		t := &Trade{
 			Symbol: symbol,
 		}
-		err = database.Scan(rows, trade)
+		err = database.Scan(rows, t)
 		if err != nil {
 			return nil, err
 		}
-		trades = append(trades, trade)
+		ts = append(ts, t)
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return trades, nil
+	return ts, nil
 }
 
 //go:embed trade.select_by_strategy_id.sql
 var selectTradeByStrategyIDSQL string
 
-func SelectTradesByStrategyID(ctx context.Context, driver *database.Driver, strategyID string) ([]*Trade, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	rows, err := tx.QueryTx(txCtx, selectTradeByStrategyIDSQL, strategyID)
+func SelectTradesByStrategyID(ctx context.Context, tx *database.Tx, strategyID string) ([]*Trade, error) {
+	rows, err := tx.QueryTx(ctx, selectTradeByStrategyIDSQL, strategyID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	trades := make([]*Trade, 0)
+	ts := make([]*Trade, 0)
 	for rows.Next() {
-		trade := &Trade{
+		t := &Trade{
 			StrategyID: strategyID,
 		}
-		err = database.Scan(rows, trade)
+		err = database.Scan(rows, t)
 		if err != nil {
 			return nil, err
 		}
-		trades = append(trades, trade)
+		ts = append(ts, t)
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return trades, nil
+	return ts, nil
 }

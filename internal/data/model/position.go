@@ -41,160 +41,102 @@ type Position struct {
 //go:embed position.insert.sql
 var insertPositionSQL string
 
-func InsertPosition(ctx context.Context, driver *database.Driver, portfolioID string, pos *domain.Position) (*Position, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	position := &Position{
+func InsertPosition(ctx context.Context, tx *database.Tx, portfolioID string, position *domain.Position) (*Position, error) {
+	p := &Position{
 		ID:          database.NewID(),
 		PortfolioID: portfolioID,
-		Symbol:      pos.Symbol,
-		Currency:    pos.Currency,
-		Quantity:    pos.Quantity,
-		EntryPrice:  pos.EntryPrice,
-		EntryDate:   database.Time2DB(pos.EntryDate),
-		Notes:       pos.Notes,
+		Symbol:      position.Symbol,
+		Currency:    position.Currency,
+		Quantity:    position.Quantity,
+		EntryPrice:  position.EntryPrice,
+		EntryDate:   database.Time2DB(position.EntryDate),
+		Notes:       position.Notes,
 		CreatedAt:   database.Time2DB(tx.Now()),
 		UpdatedAt:   database.Time2DB(tx.Now()),
 	}
-	err = tx.ExecTx(txCtx, insertPositionSQL,
-		position.ID,
-		position.PortfolioID,
-		position.Symbol,
-		position.Currency,
-		position.Quantity,
-		position.EntryPrice,
-		position.EntryDate,
-		position.Notes,
-		position.CreatedAt,
-		position.UpdatedAt)
+	err := tx.ExecTx(ctx, insertPositionSQL,
+		p.ID,
+		p.PortfolioID,
+		p.Symbol,
+		p.Currency,
+		p.Quantity,
+		p.EntryPrice,
+		p.EntryDate,
+		p.Notes,
+		p.CreatedAt,
+		p.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-	return position, nil
+	return p, nil
 }
 
 //go:embed position.update_by_id.sql
 var updatePositionByIDSQL string
 
-func UpdatePosition(ctx context.Context, driver *database.Driver, portfolioID string, pos *domain.Position) (*Position, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	position := &Position{
-		ID:          pos.ID,
+func UpdatePosition(ctx context.Context, tx *database.Tx, portfolioID string, position *domain.Position) (*Position, error) {
+	p := &Position{
+		ID:          position.ID,
 		PortfolioID: portfolioID,
-		Symbol:      pos.Symbol,
-		Currency:    pos.Currency,
-		Quantity:    pos.Quantity,
-		EntryPrice:  pos.EntryPrice,
-		EntryDate:   database.Time2DB(pos.EntryDate),
-		Notes:       pos.Notes,
+		Symbol:      position.Symbol,
+		Currency:    position.Currency,
+		Quantity:    position.Quantity,
+		EntryPrice:  position.EntryPrice,
+		EntryDate:   database.Time2DB(position.EntryDate),
+		Notes:       position.Notes,
 		UpdatedAt:   database.Time2DB(tx.Now()),
 	}
-	err = tx.ExecTx(txCtx, updatePositionByIDSQL,
-		position.Symbol,
-		position.Currency,
-		position.Quantity,
-		position.EntryPrice,
-		position.EntryDate,
-		position.Notes,
-		position.UpdatedAt,
-		position.ID,
+	err := tx.ExecTx(ctx, updatePositionByIDSQL,
+		p.Symbol,
+		p.Currency,
+		p.Quantity,
+		p.EntryPrice,
+		p.EntryDate,
+		p.Notes,
+		p.UpdatedAt,
+		p.ID,
 	)
 	if err != nil {
 		return nil, err
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return position, nil
+	return p, nil
 }
 
 //go:embed position.select_by_portfolio_id.sql
 var selectPositionByPortfolioIDSQL string
 
-func SelectPositionsByPortfolioID(ctx context.Context, driver *database.Driver, portfolioID string) ([]*Position, error) {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	rows, err := tx.QueryTx(txCtx, selectPositionByPortfolioIDSQL, portfolioID)
+func SelectPositionsByPortfolioID(ctx context.Context, tx *database.Tx, portfolioID string) ([]*Position, error) {
+	rows, err := tx.QueryTx(ctx, selectPositionByPortfolioIDSQL, portfolioID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	positions := make([]*Position, 0)
+	ps := make([]*Position, 0)
 	for rows.Next() {
-		position := &Position{
+		p := &Position{
 			PortfolioID: portfolioID,
 		}
-		err = database.Scan(rows, position)
+		err = database.Scan(rows, p)
 		if err != nil {
 			return nil, err
 		}
-		positions = append(positions, position)
+		ps = append(ps, p)
 	}
-
-	err = tx.CommitTx(txCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	return positions, nil
+	return ps, nil
 }
 
 //go:embed position.delete_by_id.sql
 var deletePositionByIDSQL string
 
-func DeletePositionByID(ctx context.Context, driver *database.Driver, id string) error {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	err = tx.ExecTx(txCtx, deletePositionByIDSQL, id)
-	if err != nil {
-		return err
-	}
-
-	return tx.CommitTx(txCtx)
+func DeletePositionByID(ctx context.Context, tx *database.Tx, id string) error {
+	return tx.ExecTx(ctx, deletePositionByIDSQL, id)
 }
 
 //go:embed position.delete_by_portfolio_id.sql
 var deletePositionByPortfolioIDSQL string
 
-func DeletePositionsByPortfolioID(ctx context.Context, driver *database.Driver, portfolioID string) error {
-	txCtx, tx, err := driver.BeginTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.RollbackUncommitedTx(txCtx)
-
-	err = tx.ExecTx(txCtx, deletePositionByPortfolioIDSQL, portfolioID)
-	if err != nil {
-		return err
-	}
-
-	return tx.CommitTx(txCtx)
+func DeletePositionsByPortfolioID(ctx context.Context, tx *database.Tx, portfolioID string) error {
+	return tx.ExecTx(ctx, deletePositionByPortfolioIDSQL, portfolioID)
 }
 
 //go:embed position.select_symbols.sql

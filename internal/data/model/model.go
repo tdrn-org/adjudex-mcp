@@ -35,3 +35,8 @@ func ptrTime(t *time.Time) *int64 {
 	dbTime := database.Time2DB(*t)
 	return &dbTime
 }
+
+//go:fix inline
+func stringPtr(s string) *string {
+	return new(s)
+}
