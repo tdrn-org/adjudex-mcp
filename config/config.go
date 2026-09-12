@@ -20,33 +20,25 @@ import (
 	_ "embed"
 
 	"github.com/tdrn-org/go-config-toml"
+	financeconfig "github.com/tdrn-org/go-finance/config"
 )
 
 type Config struct {
-	Logging      LoggingConfig      `toml:"logging"`
-	Server       ServerConfig       `toml:"server"`
-	Store        StoreConfig        `toml:"store"`
-	QuoteService QuoteServiceConfig `toml:"quote_service"`
-	Metrics      MetricsConfig      `toml:"metrics"`
+	Logging      LoggingConfig        `toml:"logging"`
+	Server       ServerConfig         `toml:"server"`
+	Store        StoreConfig          `toml:"store"`
+	QuoteService QuoteServiceConfig   `toml:"quote_service"`
+	Provider     financeconfig.Config `toml:"provider"`
+	Metrics      MetricsConfig        `toml:"metrics"`
 }
 
 //go:embed defaults.toml
 var defaultsData []byte
 
 func Default() (*Config, error) {
-	cfg := &Config{}
-	err := config.Defaults(cfg, defaultsData)
-	if err != nil {
-		return nil, err
-	}
-	return cfg, nil
+	return config.Defaults(&Config{}, defaultsData)
 }
 
 func Load(path string) (*Config, error) {
-	cfg := &Config{}
-	err := config.Load(cfg, path, defaultsData, false)
-	if err != nil {
-		return nil, err
-	}
-	return cfg, nil
+	return config.Load(&Config{}, path, defaultsData, false)
 }
