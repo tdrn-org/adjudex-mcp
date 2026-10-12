@@ -10,7 +10,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
 	github.com/tdrn-org/go-cache v0.1.2
-	github.com/tdrn-org/go-conf v0.0.8
+	github.com/tdrn-org/go-conf v0.0.10
 	github.com/tdrn-org/go-config-toml v0.1.0
 	github.com/tdrn-org/go-database v0.1.4
 	github.com/tdrn-org/go-diff v0.1.4
