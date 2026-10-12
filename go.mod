@@ -1,10 +1,10 @@
 module github.com/tdrn-org/adjudex-mcp
 
-go 1.27
+go 1.27.0
 
 require (
 	github.com/alecthomas/kong v1.16.1
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.12.1
@@ -12,7 +12,7 @@ require (
 	github.com/tdrn-org/go-cache v0.1.2
 	github.com/tdrn-org/go-conf v0.0.8
 	github.com/tdrn-org/go-config-toml v0.1.0
-	github.com/tdrn-org/go-database v0.1.3
+	github.com/tdrn-org/go-database v0.1.4
 	github.com/tdrn-org/go-diff v0.1.4
 	github.com/tdrn-org/go-finance v0.0.1
 	github.com/tdrn-org/go-httpserver v0.1.3
@@ -29,7 +29,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v1.0.1 // indirect
@@ -80,10 +80,10 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260911204522-f61a6ca850bd // indirect
 	google.golang.org/grpc v1.83.2 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	modernc.org/libc v1.75.7 // indirect
+	modernc.org/libc v1.77.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	modernc.org/sqlite v1.58.0 // indirect
+	modernc.org/sqlite v1.59.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 

@@ -437,3 +437,68 @@ mechanical, stdlib-only change that fixes the mismatch at the source.
 - MCP tools are unaffected: `encoding/json` handles marshal/unmarshal transparently.
 - Future domain types MUST include `json:"..."` tags on all exported fields. 
   This is now a non-negotiable convention.
+
+---
+
+## ADR-011: go-finance as the Domain Model for Instrument Identity & Quotes
+
+**Date**: 2026-10-12
+**Status**: Accepted
+
+**Decision**:
+- Adopt `github.com/tdrn-org/go-finance` as adjudex' instrument-identity and
+  quote domain model.
+- `finance.ProviderListing` replaces the former `symbol string` in domain types
+  (Quote, PriceHistory, SymbolInfo) — used **directly**, with no adjudex mirror
+  type.
+- `type Quote finance.Quote` is a **Definition** (`type Quote = …` alias rejected):
+  the field set stays bound to go-finance, adjudex keeps its own methods
+  (`ApplyCurrency`, `Quotes.Currency()`).
+- "Domain layer isolation" gets **exactly one named exception**: our own
+  domain-model libraries. Infrastructure dependencies (drivers, transports, vendor
+  SDKs) still never enter `internal/domain/`.
+- Comparison semantics: `ListingProvider.SameListing(a, b) bool` — identity,
+  provider-semantic — instead of a generic/reflective `Equal`.
+  `ProviderListing.Equal` stays reserved for *data* equality, built on the
+  canonical `String()` form. Naming follows the stdlib distinction:
+  `Same` = identity (`os.SameFile`), `Equal` = data (`bytes.Equal`).
+
+**Reason**:
+- Instrument identity is **provider-issued**: `ProviderListing` carries exactly
+  the identifying attributes the source itself supplies (provider, instrument
+  name/type, symbol, ticker, ISIN, WKN, exchange, MIC, currency). Mirroring it
+  would duplicate the model and drift on every go-finance change.
+- `symbol string` was already rejected as stringly-typed when the symbol table was
+  designed (2026-08-31) — this removes the last occurrence.
+- Persistence is solved upstream: `Value()`/`Scan()` (database/sql) plus a
+  deterministic canonical `String()`, freshly rendered from the data — so a stored
+  listing compares reliably even across versions.
+- The operation boundary is documented by go-finance itself ("can only be handled
+  by the issuing provider", `ErrListingProviderMismatch`) — which is precisely why
+  the comparison belongs on the provider interface: only the provider knows which
+  of *its* attributes are identity-forming. A structural comparison would call
+  every newly added attribute a difference and let the store accumulate duplicates.
+- Precedent: ADR-010 already established that a stdlib-only addition
+  (`encoding/json` tags) does not violate domain isolation. Same reasoning here —
+  except the addition is our own domain model rather than the stdlib.
+
+**Consequences**:
+- `internal/domain/` imports go-finance. This is the documented exception, not a
+  precedent for arbitrary libraries.
+- A go-finance API break now surfaces as a **compile error in the domain layer** —
+  deliberate: a visible break instead of a silent mapping layer.
+- Domain code accesses listings **read-only** (`Provider`, `InstrumentName`,
+  `InstrumentType`, `Attribute`, `Currency`, `String`). Provider operations stay
+  with the provider.
+- `internal/stock/tracker/` consumes go-finance providers instead of implementing
+  its own (§3).
+- Consumers (MCP/REST) that must compare a stored listing against a fresh one need
+  a dispatcher that resolves the provider via `Provider()` — same shape as
+  `QueryQuote`.
+
+**Open item (deliberately not decided here)**:
+Who owns the instrument identity — adjudex' own `symbol` table with surrogate key,
+or go-finance (`ProviderListing` + its `SymbolStore`/database/sql persistence)?
+`Quote.Listing` is the source-side view in either case. The two must never become
+two competing identities; the decision has to be explicit before the integration
+is built.
