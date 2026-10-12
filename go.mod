@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/alecthomas/kong v1.16.1
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.12.1

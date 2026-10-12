@@ -53,6 +53,7 @@ All modules follow the path pattern `github.com/tdrn-org/<name>`.
 | go-conf | `github.com/tdrn-org/go-conf` | Configuration loading (file + env) |
 | go-tlsconf | `github.com/tdrn-org/go-tlsconf` | TLS setup for HTTPS mode |
 | go-database | `github.com/tdrn-org/go-database` | SQLite access, transactions, schema migrations |
+| go-finance | `github.com/tdrn-org/go-finance` | Financial reference data — instrument identity (`ProviderListing`), quotes, exchange rates, provider system |
 
 External libraries are only permitted when no own alternative exists.
 **Document the reason in a comment or ADR when adding an external dependency.**
@@ -166,8 +167,44 @@ adjudex-mcp/
 
 ### Domain layer isolation
 `internal/domain/` contains only pure Go types and interfaces.
-It **must not** import anything outside the standard library.
+It **must not** import anything outside the standard library — with **one named
+exception**: our own domain-model libraries, currently
+`github.com/tdrn-org/go-finance` (see "go-finance domain types" below, ADR-011).
 All external dependencies (DB, HTTP, MCP) depend on domain — never the reverse.
+
+The distinction that matters: an *infrastructure* dependency (driver, transport,
+vendor SDK) never enters the domain; a *domain model* authored by us may.
+`finance.ProviderListing` is a value with our own semantics — not a driver.
+
+### go-finance domain types (ADR-011)
+
+`github.com/tdrn-org/go-finance` is our own domain-model library. Its
+`ProviderListing` is the identity carrier of a listed instrument (provider plus
+attributes: symbol, ticker, ISIN, WKN, exchange, MIC); its `Quote` is the price
+snapshot for exactly that listing.
+
+- **`finance.ProviderListing` is used directly in domain types.** It replaces the
+  former `symbol string`. No adjudex mirror type — a parallel structure would have
+  to be maintained in lockstep with every go-finance API change, and it would
+  re-introduce the stringly-typed identity that was already rejected.
+- **`type Quote finance.Quote` is a Definition, not an alias** (`type Quote = …`
+  would inherit methods and forbid our own). adjudex keeps its own methods
+  (`ApplyCurrency`, `Quotes.Currency()`) while the field set stays bound to
+  go-finance. Do **not** re-implement go-finance methods (`String()`) — one truth.
+- **Read-only in the domain:** `Provider()`, `InstrumentName()`, `InstrumentType()`,
+  `Attribute()`, `Currency()`, `String()`, and the `database/sql` persistence
+  (`Value`/`Scan`). Operations that talk to a provider stay with the issuing
+  provider (`ErrListingProviderMismatch`), exactly as go-finance documents.
+- **Comparisons are provider-semantic, not structural.**
+  `ListingProvider.SameListing(a, b) bool` — "do these describe the same
+  instrument?" — belongs on the provider interface, because only the provider
+  knows which of *its* attributes are identity-forming. A generic/reflective
+  `Equal` would report "different" for every newly added attribute and litter the
+  store with duplicates. Name the two questions distinctly:
+  **`Same` = identity** (`os.SameFile`), **`Equal` = data** (`bytes.Equal`,
+  built on the canonical `String()` form).
+- Where go-finance offers a capability, adjudex consumes it instead of building a
+  local equivalent (§3).
 
 ### Explicit errors
 - Return errors explicitly; never use `panic()` for recoverable conditions.
