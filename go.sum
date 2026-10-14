@@ -148,10 +148,10 @@ github.com/tdrn-org/go-httpserver v0.1.3 h1:uYSKP3HaxIdJfxJSr+0k2AphPH8PaLhYYfCx
 github.com/tdrn-org/go-httpserver v0.1.3/go.mod h1:8HkaJfNPY1ThFcFSrylZJSs2dcD4pku6gQdWWrSMEus=
 github.com/tdrn-org/go-jobticker v0.0.1 h1:ExRuEexod4U4lDXKU+ST3DxziwasoSy12EWccaG7jnE=
 github.com/tdrn-org/go-jobticker v0.0.1/go.mod h1:GLYbpDHE5bKb3dZWDlh/Mjxh4f8/Ez5QHlcych/7bUE=
-github.com/tdrn-org/go-log v0.6.2 h1:rcFJCRj0mE//iaNPEht0qbJEBX25LLiOYIgvEsRwMGc=
-github.com/tdrn-org/go-log v0.6.2/go.mod h1:2vA57ZTOPYyg2vfstTTP+uWIBd2qdK2SBK/PTtQ+5wk=
-github.com/tdrn-org/go-tlsconf v0.0.13 h1:n02iiHfo/PxZlSOGQ1i1FXqsdmxk1O6GLJvRg9Z17Ac=
-github.com/tdrn-org/go-tlsconf v0.0.13/go.mod h1:0auwEFG0RMWnNqUT1hw7zXJTWzlsA7fUeUC4+/HHQOY=
+github.com/tdrn-org/go-log v0.6.4 h1:AvpO/nizfq5O+wq6rJNocXG4HsIvsUAhgIG/MOg5LGI=
+github.com/tdrn-org/go-log v0.6.4/go.mod h1:BlnqMMnt1DwQjJZuxMy0qSffPttdv6ubcod6mgGBvzA=
+github.com/tdrn-org/go-tlsconf v0.0.15 h1:VscbpWYkvVY8fJf3ncGgFRRAmRQWTL1Uxr5JP9zRz2U=
+github.com/tdrn-org/go-tlsconf v0.0.15/go.mod h1:1iL49P7ov0OfD08T4rgL3BJ7Zw3UZRNK45PcWa26SgE=
 github.com/twelvedata/twelvedata-go v1.0.14 h1:zH9WI9T63HBUA4KasrmZQGWGc74lc4LdQf6prelTQUc=
 github.com/twelvedata/twelvedata-go v1.0.14/go.mod h1:HfZu5AU4bQbICW/uEgZrBxUnv1m08pWJWgcLzI5X70M=
 github.com/urfave/cli/v2 v2.27.7 h1:bH59vdhbjLv3LAvIu6gd0usJHgoTTPhCFib8qqOwXYU=
