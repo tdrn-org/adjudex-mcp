@@ -15,7 +15,7 @@ require (
 	github.com/tdrn-org/go-database v0.1.4
 	github.com/tdrn-org/go-diff v0.1.4
 	github.com/tdrn-org/go-finance v0.0.1
-	github.com/tdrn-org/go-httpserver v0.1.3
+	github.com/tdrn-org/go-httpserver v0.1.6
 	github.com/tdrn-org/go-jobticker v0.0.1
 	github.com/tdrn-org/go-log v0.6.2
 	github.com/tdrn-org/go-tlsconf v0.0.13
