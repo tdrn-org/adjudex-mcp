@@ -13,7 +13,7 @@ require (
 	github.com/tdrn-org/go-config-toml v0.1.1
 	github.com/tdrn-org/go-database v0.1.9
 	github.com/tdrn-org/go-diff v0.1.6
-	github.com/tdrn-org/go-finance v0.0.10
+	github.com/tdrn-org/go-finance v0.0.11
 	github.com/tdrn-org/go-httpserver v0.1.6
 	github.com/tdrn-org/go-jobticker v0.0.4
 	github.com/tdrn-org/go-log v0.6.4
