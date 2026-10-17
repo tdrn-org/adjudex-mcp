@@ -32,7 +32,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/rest.ServerInfo"
+                            "$ref": "#/definitions/rest.serverInfo"
                         }
                     },
                     "500": {
@@ -357,7 +357,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/quotes/{symbol}": {
+        "/api/v1/quotes/{listing}": {
             "get": {
                 "description": "Returns the latest quote for a symbol (cached or live).",
                 "produces": [
@@ -367,8 +367,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Ticker symbol",
-                        "name": "symbol",
+                        "description": "Listing",
+                        "name": "listing",
                         "in": "path",
                         "required": true
                     }
@@ -389,7 +389,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/quotes/{symbol}/history": {
+        "/api/v1/quotes/{listing}/history": {
             "get": {
                 "description": "Returns historical quotes for a symbol within a date range.",
                 "produces": [
@@ -399,8 +399,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Ticker symbol",
-                        "name": "symbol",
+                        "description": "Listing",
+                        "name": "listing",
                         "in": "path",
                         "required": true
                     },
@@ -432,9 +432,70 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/rates": {
+            "get": {
+                "description": "Returns the exchange rates converting the given base currencies into the target currency. Quotes are always delivered in the currency their provider reports; clients use these rates to present them in their own currency.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Exchange rates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Target currency (e.g. EUR). Defaults to the configured display currency.",
+                        "name": "target",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Base currencies to convert from (repeatable, e.g. ?base=USD\u0026base=CHF).",
+                        "name": "base",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/finance.ExchangeRate"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "rate not available",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "domain.Amount": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "description": "Currency is the currency this value is denominated in.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/finance.Currency"
+                        }
+                    ]
+                },
+                "value": {
+                    "description": "Value is the monetary value in Currency.",
+                    "type": "number"
+                }
+            }
+        },
         "domain.Holding": {
             "type": "object",
             "properties": {
@@ -442,10 +503,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "currency": {
-                    "type": "string"
+                    "$ref": "#/definitions/finance.Currency"
                 },
                 "current_price": {
-                    "type": "number"
+                    "description": "CurrentPrice is the price the market value is based on, including its\ncurrency and provenance.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/finance.ListingPrice"
+                        }
+                    ]
                 },
                 "entry_date": {
                     "type": "string"
@@ -453,26 +519,45 @@ const docTemplate = `{
                 "entry_price": {
                     "type": "number"
                 },
+                "entry_value": {
+                    "description": "EntryValue is quantity x entry price, denominated in the position currency.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.Amount"
+                        }
+                    ]
+                },
                 "id": {
                     "type": "string"
                 },
+                "listing": {
+                    "$ref": "#/definitions/finance.Listing"
+                },
                 "market_value": {
-                    "type": "number"
+                    "description": "MarketValue is quantity x current price, denominated in the price currency.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.Amount"
+                        }
+                    ]
                 },
                 "notes": {
                     "type": "string"
                 },
                 "pnl": {
-                    "type": "number"
+                    "description": "PnL is only set when EntryValue and MarketValue share a currency.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.Amount"
+                        }
+                    ]
                 },
                 "pnl_percent": {
+                    "description": "PnLPercent is only set when PnL is set.",
                     "type": "number"
                 },
                 "quantity": {
                     "type": "number"
-                },
-                "symbol": {
-                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -512,7 +597,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "currency": {
-                    "type": "string"
+                    "$ref": "#/definitions/finance.Currency"
                 },
                 "entry_date": {
                     "type": "string"
@@ -523,14 +608,14 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "listing": {
+                    "$ref": "#/definitions/finance.Listing"
+                },
                 "notes": {
                     "type": "string"
                 },
                 "quantity": {
                     "type": "number"
-                },
-                "symbol": {
-                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -540,14 +625,14 @@ const docTemplate = `{
         "domain.PriceHistory": {
             "type": "object",
             "properties": {
+                "listing": {
+                    "$ref": "#/definitions/finance.Listing"
+                },
                 "quotes": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/domain.Quote"
                     }
-                },
-                "symbol": {
-                    "type": "string"
                 }
             }
         },
@@ -555,44 +640,469 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "close": {
+                    "description": "Close gives the close price of the day before the trading day identified by Timestamp.",
                     "type": "number"
                 },
                 "currency": {
-                    "type": "string"
+                    "description": "Currency gives the currency for the given values.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/finance.Currency"
+                        }
+                    ]
                 },
                 "high": {
+                    "description": "High gives the high price at the trading day identified by Timestamp.",
                     "type": "number"
                 },
+                "listing": {
+                    "description": "Instrument the financial instrument this price is for.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/finance.Listing"
+                        }
+                    ]
+                },
                 "low": {
+                    "description": "Low gives the low price at the trading day identified by Timestamp.",
                     "type": "number"
                 },
                 "open": {
+                    "description": "Open gives the open price at the trading day identified by Timestamp.",
                     "type": "number"
                 },
                 "price": {
+                    "description": "Price gives the current price at the trading day identified by Timestamp.",
                     "type": "number"
                 },
                 "source": {
+                    "description": "Sources defines the provider this price has been\nqueried from.",
                     "type": "string"
                 },
                 "source_timestamp": {
-                    "type": "string"
-                },
-                "symbol": {
+                    "description": "SourceTimestamp defines the time this price has\nbeen queried.",
                     "type": "string"
                 },
                 "timestamp": {
+                    "description": "Timestamp gives the point in time this price was current\naccording to the sourcing provider.",
                     "type": "string"
                 },
                 "volume": {
+                    "description": "Volume gives the order volume at the trading day identified by Timestamp.",
                     "type": "integer"
                 }
             }
         },
-        "rest.ServerInfo": {
+        "finance.Currency": {
+            "type": "string",
+            "enum": [
+                "AED",
+                "AFN",
+                "ALL",
+                "AMD",
+                "ANG",
+                "AOA",
+                "ARS",
+                "AUD",
+                "AWG",
+                "AZN",
+                "BAM",
+                "BBD",
+                "BDT",
+                "BHD",
+                "BIF",
+                "BMD",
+                "BND",
+                "BOB",
+                "BRL",
+                "BSD",
+                "BTN",
+                "BWP",
+                "BYN",
+                "BZD",
+                "CAD",
+                "CDF",
+                "CHF",
+                "CLP",
+                "CNH",
+                "CNY",
+                "COP",
+                "CRC",
+                "CUP",
+                "CVE",
+                "CZK",
+                "DJF",
+                "DKK",
+                "DOP",
+                "DZD",
+                "EGP",
+                "ERN",
+                "ETB",
+                "EUR",
+                "FJD",
+                "FKP",
+                "GBP",
+                "GEL",
+                "GGP",
+                "GHS",
+                "GIP",
+                "GMD",
+                "GNF",
+                "GTQ",
+                "GYD",
+                "HKD",
+                "HNL",
+                "HTG",
+                "HUF",
+                "IDR",
+                "ILS",
+                "IMP",
+                "INR",
+                "IQD",
+                "IRR",
+                "ISK",
+                "JEP",
+                "JMD",
+                "JOD",
+                "JPY",
+                "KES",
+                "KGS",
+                "KHR",
+                "KMF",
+                "KPW",
+                "KRW",
+                "KWD",
+                "KYD",
+                "KZT",
+                "LAK",
+                "LBP",
+                "LKR",
+                "LRD",
+                "LSL",
+                "LYD",
+                "MAD",
+                "MDL",
+                "MGA",
+                "MKD",
+                "MMK",
+                "MNT",
+                "MOP",
+                "MRO",
+                "MRU",
+                "MUR",
+                "MVR",
+                "MWK",
+                "MXN",
+                "MYR",
+                "MZN",
+                "NAD",
+                "NGN",
+                "NIO",
+                "NOK",
+                "NPR",
+                "NZD",
+                "OMR",
+                "PAB",
+                "PEN",
+                "PGK",
+                "PHP",
+                "PKR",
+                "PLN",
+                "PYG",
+                "QAR",
+                "RON",
+                "RSD",
+                "RUB",
+                "RWF",
+                "SAR",
+                "SBD",
+                "SCR",
+                "SDG",
+                "SEK",
+                "SGD",
+                "SHP",
+                "SLE",
+                "SOS",
+                "SRD",
+                "SSP",
+                "STN",
+                "SVC",
+                "SYP",
+                "SZL",
+                "THB",
+                "TJS",
+                "TMT",
+                "TND",
+                "TOP",
+                "TRY",
+                "TTD",
+                "TWD",
+                "TZS",
+                "UAH",
+                "UGX",
+                "USD",
+                "UYU",
+                "UZS",
+                "VES",
+                "VND",
+                "VUV",
+                "WST",
+                "XAF",
+                "XAG",
+                "XAU",
+                "XCD",
+                "XCG",
+                "XDR",
+                "XOF",
+                "XPD",
+                "XPF",
+                "XPT",
+                "YER",
+                "ZAR",
+                "ZMW",
+                "ZWG"
+            ],
+            "x-enum-varnames": [
+                "CurrencyAED",
+                "CurrencyAFN",
+                "CurrencyALL",
+                "CurrencyAMD",
+                "CurrencyANG",
+                "CurrencyAOA",
+                "CurrencyARS",
+                "CurrencyAUD",
+                "CurrencyAWG",
+                "CurrencyAZN",
+                "CurrencyBAM",
+                "CurrencyBBD",
+                "CurrencyBDT",
+                "CurrencyBHD",
+                "CurrencyBIF",
+                "CurrencyBMD",
+                "CurrencyBND",
+                "CurrencyBOB",
+                "CurrencyBRL",
+                "CurrencyBSD",
+                "CurrencyBTN",
+                "CurrencyBWP",
+                "CurrencyBYN",
+                "CurrencyBZD",
+                "CurrencyCAD",
+                "CurrencyCDF",
+                "CurrencyCHF",
+                "CurrencyCLP",
+                "CurrencyCNH",
+                "CurrencyCNY",
+                "CurrencyCOP",
+                "CurrencyCRC",
+                "CurrencyCUP",
+                "CurrencyCVE",
+                "CurrencyCZK",
+                "CurrencyDJF",
+                "CurrencyDKK",
+                "CurrencyDOP",
+                "CurrencyDZD",
+                "CurrencyEGP",
+                "CurrencyERN",
+                "CurrencyETB",
+                "CurrencyEUR",
+                "CurrencyFJD",
+                "CurrencyFKP",
+                "CurrencyGBP",
+                "CurrencyGEL",
+                "CurrencyGGP",
+                "CurrencyGHS",
+                "CurrencyGIP",
+                "CurrencyGMD",
+                "CurrencyGNF",
+                "CurrencyGTQ",
+                "CurrencyGYD",
+                "CurrencyHKD",
+                "CurrencyHNL",
+                "CurrencyHTG",
+                "CurrencyHUF",
+                "CurrencyIDR",
+                "CurrencyILS",
+                "CurrencyIMP",
+                "CurrencyINR",
+                "CurrencyIQD",
+                "CurrencyIRR",
+                "CurrencyISK",
+                "CurrencyJEP",
+                "CurrencyJMD",
+                "CurrencyJOD",
+                "CurrencyJPY",
+                "CurrencyKES",
+                "CurrencyKGS",
+                "CurrencyKHR",
+                "CurrencyKMF",
+                "CurrencyKPW",
+                "CurrencyKRW",
+                "CurrencyKWD",
+                "CurrencyKYD",
+                "CurrencyKZT",
+                "CurrencyLAK",
+                "CurrencyLBP",
+                "CurrencyLKR",
+                "CurrencyLRD",
+                "CurrencyLSL",
+                "CurrencyLYD",
+                "CurrencyMAD",
+                "CurrencyMDL",
+                "CurrencyMGA",
+                "CurrencyMKD",
+                "CurrencyMMK",
+                "CurrencyMNT",
+                "CurrencyMOP",
+                "CurrencyMRO",
+                "CurrencyMRU",
+                "CurrencyMUR",
+                "CurrencyMVR",
+                "CurrencyMWK",
+                "CurrencyMXN",
+                "CurrencyMYR",
+                "CurrencyMZN",
+                "CurrencyNAD",
+                "CurrencyNGN",
+                "CurrencyNIO",
+                "CurrencyNOK",
+                "CurrencyNPR",
+                "CurrencyNZD",
+                "CurrencyOMR",
+                "CurrencyPAB",
+                "CurrencyPEN",
+                "CurrencyPGK",
+                "CurrencyPHP",
+                "CurrencyPKR",
+                "CurrencyPLN",
+                "CurrencyPYG",
+                "CurrencyQAR",
+                "CurrencyRON",
+                "CurrencyRSD",
+                "CurrencyRUB",
+                "CurrencyRWF",
+                "CurrencySAR",
+                "CurrencySBD",
+                "CurrencySCR",
+                "CurrencySDG",
+                "CurrencySEK",
+                "CurrencySGD",
+                "CurrencySHP",
+                "CurrencySLE",
+                "CurrencySOS",
+                "CurrencySRD",
+                "CurrencySSP",
+                "CurrencySTN",
+                "CurrencySVC",
+                "CurrencySYP",
+                "CurrencySZL",
+                "CurrencyTHB",
+                "CurrencyTJS",
+                "CurrencyTMT",
+                "CurrencyTND",
+                "CurrencyTOP",
+                "CurrencyTRY",
+                "CurrencyTTD",
+                "CurrencyTWD",
+                "CurrencyTZS",
+                "CurrencyUAH",
+                "CurrencyUGX",
+                "CurrencyUSD",
+                "CurrencyUYU",
+                "CurrencyUZS",
+                "CurrencyVES",
+                "CurrencyVND",
+                "CurrencyVUV",
+                "CurrencyWST",
+                "CurrencyXAF",
+                "CurrencyXAG",
+                "CurrencyXAU",
+                "CurrencyXCD",
+                "CurrencyXCG",
+                "CurrencyXDR",
+                "CurrencyXOF",
+                "CurrencyXPD",
+                "CurrencyXPF",
+                "CurrencyXPT",
+                "CurrencyYER",
+                "CurrencyZAR",
+                "CurrencyZMW",
+                "CurrencyZWG"
+            ]
+        },
+        "finance.ExchangeRate": {
             "type": "object",
             "properties": {
-                "version": {
+                "base": {
+                    "description": "Base defines the base currency for this exchange rate.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/finance.Currency"
+                        }
+                    ]
+                },
+                "quote": {
+                    "description": "Quote defines the quoted currency for this exchange rate.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/finance.Currency"
+                        }
+                    ]
+                },
+                "rate": {
+                    "description": "Rate defines the rate for base to quoted currency.",
+                    "type": "number"
+                },
+                "source": {
+                    "description": "Sources defines the provider this exchange rate has been\nqueried from.",
+                    "type": "string"
+                },
+                "source_timestamp": {
+                    "description": "SourceTimestamp defines the time this exchange rate has\nbeen queried.",
+                    "type": "string"
+                },
+                "timestamp": {
+                    "description": "Timestamp defines the point in time this exchange rate\nwas current according to the provider.",
+                    "type": "string"
+                }
+            }
+        },
+        "finance.Listing": {
+            "type": "object"
+        },
+        "finance.ListingPrice": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "description": "Currency gives the currency for the given values.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/finance.Currency"
+                        }
+                    ]
+                },
+                "listing": {
+                    "description": "Instrument the financial instrument this price is for.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/finance.Listing"
+                        }
+                    ]
+                },
+                "price": {
+                    "description": "Price gives the current price at the trading day identified by Timestamp.",
+                    "type": "number"
+                },
+                "source": {
+                    "description": "Sources defines the provider this price has been\nqueried from.",
+                    "type": "string"
+                },
+                "source_timestamp": {
+                    "description": "SourceTimestamp defines the time this price has\nbeen queried.",
+                    "type": "string"
+                },
+                "timestamp": {
+                    "description": "Timestamp gives the point in time this price was current\naccording to the sourcing provider.",
                     "type": "string"
                 }
             }
@@ -612,7 +1122,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "currency": {
-                    "type": "string"
+                    "$ref": "#/definitions/finance.Currency"
                 },
                 "entry_date": {
                     "type": "string"
@@ -620,14 +1130,14 @@ const docTemplate = `{
                 "entry_price": {
                     "type": "number"
                 },
+                "listing": {
+                    "type": "string"
+                },
                 "notes": {
                     "type": "string"
                 },
                 "quantity": {
                     "type": "number"
-                },
-                "symbol": {
-                    "type": "string"
                 }
             }
         },
@@ -635,7 +1145,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "currency": {
-                    "type": "string"
+                    "$ref": "#/definitions/finance.Currency"
                 },
                 "entry_price": {
                     "type": "number"
@@ -645,6 +1155,17 @@ const docTemplate = `{
                 },
                 "quantity": {
                     "type": "number"
+                }
+            }
+        },
+        "rest.serverInfo": {
+            "type": "object",
+            "properties": {
+                "finance_version": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
                 }
             }
         }

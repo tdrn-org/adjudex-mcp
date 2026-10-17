@@ -116,7 +116,7 @@ func (api *API) PingGet(w http.ResponseWriter, r *http.Request) {
 //	@Summary		Query server info
 //	@Description	Get server software version details.
 //	@Produce		json
-//	@Success		200	{object}	ServerInfo
+//	@Success		200	{object}	serverInfo
 //	@Failure		500	{string}	string	"server error"
 //	@Router			/api/v1/info [get]
 func (api *API) InfoGet(w http.ResponseWriter, r *http.Request) {
