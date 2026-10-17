@@ -38,8 +38,8 @@ func addAlertTools(server *mcp.Server, runtime Runtime) {
 func addAlertCreateTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "alert_create",
-		Description: "Creates a new alert for a symbol. The alert fires when its condition is met on the next quote update.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"name":{"type":"string","description":"A human-readable label for the alert."},"symbol":{"type":"string","description":"The ticker symbol to watch."},"currency":{"type":"string","description":"The currency of the alert threshold (e.g. USD, EUR). Defaults to USD."},"condition":{"type":"string","description":"Alert condition: price_above, price_below, rsi_above, rsi_below, sma_cross_above, sma_cross_below, volume_spike."},"threshold":{"type":"number","description":"The trigger value (e.g. 30.0 for RSI < 30)."},"indicator_type":{"type":"string","description":"Optional indicator type (sma, ema, rsi, macd). Required for indicator-based conditions."},"indicator_period":{"type":"integer","description":"Optional indicator period (e.g. 14 for RSI-14). Required for indicator-based conditions."}},"required":["name","symbol","condition","threshold"]}`),
+		Description: "Creates a new alert for a listing. The alert fires when its condition is met on the next quote update.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"name":{"type":"string","description":"A human-readable label for the alert."},"listing":{"type":"string","description":"The opaque listing value from symbol_search. Pass the \"listing\" field of a search result back unchanged."},"currency":{"type":"string","description":"The currency of the alert threshold (e.g. USD, EUR). Defaults to USD."},"condition":{"type":"string","description":"Alert condition: price_above, price_below, rsi_above, rsi_below, sma_cross_above, sma_cross_below, volume_spike."},"threshold":{"type":"number","description":"The trigger value (e.g. 30.0 for RSI < 30)."},"indicator_type":{"type":"string","description":"Optional indicator type (sma, ema, rsi, macd). Required for indicator-based conditions."},"indicator_period":{"type":"integer","description":"Optional indicator period (e.g. 14 for RSI-14). Required for indicator-based conditions."}},"required":["name","listing","condition","threshold"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Name            string           `json:"name"`
@@ -52,6 +52,10 @@ func addAlertCreateTool(server *mcp.Server, runtime Runtime) {
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
+		}
+
+		if err := validateListing(args.Listing); err != nil {
+			return nil, err
 		}
 
 		condition := domain.AlertCondition(args.Condition)
@@ -115,8 +119,8 @@ func addAlertGetTool(server *mcp.Server, runtime Runtime) {
 func addAlertListTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "alert_list",
-		Description: "Lists alerts. Optionally filter by symbol or state (armed, triggered, acknowledged, disabled).",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"symbol":{"type":"string","description":"Optional symbol filter."},"state":{"type":"string","description":"Optional state filter (armed, triggered, acknowledged, disabled)."}}}`),
+		Description: "Lists alerts. Optionally filter by listing or state (armed, triggered, acknowledged, disabled).",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"Optional listing filter: the opaque listing value from symbol_search."},"state":{"type":"string","description":"Optional state filter (armed, triggered, acknowledged, disabled)."}}}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Listing finance.Listing `json:"listing"`
@@ -124,6 +128,10 @@ func addAlertListTool(server *mcp.Server, runtime Runtime) {
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
+		}
+
+		if err := validateOptionalListing(args.Listing); err != nil {
+			return nil, err
 		}
 
 		if args.State == "armed" {

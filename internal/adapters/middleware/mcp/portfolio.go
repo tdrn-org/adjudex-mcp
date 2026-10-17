@@ -122,7 +122,7 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "position_add",
 		Description: "Adds a new position to a portfolio. The created position details are returned.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio to add the position to."},"symbol":{"type":"string","description":"The ticker symbol or WKN of the security."},"currency":{"type":"string","description":"The currency the entry price is denominated in (e.g. EUR, USD). Required — it cannot be derived from the instrument."},"quantity":{"type":"number","description":"The number of shares or units."},"entry_price":{"type":"number","description":"The purchase price per share."},"entry_date":{"type":"string","description":"The date of purchase (RFC3339 format, e.g. 2026-07-11T00:00:00Z)."},"notes":{"type":"string","description":"Optional notes about this position."}},"required":["portfolio_id","symbol","currency","quantity","entry_price","entry_date"]}`),
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio to add the position to."},"listing":{"type":"string","description":"The opaque listing value from symbol_search. Pass the \"listing\" field of a search result back unchanged."},"currency":{"type":"string","description":"The currency the entry price is denominated in (e.g. EUR, USD). Required — it cannot be derived from the instrument."},"quantity":{"type":"number","description":"The number of shares or units."},"entry_price":{"type":"number","description":"The purchase price per share."},"entry_date":{"type":"string","description":"The date of purchase (RFC3339 format, e.g. 2026-07-11T00:00:00Z)."},"notes":{"type":"string","description":"Optional notes about this position."}},"required":["portfolio_id","listing","currency","quantity","entry_price","entry_date"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			PortfolioID string           `json:"portfolio_id"`
@@ -135,6 +135,10 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
+		}
+
+		if err := validateListing(args.Listing); err != nil {
+			return nil, err
 		}
 
 		entryDate, err := time.Parse(time.RFC3339, args.EntryDate)

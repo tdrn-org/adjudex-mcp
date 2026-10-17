@@ -37,7 +37,7 @@ func addTradeRecordTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "trade_record",
 		Description: "Records a new trade (buy or sell). The created trade details are returned.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"strategy_id":{"type":"string","description":"ID of the strategy that triggered this trade."},"symbol":{"type":"string","description":"The ticker symbol."},"currency":{"type":"string","description":"The currency of the trade (e.g. USD, EUR). Defaults to USD."},"direction":{"type":"string","description":"Trade direction: buy or sell."},"quantity":{"type":"number","description":"Number of shares."},"price":{"type":"number","description":"Execution price per share."},"executed_at":{"type":"string","description":"Execution timestamp (RFC3339 format)."},"status":{"type":"string","description":"Trade status: pending, executed, cancelled. Defaults to executed."},"pnl":{"type":"number","description":"Profit/loss for sell trades. Defaults to 0."},"notes":{"type":"string","description":"Optional notes."}},"required":["strategy_id","symbol","direction","quantity","price","executed_at"]}`),
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"strategy_id":{"type":"string","description":"ID of the strategy that triggered this trade."},"listing":{"type":"string","description":"The opaque listing value from symbol_search. Pass the \"listing\" field of a search result back unchanged."},"currency":{"type":"string","description":"The currency of the trade (e.g. USD, EUR). Defaults to USD."},"direction":{"type":"string","description":"Trade direction: buy or sell."},"quantity":{"type":"number","description":"Number of shares."},"price":{"type":"number","description":"Execution price per share."},"executed_at":{"type":"string","description":"Execution timestamp (RFC3339 format)."},"status":{"type":"string","description":"Trade status: pending, executed, cancelled. Defaults to executed."},"pnl":{"type":"number","description":"Profit/loss for sell trades. Defaults to 0."},"notes":{"type":"string","description":"Optional notes."}},"required":["strategy_id","listing","direction","quantity","price","executed_at"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			StrategyID string          `json:"strategy_id"`
@@ -53,6 +53,10 @@ func addTradeRecordTool(server *mcp.Server, runtime Runtime) {
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
+		}
+
+		if err := validateListing(args.Listing); err != nil {
+			return nil, err
 		}
 
 		executedAt, err := time.Parse(time.RFC3339, args.ExecutedAt)
@@ -122,8 +126,8 @@ func addTradeGetTool(server *mcp.Server, runtime Runtime) {
 func addTradeListTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "trade_list",
-		Description: "Lists trades. Optionally filter by symbol or strategy ID.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"symbol":{"type":"string","description":"Optional symbol filter."},"strategy_id":{"type":"string","description":"Optional strategy ID filter."}}}`),
+		Description: "Lists trades. Optionally filter by listing or strategy ID.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"Optional listing filter: the opaque listing value from symbol_search."},"strategy_id":{"type":"string","description":"Optional strategy ID filter."}}}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Listing    finance.Listing `json:"listing"`
@@ -131,6 +135,10 @@ func addTradeListTool(server *mcp.Server, runtime Runtime) {
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
+		}
+
+		if err := validateOptionalListing(args.Listing); err != nil {
+			return nil, err
 		}
 
 		if args.StrategyID != "" {

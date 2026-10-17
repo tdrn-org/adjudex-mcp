@@ -49,6 +49,16 @@ func validateListing(listing finance.Listing) error {
 	return nil
 }
 
+// validateOptionalListing guards a listing that only acts as a filter: an unset
+// listing means "no filter" and must not be rejected. Listing.ID() is safe to call
+// on a zero value (unlike the other getters).
+func validateOptionalListing(listing finance.Listing) error {
+	if listing.ID() == "" {
+		return nil
+	}
+	return validateListing(listing)
+}
+
 // addRateGetTool registers the exchange-rate tool.
 //
 // Quoting and converting are kept apart on purpose: a quote always keeps the
