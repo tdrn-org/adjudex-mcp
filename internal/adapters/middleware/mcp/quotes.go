@@ -31,6 +31,38 @@ func addQuoteTools(server *mcp.Server, runtime Runtime) {
 	addQuoteGetTool(server, runtime)
 	addQuoteHistoryTool(server, runtime)
 	addQuoteIndicatorTool(server, runtime)
+	addRateGetTool(server, runtime)
+}
+
+// addRateGetTool registers the exchange-rate tool.
+//
+// Quoting and converting are kept apart on purpose: a quote always keeps the
+// currency its provider reported, and a client that wants another currency asks
+// for the rate explicitly and applies it itself. That way the rate used is
+// always known and can be reported, instead of being baked into a price.
+func addRateGetTool(server *mcp.Server, runtime Runtime) {
+	server.AddTool(&mcp.Tool{
+		Name:        "rate_get",
+		Description: "Returns exchange rates converting the given base currencies into a target currency. Quotes are always returned in their original currency; use these rates to present them in your own.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"target":{"type":"string","description":"Target currency (e.g. EUR). Defaults to the configured display currency."},"bases":{"type":"array","items":{"type":"string"},"description":"Base currencies to convert from (e.g. [\"USD\",\"CHF\"])."}},"required":["bases"]}`),
+	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var args struct {
+			Target finance.Currency   `json:"target"`
+			Bases  []finance.Currency `json:"bases"`
+		}
+		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
+			return nil, fmt.Errorf("parsing arguments: %w", err)
+		}
+		target := args.Target
+		if target == "" {
+			target = runtime.DisplayCurrency()
+		}
+		rates, err := runtime.MarketDataProvider().QueryExchangeRates(ctx, target, args.Bases)
+		if err != nil {
+			return nil, fmt.Errorf("querying rates into %s: %w", target, err)
+		}
+		return newToolResult(rates)
+	})
 }
 
 func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
@@ -46,7 +78,7 @@ func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
 
-		quote, err := runtime.MarketDataProvider().QueryQuote(ctx, args.Listing, "")
+		quote, err := runtime.MarketDataProvider().QueryQuote(ctx, args.Listing)
 		if err != nil {
 			return nil, fmt.Errorf("resolving quote for %q: %w", args.Listing.String(), err)
 		}

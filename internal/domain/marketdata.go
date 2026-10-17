@@ -22,7 +22,23 @@ import (
 	"github.com/tdrn-org/go-finance"
 )
 
+// MarketData gives access to market data: instrument lookup, quotes and the
+// exchange rates needed to present those quotes in another currency.
+//
+// Quotes are always returned in the currency their provider reports — never
+// converted. Conversion is the caller's decision and must be explicit, so the
+// rate applied is known and can be reported alongside the result.
 type MarketData interface {
+	// SearchListings searches for listings matching the given query.
 	SearchListings(ctx context.Context, query string) ([]finance.Listing, error)
-	QueryQuote(ctx context.Context, listing finance.Listing, currency finance.Currency) (*Quote, error)
+	// QueryQuote returns the latest quote for the given listing, denominated in
+	// the currency reported by the provider.
+	QueryQuote(ctx context.Context, listing finance.Listing) (*Quote, error)
+	// QueryExchangeRate returns the rate converting base into quote.
+	QueryExchangeRate(ctx context.Context, base, quote finance.Currency) (*finance.ExchangeRate, error)
+	// QueryExchangeRates returns the rates converting each of the given base
+	// currencies into target. Currencies already denominated in target are
+	// skipped. Rates are collected in one call so a warming-up provider is
+	// waited for once instead of once per currency.
+	QueryExchangeRates(ctx context.Context, target finance.Currency, bases []finance.Currency) ([]finance.ExchangeRate, error)
 }

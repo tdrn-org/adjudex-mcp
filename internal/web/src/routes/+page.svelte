@@ -117,8 +117,14 @@
             <h3 class="text-lg font-semibold text-white group-hover:text-accent-glow transition-colors">
               {s.name}
             </h3>
-            <span class="text-xs text-slate-500 bg-surface-alt rounded-full px-2 py-1">
-              {s.position_count} pos
+            <span class="text-xs {s.priced_count < s.position_count
+              ? 'text-negative bg-negative/10'
+              : 'text-slate-500 bg-surface-alt'} rounded-full px-2 py-1">
+              {#if s.priced_count < s.position_count}
+                {s.priced_count}/{s.position_count} priced
+              {:else}
+                {s.position_count} pos
+              {/if}
             </span>
           </div>
 

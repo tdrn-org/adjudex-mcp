@@ -24,6 +24,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/tdrn-org/adjudex-mcp/internal/buildinfo"
@@ -39,6 +40,7 @@ type Runtime interface {
 	Logger() *slog.Logger
 	DataStore() *data.Store
 	MarketDataProvider() *marketdata.Provider
+	DisplayCurrency() finance.Currency
 	Ping(ctx context.Context) error
 }
 
@@ -84,6 +86,8 @@ func (api *API) Mount(server *httpserver.Instance) {
 
 	server.HandleFunc("GET "+basePath+"/quotes/{symbol}", api.QuoteGet)
 	server.HandleFunc("GET "+basePath+"/quotes/{symbol}/history", api.QuoteHistory)
+
+	server.HandleFunc("GET "+basePath+"/rates", api.RatesGet)
 }
 
 const responseOK string = "ok"
@@ -219,13 +223,52 @@ func (api *API) PortfolioDelete(w http.ResponseWriter, r *http.Request) {
 // =============================================================================
 
 type PortfolioSummary struct {
-	ID            string           `json:"id"`
-	Name          string           `json:"name"`
-	Currency      finance.Currency `json:"currency"`
-	MarketValue   float64          `json:"market_value"`
-	PnL           float64          `json:"pnl"`
-	PnLPercent    float64          `json:"pnl_percent"`
-	PositionCount int              `json:"position_count"`
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Currency      finance.Currency       `json:"currency"`
+	MarketValue   float64                `json:"market_value"`
+	PnL           float64                `json:"pnl"`
+	PnLPercent    float64                `json:"pnl_percent"`
+	PositionCount int                    `json:"position_count"`
+	PricedCount   int                    `json:"priced_count"`
+	Rates         []finance.ExchangeRate `json:"rates,omitempty"`
+}
+
+// displayCurrency returns the currency a request asks values to be presented in.
+// An explicit ?currency= wins, otherwise the configured display currency is used.
+func (api *API) displayCurrency(r *http.Request) finance.Currency {
+	if currency := r.URL.Query().Get("currency"); currency != "" {
+		return finance.Currency(strings.ToUpper(currency))
+	}
+	return api.runtime.DisplayCurrency()
+}
+
+// GET @BasePath/rates
+//
+//	@Summary		Exchange rates
+//	@Description	Returns the exchange rates converting the given base currencies into the target currency. Quotes are always delivered in the currency their provider reports; clients use these rates to present them in their own currency.
+//	@Produce		json
+//	@Param			target	query		string		false	"Target currency (e.g. EUR). Defaults to the configured display currency."
+//	@Param			base	query		[]string	false	"Base currencies to convert from (repeatable, e.g. ?base=USD&base=CHF)."
+//	@Success		200		{array}		finance.ExchangeRate
+//	@Failure		503		{string}	string	"rate not available"
+//	@Router			/api/v1/rates [get]
+func (api *API) RatesGet(w http.ResponseWriter, r *http.Request) {
+	target := finance.Currency(strings.ToUpper(r.URL.Query().Get("target")))
+	if target == "" {
+		target = api.runtime.DisplayCurrency()
+	}
+	rawBases := r.URL.Query()["base"]
+	bases := make([]finance.Currency, 0, len(rawBases))
+	for _, raw := range rawBases {
+		bases = append(bases, finance.Currency(strings.ToUpper(raw)))
+	}
+	rates, err := api.runtime.MarketDataProvider().QueryExchangeRates(r.Context(), target, bases)
+	if err != nil {
+		api.sendError(w, r, http.StatusServiceUnavailable, err)
+		return
+	}
+	api.sendJSON(w, r, http.StatusOK, rates)
 }
 
 // GET @BasePath/portfolios/summaries
@@ -244,17 +287,29 @@ func (api *API) PortfolioSummaries(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		target := api.displayCurrency(r)
 		holdings := make([]domain.Holding, 0, len(full.Positions))
+		bases := make([]finance.Currency, 0, 2*len(full.Positions))
 		for _, pos := range full.Positions {
-			quote, err := api.runtime.MarketDataProvider().QueryQuote(r.Context(), pos.Listing, "")
+			quote, err := api.runtime.MarketDataProvider().QueryQuote(r.Context(), pos.Listing)
 			if err != nil {
 				api.runtime.Logger().Warn("failed to resolve quote for summary", "listing", pos.Listing.ID(), "err", err)
 				continue
 			}
-			holdings = append(holdings, domain.NewHolding(pos, quote.Price))
+			holdings = append(holdings, domain.NewHolding(pos, quote.ListingPrice))
+			bases = append(bases, pos.Currency, quote.Currency)
 		}
 
-		summary := domain.Holdings(holdings).Summarize()
+		rates, err := api.runtime.MarketDataProvider().QueryExchangeRates(r.Context(), target, bases)
+		if err != nil {
+			api.sendError(w, r, http.StatusServiceUnavailable, fmt.Errorf("portfolio %s: %w", p.ID, err))
+			return
+		}
+		summary, err := domain.Holdings(holdings).Summarize(target, rates)
+		if err != nil {
+			api.sendError(w, r, http.StatusServiceUnavailable, fmt.Errorf("portfolio %s: %w", p.ID, err))
+			return
+		}
 		summaries = append(summaries, PortfolioSummary{
 			ID:            p.ID,
 			Name:          p.Name,
@@ -263,6 +318,8 @@ func (api *API) PortfolioSummaries(w http.ResponseWriter, r *http.Request) {
 			PnL:           summary.PnL,
 			PnLPercent:    summary.PnLPercent,
 			PositionCount: len(full.Positions),
+			PricedCount:   len(holdings),
+			Rates:         summary.Rates,
 		})
 	}
 
@@ -286,17 +343,29 @@ func (api *API) PortfolioHoldings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	target := api.displayCurrency(r)
 	holdings := make([]domain.Holding, 0, len(p.Positions))
+	bases := make([]finance.Currency, 0, 2*len(p.Positions))
 	for _, pos := range p.Positions {
-		quote, err := api.runtime.MarketDataProvider().QueryQuote(r.Context(), pos.Listing, "")
+		quote, err := api.runtime.MarketDataProvider().QueryQuote(r.Context(), pos.Listing)
 		if err != nil {
 			api.runtime.Logger().Warn("failed to resolve quote for holding", "listing", pos.Listing.ID(), "err", err)
 			continue
 		}
-		holding := domain.NewHolding(pos, quote.Price)
-		holdings = append(holdings, holding)
+		holdings = append(holdings, domain.NewHolding(pos, quote.ListingPrice))
+		bases = append(bases, pos.Currency, quote.Currency)
 	}
-	api.sendJSON(w, r, http.StatusOK, holdings)
+	rates, err := api.runtime.MarketDataProvider().QueryExchangeRates(r.Context(), target, bases)
+	if err != nil {
+		api.sendError(w, r, http.StatusServiceUnavailable, fmt.Errorf("portfolio %s: %w", id, err))
+		return
+	}
+	converted, err := domain.Holdings(holdings).ConvertedTo(target, rates)
+	if err != nil {
+		api.sendError(w, r, http.StatusServiceUnavailable, fmt.Errorf("portfolio %s: %w", id, err))
+		return
+	}
+	api.sendJSON(w, r, http.StatusOK, converted)
 }
 
 // POST @BasePath/portfolios/{id}/positions
@@ -330,11 +399,14 @@ func (api *API) PositionAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Handle missing currency
-	currency := req.Currency
-	if currency == "" {
-		currency = finance.CurrencyUSD
+	// The entry price is only meaningful together with its currency, and that
+	// currency cannot be derived: a German broker books a US stock in EUR. There is
+	// deliberately no default here — a silent USD default would corrupt the PnL.
+	if req.Currency == "" {
+		api.sendError(w, r, http.StatusBadRequest, fmt.Errorf("currency is required: the entry price currency cannot be derived"))
+		return
 	}
+	currency := req.Currency
 
 	pos := &domain.Position{
 		Listing:    listing,
@@ -401,8 +473,11 @@ func (api *API) PositionUpdate(w http.ResponseWriter, r *http.Request) {
 	if req.Quantity != nil {
 		pos.Quantity = *req.Quantity
 	}
+	// The entry price currency is a booked fact: changing it later would silently
+	// rewrite the position's performance history.
 	if req.Currency != nil {
-		pos.Currency = *req.Currency
+		api.sendError(w, r, http.StatusBadRequest, fmt.Errorf("position currency cannot be changed after booking (current %s)", pos.Currency))
+		return
 	}
 	if req.EntryPrice != nil {
 		pos.EntryPrice = *req.EntryPrice

@@ -39,6 +39,7 @@ import (
 	"github.com/tdrn-org/go-database/memory"
 	"github.com/tdrn-org/go-database/sqlite"
 	"github.com/tdrn-org/go-finance"
+	"github.com/tdrn-org/go-finance/demo"
 	"github.com/tdrn-org/go-httpserver"
 	"github.com/tdrn-org/go-jobticker"
 	"github.com/tdrn-org/go-tlsconf/tlsclient"
@@ -218,13 +219,31 @@ func (s *Server) closeHttpServer() error {
 }
 
 func (s *Server) startMarketdataProvider(_ context.Context, cfg *config.Config) error {
-	// TODO: Make currency an option
-	marketDataProvider, err := marketdata.NewProvider(&cfg.Provider, finance.CurrencyUSD)
+	marketDataProvider, err := marketdata.NewProvider(&cfg.Provider)
 	if err != nil {
 		return err
 	}
 	s.marketDataProvider = marketDataProvider
+	s.warnAboutDemoProviders(cfg)
 	return nil
+}
+
+// warnAboutDemoProviders logs a warning when the demo provider is part of the
+// active market data pipeline. The demo provider serves deterministic
+// random-walk prices, so its quotes must never be mistaken for real market data.
+// A misconfigured provider list otherwise degrades silently: the server starts,
+// answers every request, and reports synthetic prices.
+func (s *Server) warnAboutDemoProviders(cfg *config.Config) {
+	for _, name := range cfg.Provider.Listings.ProviderNames {
+		if string(name) == demo.Name {
+			s.logger.Warn("demo provider is active for listings: quoted prices are SYNTHETIC, not real market data")
+		}
+	}
+	for _, name := range cfg.Provider.FX.ProviderNames {
+		if string(name) == demo.Name {
+			s.logger.Warn("demo provider is active for FX: exchange rates are SYNTHETIC, not real market data")
+		}
+	}
 }
 
 func (s *Server) closeMarketDataProvider() error {
@@ -276,6 +295,12 @@ func (runtime *serverRuntime) BaseURL() *url.URL {
 
 func (runtime *serverRuntime) Logger() *slog.Logger {
 	return runtime.server.logger
+}
+
+// DisplayCurrency is the presentation currency requests fall back to when they
+// do not name one.
+func (runtime *serverRuntime) DisplayCurrency() finance.Currency {
+	return runtime.server.cfg.Display.Currency
 }
 
 func (runtime *serverRuntime) DataStore() *data.Store {

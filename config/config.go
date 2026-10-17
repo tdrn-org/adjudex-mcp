@@ -20,6 +20,7 @@ import (
 	_ "embed"
 
 	"github.com/tdrn-org/go-config-toml"
+	"github.com/tdrn-org/go-finance"
 	financeconfig "github.com/tdrn-org/go-finance/config"
 )
 
@@ -28,7 +29,17 @@ type Config struct {
 	Server   ServerConfig         `toml:"server"`
 	Store    StoreConfig          `toml:"store"`
 	Provider financeconfig.Config `toml:"provider"`
+	Display  DisplayConfig        `toml:"display"`
 	Metrics  MetricsConfig        `toml:"metrics"`
+}
+
+// DisplayConfig holds the presentation preferences of the user interface.
+type DisplayConfig struct {
+	// Currency is the currency the user wants values presented in. It is a
+	// preference of the CLIENT, not a default of the domain: requests without an
+	// explicit currency fall back to it, but no calculation invents a currency
+	// on its own. Denominations stay whatever their source reported.
+	Currency finance.Currency `toml:"currency"`
 }
 
 //go:embed defaults.toml

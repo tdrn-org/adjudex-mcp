@@ -25,6 +25,7 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/buildinfo"
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/marketdata"
+	"github.com/tdrn-org/go-finance"
 )
 
 type Runtime interface {
@@ -32,6 +33,7 @@ type Runtime interface {
 	Logger() *slog.Logger
 	DataStore() *data.Store
 	MarketDataProvider() *marketdata.Provider
+	DisplayCurrency() finance.Currency
 }
 
 func NewHandler(runtime Runtime) http.Handler {
