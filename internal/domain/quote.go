@@ -50,8 +50,8 @@ func (qs Quotes) Currency() finance.Currency {
 
 // PriceHistory is a chronological series of quotes for a single symbol.
 type PriceHistory struct {
-	Listing finance.ProviderListing `json:"listing"`
-	Quotes  []Quote                 `json:"quotes"`
+	Listing finance.Listing `json:"listing"`
+	Quotes  []Quote         `json:"quotes"`
 }
 
 // IndicatorType names the technical indicator.
@@ -66,10 +66,10 @@ const (
 
 // IndicatorValue holds a computed indicator value at a point in time.
 type IndicatorValue struct {
-	Listing   finance.ProviderListing `json:"listing"`
-	Currency  finance.Currency        `json:"currency"`
-	Type      IndicatorType           `json:"type"`
-	Period    int                     `json:"period"`
-	Value     float64                 `json:"value"`
-	Timestamp time.Time               `json:"timestamp"`
+	Listing   finance.Listing  `json:"listing"`
+	Currency  finance.Currency `json:"currency"`
+	Type      IndicatorType    `json:"type"`
+	Period    int              `json:"period"`
+	Value     float64          `json:"value"`
+	Timestamp time.Time        `json:"timestamp"`
 }

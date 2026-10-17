@@ -26,17 +26,17 @@ import (
 )
 
 type Trade struct {
-	ID         string                  `db:"id"`
-	StrategyID string                  `db:"strategy_id"`
-	Listing    finance.ProviderListing `db:"listing"`
-	Currency   string                  `db:"currency"`
-	Direction  string                  `db:"direction"`
-	Quantity   float64                 `db:"quantity"`
-	Price      float64                 `db:"price"`
-	ExecutedAt int64                   `db:"executed_at"`
-	Status     string                  `db:"status"`
-	PnL        float64                 `db:"pnl"`
-	Notes      string                  `db:"notes"`
+	ID         string          `db:"id"`
+	StrategyID string          `db:"strategy_id"`
+	Listing    finance.Listing `db:"listing"`
+	Currency   string          `db:"currency"`
+	Direction  string          `db:"direction"`
+	Quantity   float64         `db:"quantity"`
+	Price      float64         `db:"price"`
+	ExecutedAt int64           `db:"executed_at"`
+	Status     string          `db:"status"`
+	PnL        float64         `db:"pnl"`
+	Notes      string          `db:"notes"`
 }
 
 //go:embed trade.insert.sql
@@ -107,7 +107,7 @@ func SelectTradeByID(ctx context.Context, tx *database.Tx, id string) (*Trade, e
 //go:embed trade.select_by_listing_id.sql
 var selectTradeByListingIDSQL string
 
-func SelectTradesByListing(ctx context.Context, tx *database.Tx, listing finance.ProviderListing) ([]*Trade, error) {
+func SelectTradesByListing(ctx context.Context, tx *database.Tx, listing finance.Listing) ([]*Trade, error) {
 	rows, err := tx.QueryTx(ctx, selectTradeByListingIDSQL,
 		listing.ID())
 	if err != nil {

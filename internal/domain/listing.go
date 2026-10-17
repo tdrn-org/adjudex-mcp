@@ -23,7 +23,7 @@ type ListingInfo struct {
 	InstrumentType finance.InstrumentType `json:"instrument_type"`
 }
 
-func NewListingInfo(listing finance.ProviderListing) ListingInfo {
+func NewListingInfo(listing finance.Listing) ListingInfo {
 	return ListingInfo{
 		InstrumentName: listing.InstrumentName(),
 		InstrumentType: listing.InstrumentType(),

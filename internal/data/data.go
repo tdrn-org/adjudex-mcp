@@ -47,7 +47,7 @@ func (s *Store) Close() error {
 	return s.driver.Close()
 }
 
-func (s *Store) AddListing(ctx context.Context, listing finance.ProviderListing) error {
+func (s *Store) AddListing(ctx context.Context, listing finance.Listing) error {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return err
@@ -281,7 +281,7 @@ func (s *Store) UpdatePosition(ctx context.Context, portfolioID string, position
 	return nil
 }
 
-func (s *Store) ListPositionListings(ctx context.Context) ([]finance.ProviderListing, error) {
+func (s *Store) ListPositionListings(ctx context.Context) ([]finance.Listing, error) {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -298,7 +298,7 @@ func (s *Store) ListPositionListings(ctx context.Context) ([]finance.ProviderLis
 		return nil, err
 	}
 
-	listings := make([]finance.ProviderListing, 0, len(ls))
+	listings := make([]finance.Listing, 0, len(ls))
 	for _, l := range ls {
 		listings = append(listings, l.Listing)
 	}
@@ -341,7 +341,7 @@ func (s *Store) SaveQuotes(ctx context.Context, quotes []domain.Quote) error {
 	return tx.CommitTx(txCtx)
 }
 
-func (s *Store) GetQuotes(ctx context.Context, listing finance.ProviderListing, from, to time.Time) ([]domain.Quote, error) {
+func (s *Store) GetQuotes(ctx context.Context, listing finance.Listing, from, to time.Time) ([]domain.Quote, error) {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -365,7 +365,7 @@ func (s *Store) GetQuotes(ctx context.Context, listing finance.ProviderListing, 
 	return quotes, nil
 }
 
-func (s *Store) GetLatestQuote(ctx context.Context, listing finance.ProviderListing) (*domain.Quote, error) {
+func (s *Store) GetLatestQuote(ctx context.Context, listing finance.Listing) (*domain.Quote, error) {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -385,7 +385,7 @@ func (s *Store) GetLatestQuote(ctx context.Context, listing finance.ProviderList
 	return s.modelToQuote(q, listing), nil
 }
 
-func (s *Store) modelToQuote(q *model.Quote, listing finance.ProviderListing) *domain.Quote {
+func (s *Store) modelToQuote(q *model.Quote, listing finance.Listing) *domain.Quote {
 	if q == nil {
 		return nil
 	}
@@ -478,7 +478,7 @@ func (s *Store) modelToAlert(a *model.Alert) *domain.Alert {
 	return alert
 }
 
-func (s *Store) ListAlerts(ctx context.Context, listing finance.ProviderListing) ([]domain.Alert, error) {
+func (s *Store) ListAlerts(ctx context.Context, listing finance.Listing) ([]domain.Alert, error) {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -623,7 +623,7 @@ func (s *Store) modelToTrade(t *model.Trade) *domain.Trade {
 	return trade
 }
 
-func (s *Store) ListTrades(ctx context.Context, listing finance.ProviderListing) ([]domain.Trade, error) {
+func (s *Store) ListTrades(ctx context.Context, listing finance.Listing) ([]domain.Trade, error) {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return nil, err

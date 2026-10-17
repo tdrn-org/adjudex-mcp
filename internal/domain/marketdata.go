@@ -23,6 +23,6 @@ import (
 )
 
 type MarketData interface {
-	SearchListings(ctx context.Context, query string) ([]finance.ProviderListing, error)
-	QueryQuote(ctx context.Context, listing finance.ProviderListing, currency finance.Currency) (*Quote, error)
+	SearchListings(ctx context.Context, query string) ([]finance.Listing, error)
+	QueryQuote(ctx context.Context, listing finance.Listing, currency finance.Currency) (*Quote, error)
 }

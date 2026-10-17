@@ -34,15 +34,15 @@ type Portfolio struct {
 
 // Position represents a tracked security within a portfolio.
 type Position struct {
-	ID         string                  `json:"id"`
-	Listing    finance.ProviderListing `json:"listing"`
-	Currency   finance.Currency        `json:"currency"`
-	Quantity   float64                 `json:"quantity"`
-	EntryPrice float64                 `json:"entry_price"`
-	EntryDate  time.Time               `json:"entry_date"`
-	Notes      string                  `json:"notes,omitempty"`
-	CreatedAt  time.Time               `json:"created_at"`
-	UpdatedAt  time.Time               `json:"updated_at"`
+	ID         string           `json:"id"`
+	Listing    finance.Listing  `json:"listing"`
+	Currency   finance.Currency `json:"currency"`
+	Quantity   float64          `json:"quantity"`
+	EntryPrice float64          `json:"entry_price"`
+	EntryDate  time.Time        `json:"entry_date"`
+	Notes      string           `json:"notes,omitempty"`
+	CreatedAt  time.Time        `json:"created_at"`
+	UpdatedAt  time.Time        `json:"updated_at"`
 }
 
 // Holding is a Position enriched with current market data.

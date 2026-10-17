@@ -40,16 +40,16 @@ func addTradeRecordTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"strategy_id":{"type":"string","description":"ID of the strategy that triggered this trade."},"symbol":{"type":"string","description":"The ticker symbol."},"currency":{"type":"string","description":"The currency of the trade (e.g. USD, EUR). Defaults to USD."},"direction":{"type":"string","description":"Trade direction: buy or sell."},"quantity":{"type":"number","description":"Number of shares."},"price":{"type":"number","description":"Execution price per share."},"executed_at":{"type":"string","description":"Execution timestamp (RFC3339 format)."},"status":{"type":"string","description":"Trade status: pending, executed, cancelled. Defaults to executed."},"pnl":{"type":"number","description":"Profit/loss for sell trades. Defaults to 0."},"notes":{"type":"string","description":"Optional notes."}},"required":["strategy_id","symbol","direction","quantity","price","executed_at"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			StrategyID string                  `json:"strategy_id"`
-			Listing    finance.ProviderListing `json:"listing"`
-			Currency   string                  `json:"currency"`
-			Direction  string                  `json:"direction"`
-			Quantity   float64                 `json:"quantity"`
-			Price      float64                 `json:"price"`
-			ExecutedAt string                  `json:"executed_at"`
-			Status     string                  `json:"status"`
-			PnL        float64                 `json:"pnl"`
-			Notes      string                  `json:"notes"`
+			StrategyID string          `json:"strategy_id"`
+			Listing    finance.Listing `json:"listing"`
+			Currency   string          `json:"currency"`
+			Direction  string          `json:"direction"`
+			Quantity   float64         `json:"quantity"`
+			Price      float64         `json:"price"`
+			ExecutedAt string          `json:"executed_at"`
+			Status     string          `json:"status"`
+			PnL        float64         `json:"pnl"`
+			Notes      string          `json:"notes"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
@@ -124,8 +124,8 @@ func addTradeListTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"symbol":{"type":"string","description":"Optional symbol filter."},"strategy_id":{"type":"string","description":"Optional strategy ID filter."}}}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			Listing    finance.ProviderListing `json:"listing"`
-			StrategyID string                  `json:"strategy_id"`
+			Listing    finance.Listing `json:"listing"`
+			StrategyID string          `json:"strategy_id"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)

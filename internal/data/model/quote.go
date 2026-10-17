@@ -27,17 +27,17 @@ import (
 )
 
 type Quote struct {
-	Listing         finance.ProviderListing `db:"listing"`
-	Timestamp       int64                   `db:"timestamp"`
-	Currency        finance.Currency        `db:"currency"`
-	Open            float64                 `db:"open"`
-	High            float64                 `db:"high"`
-	Low             float64                 `db:"low"`
-	Close           float64                 `db:"close"`
-	Price           float64                 `db:"price"`
-	Volume          int64                   `db:"volume"`
-	Source          string                  `db:"source"`
-	SourceTimestamp int64                   `db:"source_timestamp"`
+	Listing         finance.Listing  `db:"listing"`
+	Timestamp       int64            `db:"timestamp"`
+	Currency        finance.Currency `db:"currency"`
+	Open            float64          `db:"open"`
+	High            float64          `db:"high"`
+	Low             float64          `db:"low"`
+	Close           float64          `db:"close"`
+	Price           float64          `db:"price"`
+	Volume          int64            `db:"volume"`
+	Source          string           `db:"source"`
+	SourceTimestamp int64            `db:"source_timestamp"`
 }
 
 //go:embed quote.insert.sql
@@ -78,7 +78,7 @@ func InsertQuote(ctx context.Context, tx *database.Tx, quote *domain.Quote) (*Qu
 //go:embed quote.select.sql
 var selectQuoteSQL string
 
-func SelectLatestQuote(ctx context.Context, tx *database.Tx, listing finance.ProviderListing) (*Quote, error) {
+func SelectLatestQuote(ctx context.Context, tx *database.Tx, listing finance.Listing) (*Quote, error) {
 	q := &Quote{
 		Listing: listing,
 	}
@@ -110,7 +110,7 @@ func SelectLatestQuote(ctx context.Context, tx *database.Tx, listing finance.Pro
 //go:embed quote.select_by_time_range.sql
 var selectQuoteByTimerangeSQL string
 
-func SelectQuotes(ctx context.Context, tx *database.Tx, listing finance.ProviderListing, from, to time.Time) ([]*Quote, error) {
+func SelectQuotes(ctx context.Context, tx *database.Tx, listing finance.Listing, from, to time.Time) ([]*Quote, error) {
 	rows, err := tx.QueryTx(ctx, selectQuoteByTimerangeSQL,
 		listing.ID(),
 		database.Time2DB(from),
@@ -136,7 +136,7 @@ func SelectQuotes(ctx context.Context, tx *database.Tx, listing finance.Provider
 //go:embed quote.delete_by_pk.sql
 var deleteQuoteByPKSQL string
 
-func DeleteQuoteByPK(ctx context.Context, tx *database.Tx, listing finance.ProviderListing, timestamp time.Time) error {
+func DeleteQuoteByPK(ctx context.Context, tx *database.Tx, listing finance.Listing, timestamp time.Time) error {
 	return tx.ExecTx(ctx, deleteQuoteByPKSQL,
 		listing.ID(),
 		database.Time2DB(timestamp))

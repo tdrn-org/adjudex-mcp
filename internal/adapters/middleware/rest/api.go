@@ -317,7 +317,7 @@ func (api *API) PositionAdd(w http.ResponseWriter, r *http.Request) {
 		api.sendError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	var listing finance.ProviderListing
+	var listing finance.Listing
 	err := json.Unmarshal([]byte(req.Listing), &listing)
 	if err != nil {
 		api.sendError(w, r, http.StatusBadRequest, err)
@@ -459,7 +459,7 @@ func (api *API) PositionRemove(w http.ResponseWriter, r *http.Request) {
 //	@Router			/api/v1/quotes/{listing} [get]
 func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
 	reqListing := r.PathValue("listing")
-	var listing finance.ProviderListing
+	var listing finance.Listing
 	err := json.Unmarshal([]byte(reqListing), &listing)
 	if err != nil {
 		api.sendError(w, r, http.StatusBadRequest, err)
@@ -487,7 +487,7 @@ func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
 //	@Router			/api/v1/quotes/{symbol}/history [get]
 func (api *API) QuoteHistory(w http.ResponseWriter, r *http.Request) {
 	reqListing := r.PathValue("listing")
-	var listing finance.ProviderListing
+	var listing finance.Listing
 	err := json.Unmarshal([]byte(reqListing), &listing)
 	if err != nil {
 		api.sendError(w, r, http.StatusBadRequest, err)

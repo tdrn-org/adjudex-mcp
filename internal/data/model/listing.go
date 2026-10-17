@@ -25,11 +25,11 @@ import (
 )
 
 type Listing struct {
-	ID             string                  `db:"id"`
-	Listing        finance.ProviderListing `db:"listing"`
-	Provider       string                  `db:"provider"`
-	InstrumentName string                  `db:"instrument_name"`
-	InstrumentType string                  `db:"instrument_type"`
+	ID             string          `db:"id"`
+	Listing        finance.Listing `db:"listing"`
+	Provider       string          `db:"provider"`
+	InstrumentName string          `db:"instrument_name"`
+	InstrumentType string          `db:"instrument_type"`
 }
 
 //go:embed listing.insert.sql
@@ -38,7 +38,7 @@ var insertListingSQL string
 //go:embed listing_attribute.insert.sql
 var insertListingAttributeSQL string
 
-func InsertListing(ctx context.Context, tx *database.Tx, listing finance.ProviderListing) (*Listing, error) {
+func InsertListing(ctx context.Context, tx *database.Tx, listing finance.Listing) (*Listing, error) {
 	l := &Listing{
 		ID:             listing.ID(),
 		Listing:        listing,

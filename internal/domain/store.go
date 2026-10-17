@@ -39,15 +39,15 @@ type PortfolioStore interface {
 type QuoteStore interface {
 	SaveQuote(ctx context.Context, quote *Quote) error
 	SaveQuotes(ctx context.Context, quotes []Quote) error
-	GetQuotes(ctx context.Context, listing finance.ProviderListing, from, to time.Time) ([]Quote, error)
-	GetLatestQuote(ctx context.Context, symbol finance.ProviderListing) (*Quote, error)
+	GetQuotes(ctx context.Context, listing finance.Listing, from, to time.Time) ([]Quote, error)
+	GetLatestQuote(ctx context.Context, symbol finance.Listing) (*Quote, error)
 }
 
 // AlertStore defines the persistence interface for alerts.
 type AlertStore interface {
 	CreateAlert(ctx context.Context, a *Alert) error
 	GetAlert(ctx context.Context, id string) (*Alert, error)
-	ListAlerts(ctx context.Context, listing finance.ProviderListing) ([]Alert, error)
+	ListAlerts(ctx context.Context, listing finance.Listing) ([]Alert, error)
 	ListArmedAlerts(ctx context.Context) ([]Alert, error)
 	UpdateAlert(ctx context.Context, a *Alert) error
 	DeleteAlert(ctx context.Context, id string) error
@@ -57,7 +57,7 @@ type AlertStore interface {
 type TradeStore interface {
 	RecordTrade(ctx context.Context, t *Trade) error
 	GetTrade(ctx context.Context, id string) (*Trade, error)
-	ListTrades(ctx context.Context, listing finance.ProviderListing) ([]Trade, error)
+	ListTrades(ctx context.Context, listing finance.Listing) ([]Trade, error)
 	ListTradesByStrategy(ctx context.Context, strategyID string) ([]Trade, error)
 }
 

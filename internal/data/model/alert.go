@@ -26,19 +26,19 @@ import (
 )
 
 type Alert struct {
-	ID              string                  `db:"id"`
-	Name            string                  `db:"name"`
-	Listing         finance.ProviderListing `db:"listing"`
-	Currency        finance.Currency        `db:"currency"`
-	Condition       string                  `db:"condition"`
-	Threshold       float64                 `db:"threshold"`
-	IndicatorType   *string                 `db:"indicator_type"`
-	IndicatorPeriod *int                    `db:"indicator_period"`
-	State           string                  `db:"state"`
-	TriggeredAt     *int64                  `db:"triggered_at"`
-	Message         string                  `db:"message"`
-	CreatedAt       int64                   `db:"created_at"`
-	UpdatedAt       int64                   `db:"updated_at"`
+	ID              string           `db:"id"`
+	Name            string           `db:"name"`
+	Listing         finance.Listing  `db:"listing"`
+	Currency        finance.Currency `db:"currency"`
+	Condition       string           `db:"condition"`
+	Threshold       float64          `db:"threshold"`
+	IndicatorType   *string          `db:"indicator_type"`
+	IndicatorPeriod *int             `db:"indicator_period"`
+	State           string           `db:"state"`
+	TriggeredAt     *int64           `db:"triggered_at"`
+	Message         string           `db:"message"`
+	CreatedAt       int64            `db:"created_at"`
+	UpdatedAt       int64            `db:"updated_at"`
 }
 
 //go:embed alert.insert.sql
@@ -164,7 +164,7 @@ func SelectAlertByID(ctx context.Context, tx *database.Tx, id string) (*Alert, e
 //go:embed alert.select_by_listing_id.sql
 var selectAlertByListingIDSQL string
 
-func SelectAlertsByListing(ctx context.Context, tx *database.Tx, listing finance.ProviderListing) ([]*Alert, error) {
+func SelectAlertsByListing(ctx context.Context, tx *database.Tx, listing finance.Listing) ([]*Alert, error) {
 	rows, err := tx.QueryTx(ctx, selectAlertByListingIDSQL,
 		listing.ID())
 	if err != nil {

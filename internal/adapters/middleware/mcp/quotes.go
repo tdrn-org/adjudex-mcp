@@ -40,7 +40,7 @@ func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"symbol":{"type":"string","description":"The ticker symbol (e.g. NVDA, CRWV, SPCX)."}},"required":["symbol"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			Listing finance.ProviderListing `json:"listing"`
+			Listing finance.Listing `json:"listing"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
@@ -61,9 +61,9 @@ func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"symbol":{"type":"string","description":"The ticker symbol."},"from":{"type":"string","description":"Start date (RFC3339 format, e.g. 2026-06-01T00:00:00Z). Defaults to 30 days ago."},"to":{"type":"string","description":"End date (RFC3339 format). Defaults to now."}},"required":["symbol"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			Listing finance.ProviderListing `json:"listing"`
-			From    string                  `json:"from"`
-			To      string                  `json:"to"`
+			Listing finance.Listing `json:"listing"`
+			From    string          `json:"from"`
+			To      string          `json:"to"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
@@ -108,9 +108,9 @@ func addQuoteIndicatorTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"symbol":{"type":"string","description":"The ticker symbol."},"type":{"type":"string","description":"Indicator type: sma, ema, rsi, macd."},"period":{"type":"integer","description":"Lookback period (e.g. 20 for SMA-20). Defaults to 20."}},"required":["symbol","type"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			Listing finance.ProviderListing `json:"listing"`
-			Type    string                  `json:"type"`
-			Period  int                     `json:"period"`
+			Listing finance.Listing `json:"listing"`
+			Type    string          `json:"type"`
+			Period  int             `json:"period"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)

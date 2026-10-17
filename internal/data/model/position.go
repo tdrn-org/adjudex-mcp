@@ -26,16 +26,16 @@ import (
 )
 
 type Position struct {
-	ID          string                  `db:"id"`
-	PortfolioID string                  `db:"portfolio_id"`
-	Listing     finance.ProviderListing `db:"listing"`
-	Currency    finance.Currency        `db:"currency"`
-	Quantity    float64                 `db:"quantity"`
-	EntryPrice  float64                 `db:"entry_price"`
-	EntryDate   int64                   `db:"entry_date"`
-	Notes       string                  `db:"notes"`
-	CreatedAt   int64                   `db:"created_at"`
-	UpdatedAt   int64                   `db:"updated_at"`
+	ID          string           `db:"id"`
+	PortfolioID string           `db:"portfolio_id"`
+	Listing     finance.Listing  `db:"listing"`
+	Currency    finance.Currency `db:"currency"`
+	Quantity    float64          `db:"quantity"`
+	EntryPrice  float64          `db:"entry_price"`
+	EntryDate   int64            `db:"entry_date"`
+	Notes       string           `db:"notes"`
+	CreatedAt   int64            `db:"created_at"`
+	UpdatedAt   int64            `db:"updated_at"`
 }
 
 //go:embed position.insert.sql

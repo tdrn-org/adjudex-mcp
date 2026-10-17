@@ -51,11 +51,11 @@ func (p *Provider) Close() error {
 	return nil
 }
 
-func (p *Provider) SearchListings(ctx context.Context, query string) ([]finance.ProviderListing, error) {
+func (p *Provider) SearchListings(ctx context.Context, query string) ([]finance.Listing, error) {
 	return p.listingProvider.SearchListings(ctx, query)
 }
 
-func (p *Provider) QueryQuote(ctx context.Context, listing finance.ProviderListing, currency finance.Currency) (*domain.Quote, error) {
+func (p *Provider) QueryQuote(ctx context.Context, listing finance.Listing, currency finance.Currency) (*domain.Quote, error) {
 	rawQuote, err := p.listingProvider.QueryQuote(ctx, listing)
 	if err != nil {
 		return nil, err

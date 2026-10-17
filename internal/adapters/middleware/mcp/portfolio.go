@@ -125,13 +125,13 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio to add the position to."},"symbol":{"type":"string","description":"The ticker symbol or WKN of the security."},"currency":{"type":"string","description":"The currency of the position (e.g. USD, EUR). Defaults to USD."},"quantity":{"type":"number","description":"The number of shares or units."},"entry_price":{"type":"number","description":"The purchase price per share."},"entry_date":{"type":"string","description":"The date of purchase (RFC3339 format, e.g. 2026-07-11T00:00:00Z)."},"notes":{"type":"string","description":"Optional notes about this position."}},"required":["portfolio_id","symbol","quantity","entry_price","entry_date"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			PortfolioID string                  `json:"portfolio_id"`
-			Listing     finance.ProviderListing `json:"listing"`
-			Currency    finance.Currency        `json:"currency"`
-			Quantity    float64                 `json:"quantity"`
-			EntryPrice  float64                 `json:"entry_price"`
-			EntryDate   string                  `json:"entry_date"`
-			Notes       string                  `json:"notes"`
+			PortfolioID string           `json:"portfolio_id"`
+			Listing     finance.Listing  `json:"listing"`
+			Currency    finance.Currency `json:"currency"`
+			Quantity    float64          `json:"quantity"`
+			EntryPrice  float64          `json:"entry_price"`
+			EntryDate   string           `json:"entry_date"`
+			Notes       string           `json:"notes"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)

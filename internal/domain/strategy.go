@@ -61,17 +61,17 @@ type StrategyParams struct {
 
 // Trade represents a single executed or pending trade.
 type Trade struct {
-	ID         string                  `json:"id"`
-	StrategyID string                  `json:"strategy_id"`
-	Listing    finance.ProviderListing `json:"listing"`
-	Currency   string                  `json:"currency"`
-	Direction  TradeDirection          `json:"direction"`
-	Quantity   float64                 `json:"quantity"`
-	Price      float64                 `json:"price"`
-	ExecutedAt time.Time               `json:"executed_at"`
-	Status     TradeStatus             `json:"status"`
-	PnL        float64                 `json:"pnl"`
-	Notes      string                  `json:"notes,omitempty"`
+	ID         string          `json:"id"`
+	StrategyID string          `json:"strategy_id"`
+	Listing    finance.Listing `json:"listing"`
+	Currency   string          `json:"currency"`
+	Direction  TradeDirection  `json:"direction"`
+	Quantity   float64         `json:"quantity"`
+	Price      float64         `json:"price"`
+	ExecutedAt time.Time       `json:"executed_at"`
+	Status     TradeStatus     `json:"status"`
+	PnL        float64         `json:"pnl"`
+	Notes      string          `json:"notes,omitempty"`
 }
 
 // BacktestResult holds the outcome of a strategy backtest.
