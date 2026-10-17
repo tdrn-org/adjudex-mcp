@@ -246,6 +246,9 @@ func (api *API) displayCurrency(r *http.Request) finance.Currency {
 	return api.runtime.DisplayCurrency()
 }
 
+// ErrInvalidListing indicates a listing that could not be read from the request.
+var ErrInvalidListing error = errors.New("invalid listing")
+
 // listingFromPath reads the listing ID passed as a path segment.
 //
 // The ID identifies an instrument; it is resolved against the store, which is
@@ -260,11 +263,13 @@ func (api *API) listingFromPath(r *http.Request) (finance.Listing, error) {
 	}
 	listing, err := finance.ParseListingID(raw)
 	if err != nil {
-		return unset, fmt.Errorf("invalid listing %q: %w", raw, err)
+		// Both wraps: the sentinel makes the failure safe to report, the cause
+		// carries the detail. Two %w keep the message free of duplication.
+		return unset, fmt.Errorf("%w: %w", ErrInvalidListing, err)
 	}
 	resolved, err := api.runtime.DataStore().ResolveListing(r.Context(), listing)
 	if err != nil {
-		return unset, fmt.Errorf("unusable listing %q: %w", raw, err)
+		return unset, err
 	}
 	return resolved, nil
 }
@@ -656,7 +661,30 @@ func (api *API) sendError(w http.ResponseWriter, r *http.Request, status int, ca
 	if cause != nil {
 		api.runtime.Logger().Error("http handler failure", slog.String("path", r.URL.Path), slog.String("method", r.Method), slog.Any("err", cause))
 	}
+	// A caller that only reads "server error" cannot tell a typo in a listing
+	// from a stale one, so failures that describe the request itself are passed
+	// through. Everything else stays opaque: driver errors, provider responses
+	// and stack details never leave the server.
+	if message, ok := safeErrorMessage(cause); ok {
+		http.Error(w, message, status)
+		return
+	}
 	http.Error(w, responseServerError, status)
+}
+
+// safeErrorMessage returns the cause's message if it is safe to hand to a client.
+//
+// The whitelist is deliberate: a new error type has to be added here to become
+// visible, so nothing leaks by accident.
+func safeErrorMessage(cause error) (string, bool) {
+	switch {
+	case cause == nil:
+		return "", false
+	case errors.Is(cause, ErrInvalidListing), errors.Is(cause, data.ErrUnknownListing):
+		return cause.Error(), true
+	default:
+		return "", false
+	}
 }
 
 func (api *API) sendPlainTextResponse(w http.ResponseWriter, r *http.Request, status int, content string) {
