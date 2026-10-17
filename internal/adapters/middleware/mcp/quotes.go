@@ -41,7 +41,7 @@ func addQuoteTools(server *mcp.Server, runtime Runtime) {
 // part of it, and a caller cannot be trusted to report them. Resolving against
 // the store proves that the server issued this listing in the first place and
 // supplies the description the response needs. A listing the store does not know
-// is rejected - it must be obtained via symbol_search first.
+// is rejected - it must be obtained via listing_search first.
 func resolveListing(ctx context.Context, runtime Runtime, listing finance.Listing) (finance.Listing, error) {
 	resolved, err := runtime.DataStore().ResolveListing(ctx, listing)
 	if err != nil {
@@ -101,8 +101,8 @@ func addRateGetTool(server *mcp.Server, runtime Runtime) {
 func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "quote_get",
-		Description: "Fetches the latest quote for a listing. Uses cached data when available, falls back to live provider. Pass the listing ID returned by symbol_search.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by symbol_search."}},"required":["listing"]}`),
+		Description: "Fetches the latest quote for a listing. Uses cached data when available, falls back to live provider. Pass the listing ID returned by listing_search.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by listing_search."}},"required":["listing"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Listing finance.Listing `json:"listing"`
@@ -126,8 +126,8 @@ func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "quote_history",
-		Description: "Returns historical quotes for a listing within a date range. Uses cached data when available, falls back to live provider. Pass the listing ID returned by symbol_search.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by symbol_search."},"from":{"type":"string","description":"Start date (RFC3339 format, e.g. 2026-06-01T00:00:00Z). Defaults to 30 days ago."},"to":{"type":"string","description":"End date (RFC3339 format). Defaults to now."}},"required":["listing"]}`),
+		Description: "Returns historical quotes for a listing within a date range. Uses cached data when available, falls back to live provider. Pass the listing ID returned by listing_search.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by listing_search."},"from":{"type":"string","description":"Start date (RFC3339 format, e.g. 2026-06-01T00:00:00Z). Defaults to 30 days ago."},"to":{"type":"string","description":"End date (RFC3339 format). Defaults to now."}},"required":["listing"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Listing finance.Listing `json:"listing"`
@@ -177,8 +177,8 @@ func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 func addQuoteIndicatorTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "quote_indicator",
-		Description: "Computes a technical indicator (SMA, EMA, RSI, MACD) for a listing over a given period. Pass the listing ID returned by symbol_search.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by symbol_search."},"type":{"type":"string","description":"Indicator type: sma, ema, rsi, macd."},"period":{"type":"integer","description":"Lookback period (e.g. 20 for SMA-20). Defaults to 20."}},"required":["listing","type"]}`),
+		Description: "Computes a technical indicator (SMA, EMA, RSI, MACD) for a listing over a given period. Pass the listing ID returned by listing_search.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by listing_search."},"type":{"type":"string","description":"Indicator type: sma, ema, rsi, macd."},"period":{"type":"integer","description":"Lookback period (e.g. 20 for SMA-20). Defaults to 20."}},"required":["listing","type"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Listing finance.Listing `json:"listing"`

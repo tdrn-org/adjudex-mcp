@@ -49,7 +49,7 @@ func NewHandler(runtime Runtime) http.Handler {
 
 	addPortfolioTools(server, runtime)
 	addQuoteTools(server, runtime)
-	addSymbolTools(server, runtime)
+	addListingTools(server, runtime)
 	addAlertTools(server, runtime)
 	addTradeTools(server, runtime)
 	addStrategyTools(server, runtime)

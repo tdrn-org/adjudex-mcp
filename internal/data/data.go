@@ -56,7 +56,7 @@ var ErrUnknownListing error = errors.New("unknown listing")
 // AddListing registers a listing, so that a client can refer to it by its ID.
 //
 // This is the only way a listing enters the store on behalf of a client: the
-// client receives an ID from symbol_search and hands it back later. Only complete
+// client receives an ID from listing_search and hands it back later. Only complete
 // listings are accepted - an incomplete one would be stored under an ID that
 // identifies nothing, and it could never be resolved again.
 func (s *Store) AddListing(ctx context.Context, listing finance.Listing) error {
@@ -122,7 +122,7 @@ func resolveListing(ctx context.Context, tx *database.Tx, listing finance.Listin
 		return listing, err
 	}
 	if existing == nil {
-		return listing, fmt.Errorf("%w: %q: obtain the listing via symbol_search", ErrUnknownListing, listing.ID())
+		return listing, fmt.Errorf("%w: %q: obtain the listing via listing_search", ErrUnknownListing, listing.ID())
 	}
 	// Deliberately the stored listing and not the caller's one: whatever the
 	// caller says about the instrument is replaced by what was registered.

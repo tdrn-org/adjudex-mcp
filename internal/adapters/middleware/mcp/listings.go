@@ -25,14 +25,14 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 )
 
-func addSymbolTools(server *mcp.Server, runtime Runtime) {
-	addSymbolSearchTool(server, runtime)
+func addListingTools(server *mcp.Server, runtime Runtime) {
+	addListingSearchTool(server, runtime)
 }
 
-func addSymbolSearchTool(server *mcp.Server, runtime Runtime) {
+func addListingSearchTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
-		Name:        "symbol_search",
-		Description: "Searches for a ticker symbol by WKN, ISIN, or company name. Returns matching candidates with their provider source.",
+		Name:        "listing_search",
+		Description: "Searches for a listing by ticker symbol, WKN, ISIN, or company name. Returns matching candidates with their provider source and the listing ID that the other tools take.",
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"query":{"type":"string","description":"The search query — WKN (e.g. A413X6), ISIN, or company name (e.g. CoreWeave)."}},"required":["query"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {

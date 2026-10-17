@@ -598,7 +598,7 @@ func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
 //	@Param			to		query		string	false	"End date (RFC3339)"
 //	@Success		200		{object}	domain.PriceHistory
 //	@Failure		404		{string}	string	"not found"
-//	@Router			/api/v1/quotes/{symbol}/history [get]
+//	@Router			/api/v1/quotes/{listing}/history [get]
 func (api *API) QuoteHistory(w http.ResponseWriter, r *http.Request) {
 	listing, err := api.listingFromPath(r)
 	if err != nil {
