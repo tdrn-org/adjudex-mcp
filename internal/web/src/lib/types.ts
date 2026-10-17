@@ -15,10 +15,23 @@ export interface Portfolio {
   updated_at: string;
 }
 
+/** Human readable description of a listing, supplied by the API. */
+export interface ListingInfo {
+  /** Opaque listing value to pass back to the API. */
+  listing: string;
+  instrument_name: string;
+  instrument_type: string;
+  provider: string;
+  /** Provider supplied identifiers, e.g. "TICKER:AAPL ISIN:US0378331005 EXCHANGE:TRG". */
+  identifier: string;
+}
+
 export interface Position {
   id: string;
-  /** Technical identity string of the listing, e.g. "twelvedata:isin=US0378331005". */
+  /** Opaque listing value — not displayable, use listing_info instead. */
   listing: string;
+  /** Display data for the listing (instrument name, identifiers). */
+  listing_info?: ListingInfo;
   /** Currency the entry price is denominated in — fixed once booked. */
   currency: string;
   quantity: number;

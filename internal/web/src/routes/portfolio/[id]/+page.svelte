@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Holding, Portfolio } from '$lib/types';
+  import type { Holding, Portfolio, Position } from '$lib/types';
 
   let { data } = $props();
 
@@ -17,14 +17,14 @@
     return `${sign}${value.toFixed(2)}%`;
   }
 
-  // The API returns the listing as a technical identity string
-  // ("twelvedata:isin=US0378331005:ticker=AAPL"); show the most readable part.
-  function shortListing(listing: string): string {
-    const ticker = listing.match(/ticker=([^:]+)/);
-    if (ticker) return ticker[1];
-    const isin = listing.match(/isin=([^:]+)/);
-    if (isin) return isin[1];
-    return listing;
+  // The listing itself is an opaque value the UI cannot decode; the API supplies
+  // listing_info with the instrument name. Fall back to the identifiers only if a
+  // response carries no display data (e.g. an older API).
+  function instrumentLabel(position: Position): string {
+    const info = position.listing_info;
+    if (info?.instrument_name) return info.instrument_name;
+    if (info?.identifier) return info.identifier;
+    return position.listing;
   }
 
   // Guard against undefined data during SPA initial render
@@ -128,7 +128,10 @@
               {#each holdings as h}
                 <tr class="hover:bg-surface-hover transition-colors">
                   <td class="px-6 py-4">
-                    <span class="font-semibold text-white">{shortListing(h.listing)}</span>
+                    <span class="font-semibold text-white">{instrumentLabel(h)}</span>
+                    {#if h.listing_info?.identifier}
+                      <p class="text-xs text-slate-500 mt-0.5">{h.listing_info.identifier}</p>
+                    {/if}
                     {#if h.notes}
                       <p class="text-xs text-slate-500 mt-0.5">{h.notes}</p>
                     {/if}

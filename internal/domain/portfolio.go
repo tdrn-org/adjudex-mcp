@@ -17,6 +17,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -51,6 +52,33 @@ type Position struct {
 	UpdatedAt  time.Time        `json:"updated_at"`
 }
 
+// MarshalJSON adds the human readable listing description to every position.
+//
+// The listing itself is an opaque, compressed value — a client cannot decode it,
+// so a UI could only render the blob where the instrument name belongs. Embedding
+// ListingInfo keeps the payload self-describing while the listing value stays
+// usable for follow-up requests. It is derived on the way out, so the persisted
+// representation and the domain value remain unchanged.
+//
+// The alias type is essential: embedding Position itself would re-enter this
+// method and overflow the stack.
+func (p Position) MarshalJSON() ([]byte, error) {
+	type positionAlias Position
+	return json.Marshal(struct {
+		positionAlias
+		ListingInfo ListingInfo `json:"listing_info"`
+	}{positionAlias(p), listingInfoOrZero(p.Listing)})
+}
+
+// listingInfoOrZero describes a listing for display without panicking on an
+// unset or invalid one — marshalling must never fail because of a broken listing.
+func listingInfoOrZero(listing finance.Listing) ListingInfo {
+	if _, err := listing.Validate(); err != nil {
+		return ListingInfo{}
+	}
+	return NewListingInfo(listing)
+}
+
 // Holding is a Position enriched with current market data.
 // It is not persisted — derived at query time from Position + Quote.
 //
@@ -72,6 +100,33 @@ type Holding struct {
 	PnL *Amount `json:"pnl,omitempty"`
 	// PnLPercent is only set when PnL is set.
 	PnLPercent *float64 `json:"pnl_percent,omitempty"`
+}
+
+// MarshalJSON keeps the holding payload flat.
+//
+// Holding embeds Position, which has its own MarshalJSON. Without an explicit
+// implementation the embedded position would be nested under a "Position" key and
+// break every consumer of the holdings endpoint, so the fields are listed
+// explicitly here.
+func (h Holding) MarshalJSON() ([]byte, error) {
+	type positionAlias Position
+	return json.Marshal(struct {
+		positionAlias
+		CurrentPrice finance.ListingPrice `json:"current_price"`
+		EntryValue   Amount               `json:"entry_value"`
+		MarketValue  Amount               `json:"market_value"`
+		PnL          *Amount              `json:"pnl,omitempty"`
+		PnLPercent   *float64             `json:"pnl_percent,omitempty"`
+		ListingInfo  ListingInfo          `json:"listing_info"`
+	}{
+		positionAlias: positionAlias(h.Position),
+		CurrentPrice:  h.CurrentPrice,
+		EntryValue:    h.EntryValue,
+		MarketValue:   h.MarketValue,
+		PnL:           h.PnL,
+		PnLPercent:    h.PnLPercent,
+		ListingInfo:   listingInfoOrZero(h.Listing),
+	})
 }
 
 // NewHolding derives a Holding from a Position and its current price.
