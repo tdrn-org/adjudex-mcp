@@ -24,6 +24,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -84,8 +85,8 @@ func (api *API) Mount(server *httpserver.Instance) {
 	server.HandleFunc("PUT "+basePath+"/portfolios/{id}/positions/{posId}", api.PositionUpdate)
 	server.HandleFunc("DELETE "+basePath+"/portfolios/{id}/positions/{posId}", api.PositionRemove)
 
-	server.HandleFunc("GET "+basePath+"/quotes/{symbol}", api.QuoteGet)
-	server.HandleFunc("GET "+basePath+"/quotes/{symbol}/history", api.QuoteHistory)
+	server.HandleFunc("GET "+basePath+"/quotes/{listing}", api.QuoteGet)
+	server.HandleFunc("GET "+basePath+"/quotes/{listing}/history", api.QuoteHistory)
 
 	server.HandleFunc("GET "+basePath+"/rates", api.RatesGet)
 }
@@ -241,6 +242,31 @@ func (api *API) displayCurrency(r *http.Request) finance.Currency {
 		return finance.Currency(strings.ToUpper(currency))
 	}
 	return api.runtime.DisplayCurrency()
+}
+
+// listingFromPath decodes the listing passed as a path segment.
+//
+// A listing is serialized as a JSON string holding compressed, base64 encoded
+// text. The raw path segment therefore has to be quoted before it is
+// unmarshalled — handing it to json.Unmarshal directly can never work, which is
+// why this endpoint answered every request with "unexpected end of JSON input".
+//
+// The decoded listing is validated as well: a listing without identity has no
+// internal data and would be rejected (or worse) on its first getter.
+func listingFromPath(r *http.Request) (finance.Listing, error) {
+	var listing finance.Listing
+	raw := r.PathValue("listing")
+	if raw == "" {
+		return listing, fmt.Errorf("no listing in path, expected /quotes/{listing}")
+	}
+	if err := json.Unmarshal([]byte(strconv.Quote(raw)), &listing); err != nil {
+		return listing, fmt.Errorf("invalid listing %q: %w", raw, err)
+	}
+	validated, err := listing.Validate()
+	if err != nil {
+		return listing, fmt.Errorf("invalid listing %q: %w", raw, err)
+	}
+	return *validated, nil
 }
 
 // GET @BasePath/rates
@@ -533,9 +559,7 @@ func (api *API) PositionRemove(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{string}	string	"not found"
 //	@Router			/api/v1/quotes/{listing} [get]
 func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
-	reqListing := r.PathValue("listing")
-	var listing finance.Listing
-	err := json.Unmarshal([]byte(reqListing), &listing)
+	listing, err := listingFromPath(r)
 	if err != nil {
 		api.sendError(w, r, http.StatusBadRequest, err)
 		return
@@ -561,9 +585,7 @@ func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{string}	string	"not found"
 //	@Router			/api/v1/quotes/{symbol}/history [get]
 func (api *API) QuoteHistory(w http.ResponseWriter, r *http.Request) {
-	reqListing := r.PathValue("listing")
-	var listing finance.Listing
-	err := json.Unmarshal([]byte(reqListing), &listing)
+	listing, err := listingFromPath(r)
 	if err != nil {
 		api.sendError(w, r, http.StatusBadRequest, err)
 		return

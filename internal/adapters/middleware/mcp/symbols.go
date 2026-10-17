@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 )
 
 func addSymbolTools(server *mcp.Server, runtime Runtime) {
@@ -45,6 +46,6 @@ func addSymbolSearchTool(server *mcp.Server, runtime Runtime) {
 		if err != nil {
 			return nil, fmt.Errorf("search failure: %w", err)
 		}
-		return newToolResult(results)
+		return newToolResult(domain.NewListingInfos(results))
 	})
 }
