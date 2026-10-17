@@ -35,19 +35,27 @@ var testListing finance.Listing = *finance.NewListing("test", finance.ListingAtt
 	Attribute(finance.ListingAttributeKeySymbol, "test").
 	Build().MustValidate()
 
-var testQuote *domain.Quote = &domain.Quote{
-	Listing:         testListing,
-	Timestamp:       time.Now().UTC(),
-	Open:            1.0,
-	High:            1.2,
-	Low:             0.9,
-	Close:           1.1,
-	Price:           123.456,
-	Volume:          42,
-	Currency:        finance.CurrencyUSD,
-	Source:          testListing.Provider(),
-	SourceTimestamp: time.Now().UTC(),
-}
+var testQuote *domain.Quote = func() *domain.Quote {
+	// One timestamp for both columns on purpose: DeleteQuoteByPK filters on
+	// source_timestamp while the caller passes Timestamp, and Time2DB reduces to
+	// seconds. Two separate time.Now() calls land in different seconds whenever
+	// the clock ticks between them, the delete then matches nothing and the test
+	// fails once in a few thousand runs. Truncating keeps them identical.
+	now := time.Now().UTC().Truncate(time.Second)
+	return &domain.Quote{
+		Listing:         testListing,
+		Timestamp:       now,
+		Open:            1.0,
+		High:            1.2,
+		Low:             0.9,
+		Close:           1.1,
+		Price:           123.456,
+		Volume:          42,
+		Currency:        finance.CurrencyUSD,
+		Source:          testListing.Provider(),
+		SourceTimestamp: now,
+	}
+}()
 
 var testPortfolio *domain.Portfolio = &domain.Portfolio{
 	Name:        "Test portfolio",
