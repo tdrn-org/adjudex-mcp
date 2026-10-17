@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
+	"github.com/tdrn-org/go-finance"
 )
 
 func (s *Server) evalAlerts(ctx context.Context, last, now time.Time) error {
@@ -78,16 +79,28 @@ func (s *Server) collectMetrics(ctx context.Context, last, now time.Time) error 
 	}
 	for _, portfolio := range portfolios {
 		holdings := make(domain.Holdings, 0, len(portfolio.Positions))
+		bases := make([]finance.Currency, 0, 2*len(portfolio.Positions))
 		for _, position := range portfolio.Positions {
 			positionQuote := quoteMap[position.Listing.ID()]
 			if positionQuote != nil {
-				holding := domain.NewHolding(position, positionQuote.Price)
-				holdings = append(holdings, holding)
+				holdings = append(holdings, domain.NewHolding(position, positionQuote.ListingPrice))
+				bases = append(bases, position.Currency, positionQuote.Currency)
 			} else {
 				s.logger.Error("missing symbol quote in metric collection", slog.String("listing", position.Listing.ID()))
 			}
 		}
-		s.metricsRecorder.RecordPortfolio(&portfolio, holdings.Summarize())
+		target := s.cfg.Display.Currency
+		rates, err := s.marketDataProvider.QueryExchangeRates(ctx, target, bases)
+		if err != nil {
+			s.logger.Warn("failed to query exchange rates for metric collection", slog.String("portfolio", portfolio.ID), slog.Any("err", err))
+			continue
+		}
+		summary, err := holdings.Summarize(target, rates)
+		if err != nil {
+			s.logger.Warn("failed to summarize portfolio for metric collection", slog.String("portfolio", portfolio.ID), slog.Any("err", err))
+			continue
+		}
+		s.metricsRecorder.RecordPortfolio(&portfolio, *summary)
 	}
 	return nil
 }

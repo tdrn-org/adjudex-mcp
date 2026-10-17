@@ -502,3 +502,79 @@ or go-finance (`Listing` + its `SymbolStore`/database/sql persistence)?
 `Quote.Listing` is the source-side view in either case. The two must never become
 two competing identities; the decision has to be explicit before the integration
 is built.
+
+---
+
+## ADR-012: Currency Model — Quotes Are Immutable, Conversion Is Explicit
+
+**Date**: 2026-10-17
+**Status**: Accepted
+
+**Decision**:
+- **A quote is a fact and never gets rescaled.** `finance.ListingPrice` is the
+  carrier of a price (listing, timestamp, currency, price, source,
+  source_timestamp). `Quote` embeds it, and adjudex no longer modifies prices
+  after they arrive. Currency conversion is a presentation concern of the caller.
+- **No monetary value travels as a bare `float64`.** `domain.Amount`
+  (`{currency, value}`) is the only way to carry money. `Add`/`Sub` refuse
+  amounts of different currencies (`ErrCurrencyMismatch`); conversion requires an
+  explicit rate (`ErrRateNotAvailable` rather than a guess).
+- **A holding carries two denominations, not one.** `EntryValue` is denominated
+  in the position's currency (the booking), `MarketValue` in the quote's
+  currency. `PnL` is *only* set when both share a currency; `ConvertedTo(target,
+  rates)` produces the comparable form, and only then does a PnL exist.
+- **A total is either correct or absent.** `Summarize(target, rates)` returns
+  `(*HoldingsSummary, error)`: a missing rate fails the whole summary instead of
+  producing an annotated partial sum. The applied rates travel with the result
+  (`HoldingsSummary.Rates`), so the number can be audited.
+- **There is no default currency in any use case.** `[display] currency` is the
+  presentation preference of a *client*; requests without an explicit currency
+  fall back to it, but no calculation invents a currency on its own.
+- **FX is a first-class service.** `MarketData.QueryExchangeRate(s)` exposes
+  rates to both adapters (`GET /api/v1/rates`, MCP `rate_get`), batched so a
+  warming-up streaming provider is waited for once instead of once per currency.
+
+**Reason**:
+- The previous model was demonstrably wrong, not merely inelegant: `ApplyCurrency`
+  rescaled OHLC and price but left `Source`/`SourceTimestamp` untouched, so a
+  converted quote claimed a provider provenance the number did not have.
+- `Holdings.Summarize()` took the currency of the *first* holding and summed all
+  market values across currencies, labelling the total with that one currency.
+  With a German depot (EUR entry) holding US stocks (USD quotes) that is the
+  normal case, not an edge case.
+- `Currency` on a trade and on a position was defaulted to a hardcoded `USD` in
+  four places. A forgotten currency silently produced a USD-denominated entry
+  price — the kind of error nobody notices until a decision is based on it.
+- `Quotes.Currency()` returned `qs[0].Currency`, i.e. it asserted uniformity
+  instead of checking it.
+
+**Consequences**:
+- **API break (intentional)**: `Holding.current_price` is a `ListingPrice`
+  object, `entry_value`/`market_value` are `Amount` objects, and `pnl` /
+  `pnl_percent` are absent when no comparable value exists. The embedded UI
+  (`internal/web`) mirrors this in `lib/types.ts`.
+- `ApplyCurrency` (both variants) and `Quotes.Currency()` are **removed**;
+  `IsUniform()` replaces the latter. ADR-011's reference to `ApplyCurrency` as
+  an adjudex-own method is superseded by this ADR.
+- `currency` is a **required** field on `position_add` and `trade_record`, and
+  `position.currency` can no longer be changed after booking (HTTP 400) — the
+  entry currency is a booked fact, and rewriting it rewrites performance history.
+- `PortfolioSummary` gained `priced_count` (positions that actually contributed)
+  and `rates`. `priced_count < position_count` means the total is incomplete and
+  is shown as such in the UI.
+- A summary can now fail with 503 when no rate is available. That is deliberate:
+  an incomplete total that looks complete is worse than a visible error.
+- `internal/domain/marketdata.go` no longer knows about currency at all;
+  `marketdata.NewProvider(cfg)` takes no default currency.
+- `config/quote_service.go` was deleted — it was unreachable (not embedded in
+  `Config`) and its values were silently ignored; the whole `[quote_service]`
+  section of an existing config file is dead. See the provider config under
+  `[provider.fx]` / `[provider.listings]` instead.
+
+**Open item (deliberately not decided here)**:
+Persisting the *booking rate* alongside a trade. Rejected for now: when the trade
+is booked in the currency the user actually paid in (EUR on a German broker), the
+original price already contains the rate, and the FX rate at execution only adds
+the separate disclosure of a currency effect — which is not a requirement. The
+`ListingPrice` persisted with a trade is the "original price of its source".
+

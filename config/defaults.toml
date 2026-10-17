@@ -30,6 +30,12 @@ type = "memory"
 [store.sqlite]
 file = "./adjudex.db"
 
+# Preferred presentation currency of the user interface. Requests without an
+# explicit currency fall back to this value; it never changes how a value is
+# denominated at its source.
+[display]
+currency = "EUR"
+
 [provider.fx]
 providers = [ "demo" ]
 cooldown = "10m"

@@ -3,7 +3,7 @@
 
   let { data } = $props();
 
-  function formatCurrency(value: number, currency?: string): string {
+  function formatCurrency(value: number | undefined, currency?: string): string {
     if (value == null || isNaN(value)) return '—';
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
@@ -11,26 +11,45 @@
     }).format(value);
   }
 
-  function formatPercent(value: number): string {
+  function formatPercent(value: number | undefined): string {
     if (value == null || isNaN(value)) return '—';
     const sign = value >= 0 ? '+' : '';
     return `${sign}${value.toFixed(2)}%`;
+  }
+
+  // The API returns the listing as a technical identity string
+  // ("twelvedata:isin=US0378331005:ticker=AAPL"); show the most readable part.
+  function shortListing(listing: string): string {
+    const ticker = listing.match(/ticker=([^:]+)/);
+    if (ticker) return ticker[1];
+    const isin = listing.match(/isin=([^:]+)/);
+    if (isin) return isin[1];
+    return listing;
   }
 
   // Guard against undefined data during SPA initial render
   let portfolio = $derived(data?.portfolio as Portfolio | undefined);
   let holdings = $derived((data?.holdings as Holding[] | undefined) ?? []);
 
+  // Market values are all expressed in the requested display currency, so the
+  // sum is meaningful even for a portfolio holding several currencies.
   let totalMarketValue = $derived(
-    holdings.length > 0 ? holdings.reduce((sum, h) => sum + (h.market_value ?? 0), 0) : 0
+    holdings.reduce((sum, h) => sum + (h.market_value?.value ?? 0), 0)
   );
+  let displayCurrency = $derived(
+    holdings.length > 0 ? holdings[0].market_value?.currency : undefined
+  );
+
+  // PnL is only shown when every holding has one. A partial total would look
+  // complete while silently omitting positions that could not be converted.
+  let pnlComplete = $derived(holdings.length > 0 && holdings.every((h) => h.pnl != null));
   let totalPnL = $derived(
-    holdings.length > 0 ? holdings.reduce((sum, h) => sum + (h.pnl ?? 0), 0) : 0
+    pnlComplete ? holdings.reduce((sum, h) => sum + (h.pnl?.value ?? 0), 0) : undefined
   );
   let totalPnLPct = $derived(
-    totalMarketValue > 0 && (totalMarketValue - totalPnL) !== 0
-      ? (totalPnL / (totalMarketValue - totalPnL)) * 100
-      : 0
+    pnlComplete && totalMarketValue > 0 && totalMarketValue - (totalPnL ?? 0) !== 0
+      ? ((totalPnL ?? 0) / (totalMarketValue - (totalPnL ?? 0))) * 100
+      : undefined
   );
 </script>
 
@@ -59,18 +78,21 @@
       <div class="bg-surface rounded-xl border border-border p-5">
         <p class="text-xs text-slate-500 uppercase tracking-wider">Market Value</p>
         <p class="mt-1 text-2xl font-bold text-white">
-          {formatCurrency(totalMarketValue)}
+          {formatCurrency(totalMarketValue, displayCurrency)}
         </p>
       </div>
       <div class="bg-surface rounded-xl border border-border p-5">
         <p class="text-xs text-slate-500 uppercase tracking-wider">Total P&amp;L</p>
-        <p class="mt-1 text-2xl font-bold {totalPnL >= 0 ? 'text-positive' : 'text-negative'}">
-          {formatCurrency(totalPnL)}
+        <p class="mt-1 text-2xl font-bold {(totalPnL ?? 0) >= 0 ? 'text-positive' : 'text-negative'}">
+          {formatCurrency(totalPnL, displayCurrency)}
         </p>
+        {#if !pnlComplete}
+          <p class="mt-1 text-xs text-slate-500">exchange rate missing</p>
+        {/if}
       </div>
       <div class="bg-surface rounded-xl border border-border p-5">
         <p class="text-xs text-slate-500 uppercase tracking-wider">P&amp;L %</p>
-        <p class="mt-1 text-2xl font-bold {totalPnLPct >= 0 ? 'text-positive' : 'text-negative'}">
+        <p class="mt-1 text-2xl font-bold {(totalPnLPct ?? 0) >= 0 ? 'text-positive' : 'text-negative'}">
           {formatPercent(totalPnLPct)}
         </p>
       </div>
@@ -106,19 +128,23 @@
               {#each holdings as h}
                 <tr class="hover:bg-surface-hover transition-colors">
                   <td class="px-6 py-4">
-                    <span class="font-semibold text-white">{h.symbol}</span>
+                    <span class="font-semibold text-white">{shortListing(h.listing)}</span>
                     {#if h.notes}
                       <p class="text-xs text-slate-500 mt-0.5">{h.notes}</p>
                     {/if}
                   </td>
                   <td class="px-6 py-4 text-right text-slate-300">{h.quantity}</td>
                   <td class="px-6 py-4 text-right text-slate-400">{formatCurrency(h.entry_price, h.currency)}</td>
-                  <td class="px-6 py-4 text-right text-white font-medium">{formatCurrency(h.current_price, h.currency)}</td>
-                  <td class="px-6 py-4 text-right text-slate-300">{formatCurrency(h.market_value, h.currency)}</td>
-                  <td class="px-6 py-4 text-right font-medium {h.pnl >= 0 ? 'text-positive' : 'text-negative'}">
-                    {formatCurrency(h.pnl, h.currency)}
+                  <td class="px-6 py-4 text-right text-white font-medium">
+                    {formatCurrency(h.current_price?.price, h.current_price?.currency)}
                   </td>
-                  <td class="px-6 py-4 text-right font-medium {h.pnl_percent >= 0 ? 'text-positive' : 'text-negative'}">
+                  <td class="px-6 py-4 text-right text-slate-300">
+                    {formatCurrency(h.market_value?.value, h.market_value?.currency)}
+                  </td>
+                  <td class="px-6 py-4 text-right font-medium {(h.pnl?.value ?? 0) >= 0 ? 'text-positive' : 'text-negative'}">
+                    {formatCurrency(h.pnl?.value, h.pnl?.currency)}
+                  </td>
+                  <td class="px-6 py-4 text-right font-medium {(h.pnl_percent ?? 0) >= 0 ? 'text-positive' : 'text-negative'}">
                     {formatPercent(h.pnl_percent)}
                   </td>
                 </tr>

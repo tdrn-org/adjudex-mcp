@@ -1,3 +1,14 @@
+# adjudex-mcp configuration template
+#
+# Every value shown below is commented out and equals the built-in default.
+# Copy the sections you need into your configuration file and uncomment them.
+#
+# IMPORTANT — market data providers:
+# The default provider list for BOTH [provider.fx] and [provider.listings] is
+# [ "demo" ]. The demo provider serves DETERMINISTIC RANDOM-WALK prices, not real
+# market data. If you want real quotes you must set "providers" explicitly and
+# add the matching API credentials further down.
+
 [logging]
 #level = "info"
 #target = "stdout"
@@ -30,23 +41,63 @@
 [store.sqlite]
 #file = "./adjudex.db"
 
-[quote_service]
-#currency = "USD"
-#max_age = "1h"
+# --- Market data -------------------------------------------------------------
+#
+# [provider.fx]       — exchange rates for currency conversion
+# [provider.listings] — instrument lookup and quote retrieval
+#
+# Both fall back to [ "demo" ] when left unset. Order matters: the first listed
+# provider is queried first, the following ones act as fallback.
 
-[quote_service.demo]
-#enabled = false
-#online = true
+[provider.fx]
+#providers = [ "frankfurter", "twelvedata" ]
+#cooldown = "10m"
+#cache_ttl = "1h"
 
-[quote_service.alphavantage]
-#enabled = false
-#online = false
+[provider.listings]
+#providers = [ "consorsbank", "twelvedata", "alphavantage" ]
+#cooldown = "10m"
+#listing_cache_ttl = "12h"
+#quote_cache_ttl = "5m"
+
+[provider.demo]
+#enabled = true
+
+[provider.alphavantage]
+#base_url = "https://www.alphavantage.co/query/"
 #api_key = ""
 
-[quote_service.twelvedata]
-#enabled = false
-#online = true
+[provider.consorsbank]
+#address = "localhost:40443"
+#skip_verify = false
+#ca_file = "root.pem"
+#secret = ""
+#include_exchanges = [ ]
+#preferred_currency = ""
+#subscription_timeout = "1h"
+
+[provider.frankfurter]
+#base_url = "https://api.frankfurter.dev/v2/"
+
+[provider.openfigi]
+#base_url = "https://api.openfigi.com/v3"
 #api_key = ""
+
+[provider.twelvedata]
+#api_key = ""
+#include_mics = [ ]
+#include_instrument_types = [ ]
+
+# Cache shared by the provider pipeline (listing lookups, quotes, rates).
+[provider.cache]
+#type = "memory"
+
+[provider.cache.memory]
+
+[provider.cache.redis]
+#address = "localhost:6379"
+#password = ""
+#db = 0
 
 [metrics]
 #enabled = false

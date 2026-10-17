@@ -122,7 +122,7 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "position_add",
 		Description: "Adds a new position to a portfolio. The created position details are returned.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio to add the position to."},"symbol":{"type":"string","description":"The ticker symbol or WKN of the security."},"currency":{"type":"string","description":"The currency of the position (e.g. USD, EUR). Defaults to USD."},"quantity":{"type":"number","description":"The number of shares or units."},"entry_price":{"type":"number","description":"The purchase price per share."},"entry_date":{"type":"string","description":"The date of purchase (RFC3339 format, e.g. 2026-07-11T00:00:00Z)."},"notes":{"type":"string","description":"Optional notes about this position."}},"required":["portfolio_id","symbol","quantity","entry_price","entry_date"]}`),
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio to add the position to."},"symbol":{"type":"string","description":"The ticker symbol or WKN of the security."},"currency":{"type":"string","description":"The currency the entry price is denominated in (e.g. EUR, USD). Required — it cannot be derived from the instrument."},"quantity":{"type":"number","description":"The number of shares or units."},"entry_price":{"type":"number","description":"The purchase price per share."},"entry_date":{"type":"string","description":"The date of purchase (RFC3339 format, e.g. 2026-07-11T00:00:00Z)."},"notes":{"type":"string","description":"Optional notes about this position."}},"required":["portfolio_id","symbol","currency","quantity","entry_price","entry_date"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			PortfolioID string           `json:"portfolio_id"`
@@ -142,10 +142,12 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("parsing entry_date: %w", err)
 		}
 
-		currency := args.Currency
-		if currency == "" {
-			currency = "USD"
+		// The entry price currency cannot be derived: a German broker books a US
+		// stock in EUR. A silent default would corrupt the position's PnL.
+		if args.Currency == "" {
+			return nil, fmt.Errorf("currency is required: the entry price currency cannot be derived")
 		}
+		currency := args.Currency
 
 		pos := &domain.Position{
 			Listing:    args.Listing,
@@ -219,8 +221,10 @@ func addPositionUpdateTool(server *mcp.Server, runtime Runtime) {
 		if args.Quantity != nil {
 			pos.Quantity = *args.Quantity
 		}
+		// The entry price currency is a booked fact; rewriting it would silently
+		// change the position's performance history.
 		if args.Currency != nil {
-			pos.Currency = *args.Currency
+			return nil, fmt.Errorf("position currency cannot be changed after booking (current %s)", pos.Currency)
 		}
 		if args.EntryPrice != nil {
 			pos.EntryPrice = *args.EntryPrice
@@ -239,11 +243,12 @@ func addPositionUpdateTool(server *mcp.Server, runtime Runtime) {
 func addPortfolioHoldingsTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "portfolio_holdings",
-		Description: "Returns the portfolio with all positions enriched with current market data (PnL, market value). Fetches live quotes for each position.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio."}},"required":["portfolio_id"]}`),
+		Description: "Returns the portfolio with all positions enriched with current market data (PnL, market value). Fetches live quotes for each position. Values are expressed in the requested currency; the exchange rates applied are part of the result.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio."},"currency":{"type":"string","description":"Currency to present values in (e.g. EUR, USD). Defaults to the configured display currency."}},"required":["portfolio_id"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			PortfolioID string `json:"portfolio_id"`
+			PortfolioID string           `json:"portfolio_id"`
+			Currency    finance.Currency `json:"currency"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
@@ -254,18 +259,32 @@ func addPortfolioHoldingsTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("getting portfolio %q: %w", args.PortfolioID, err)
 		}
 
+		target := args.Currency
+		if target == "" {
+			target = runtime.DisplayCurrency()
+		}
 		holdings := make([]domain.Holding, 0, len(p.Positions))
+		bases := make([]finance.Currency, 0, 2*len(p.Positions))
 		for _, pos := range p.Positions {
-			quote, err := runtime.MarketDataProvider().QueryQuote(ctx, pos.Listing, "")
+			quote, err := runtime.MarketDataProvider().QueryQuote(ctx, pos.Listing)
 			if err != nil {
 				runtime.Logger().Warn("failed to resolve quote for holding", "listing", pos.Listing, "err", err)
 				continue
 			}
-			holding := domain.NewHolding(pos, quote.Price)
-			holdings = append(holdings, holding)
+			holdings = append(holdings, domain.NewHolding(pos, quote.ListingPrice))
+			bases = append(bases, pos.Currency, quote.Currency)
 		}
 
-		return newToolResult(holdings)
+		rates, err := runtime.MarketDataProvider().QueryExchangeRates(ctx, target, bases)
+		if err != nil {
+			return nil, fmt.Errorf("portfolio %q: %w", args.PortfolioID, err)
+		}
+		converted, err := domain.Holdings(holdings).ConvertedTo(target, rates)
+		if err != nil {
+			return nil, fmt.Errorf("portfolio %q: %w", args.PortfolioID, err)
+		}
+
+		return newToolResult(converted)
 	})
 }
 

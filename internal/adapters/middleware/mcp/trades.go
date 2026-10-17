@@ -72,10 +72,12 @@ func addTradeRecordTool(server *mcp.Server, runtime Runtime) {
 			status = domain.TradeExecuted
 		}
 
-		currency := args.Currency
-		if currency == "" {
-			currency = "USD"
+		// A trade records the original price of its source, so the currency is
+		// part of the fact and cannot be defaulted.
+		if args.Currency == "" {
+			return nil, fmt.Errorf("currency is required: the execution price currency cannot be derived")
 		}
+		currency := args.Currency
 
 		t := &domain.Trade{
 			StrategyID: args.StrategyID,

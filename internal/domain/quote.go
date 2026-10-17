@@ -22,30 +22,32 @@ import (
 	"github.com/tdrn-org/go-finance"
 )
 
+// Quote is a full price data point for a listing.
+//
+// A Quote is a fact reported by a provider and is therefore immutable: its
+// prices are denominated in the currency carried by the embedded
+// [finance.ListingPrice] and are never rescaled afterwards. Currency conversion
+// is a presentation concern of the caller — converting here would leave the
+// quote claiming a provenance it does not have (provider X, currency Y, while
+// the number is actually provider X multiplied by an FX rate from provider Z).
 type Quote finance.Quote
-
-func (q *Quote) ApplyCurrency(currency finance.Currency, exchangeRate float64) {
-	q.Currency = currency
-	q.Open *= exchangeRate
-	q.High *= exchangeRate
-	q.Low *= exchangeRate
-	q.Close *= exchangeRate
-	q.Price *= exchangeRate
-}
 
 type Quotes []Quote
 
-func (qs Quotes) ApplyCurrency(currency finance.Currency, exchangeRate float64) {
-	for i := range qs {
-		qs[i].ApplyCurrency(currency, exchangeRate)
-	}
-}
-
-func (qs Quotes) Currency() finance.Currency {
+// IsUniform reports whether all quotes share the same currency, returning that
+// currency. A set of quotes spanning several currencies has no single currency:
+// summing it without conversion would produce a meaningless number.
+func (qs Quotes) IsUniform() (finance.Currency, bool) {
 	if len(qs) == 0 {
-		return ""
+		return "", true
 	}
-	return qs[0].Currency
+	currency := qs[0].Currency
+	for i := 1; i < len(qs); i++ {
+		if qs[i].Currency != currency {
+			return "", false
+		}
+	}
+	return currency, true
 }
 
 // PriceHistory is a chronological series of quotes for a single symbol.

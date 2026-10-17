@@ -240,7 +240,7 @@ API keys only via environment variables, never in config files.
 - All tools return structured JSON-compatible results.
 - Error responses use the MCP error format, not plain strings.
 - Tools are grouped by domain area (portfolio tools vs. quote tools).
-- Tool count: **24 tools** across 6 domains (portfolio, quotes, alerts, strategies, trades, symbols).
+- Tool count: **25 tools** across 6 domains (portfolio, quotes, alerts, strategies, trades, symbols) — `rate_get` exposes exchange rates so clients can present values in their own currency.
 
 ---
 
