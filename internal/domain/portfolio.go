@@ -54,11 +54,11 @@ type Position struct {
 
 // MarshalJSON adds the human readable listing description to every position.
 //
-// The listing itself is an opaque, compressed value — a client cannot decode it,
-// so a UI could only render the blob where the instrument name belongs. Embedding
-// ListingInfo keeps the payload self-describing while the listing value stays
-// usable for follow-up requests. It is derived on the way out, so the persisted
-// representation and the domain value remain unchanged.
+// The listing ID names an instrument but does not describe it, so a UI could only
+// render the ID where the instrument name belongs. Embedding ListingInfo keeps the
+// payload self-describing while the ID stays usable for follow-up requests. It is
+// derived on the way out, so the persisted representation and the domain value
+// remain unchanged.
 //
 // The alias type is essential: embedding Position itself would re-enter this
 // method and overflow the stack.

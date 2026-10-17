@@ -23,7 +23,7 @@ import (
 )
 
 // ListingInfo describes a listing in a form a client can work with: a stable,
-// provider-independent set of fields plus the opaque listing value that has to be
+// provider-independent set of fields plus the listing ID that has to be
 // passed back to the quote tools.
 //
 // The provider-specific identifying attributes are deliberately NOT expanded into
