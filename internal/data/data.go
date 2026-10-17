@@ -54,15 +54,9 @@ func (s *Store) AddListing(ctx context.Context, listing finance.Listing) error {
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	l, err := model.SelectListing(txCtx, tx, listing.ID())
+	err = ensureListing(txCtx, tx, listing)
 	if err != nil {
 		return err
-	}
-	if l == nil {
-		_, err = model.InsertListing(txCtx, tx, listing)
-		if err != nil {
-			return err
-		}
 	}
 
 	err = tx.CommitTx(txCtx)
@@ -71,6 +65,24 @@ func (s *Store) AddListing(ctx context.Context, listing finance.Listing) error {
 	}
 
 	return nil
+}
+
+// ensureListing makes sure the row a listing-referencing table points to exists.
+//
+// Position, alert and trade carry a foreign key to listing, so every insert has to
+// create the listing on first sight. Without this the very first row for a new
+// instrument failed with "FOREIGN KEY constraint failed" — the instrument had never
+// been written because a listing is only stored when something references it.
+func ensureListing(ctx context.Context, tx *database.Tx, listing finance.Listing) error {
+	existing, err := model.SelectListing(ctx, tx, listing.ID())
+	if err != nil {
+		return err
+	}
+	if existing != nil {
+		return nil
+	}
+	_, err = model.InsertListing(ctx, tx, listing)
+	return err
 }
 
 func (s *Store) CreatePortfolio(ctx context.Context, portfolio *domain.Portfolio) error {
@@ -218,6 +230,11 @@ func (s *Store) AddPosition(ctx context.Context, portfolioID string, position *d
 		return err
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
+
+	err = ensureListing(txCtx, tx, position.Listing)
+	if err != nil {
+		return err
+	}
 
 	pos, err := model.InsertPosition(txCtx, tx, portfolioID, position)
 	if err != nil {
@@ -411,6 +428,11 @@ func (s *Store) CreateAlert(ctx context.Context, alert *domain.Alert) error {
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
+	err = ensureListing(txCtx, tx, alert.Listing)
+	if err != nil {
+		return err
+	}
+
 	a, err := model.InsertAlert(txCtx, tx, alert)
 	if err != nil {
 		return err
@@ -568,6 +590,11 @@ func (s *Store) RecordTrade(ctx context.Context, trade *domain.Trade) error {
 		return err
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
+
+	err = ensureListing(txCtx, tx, trade.Listing)
+	if err != nil {
+		return err
+	}
 
 	t, err := model.InsertTrade(txCtx, tx, trade)
 	if err != nil {

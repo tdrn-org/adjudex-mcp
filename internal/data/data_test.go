@@ -35,6 +35,38 @@ var testListing finance.Listing = *finance.NewListing("test", finance.ListingAtt
 	Attribute(finance.ListingAttributeKeySymbol, "test").
 	Build().MustValidate()
 
+func TestAddPositionCreatesListing(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	// No AddListing on purpose: a client adding the first position of a new
+	// instrument has never seen a quote for it, so the store does not know the
+	// listing yet. It used to fail with "FOREIGN KEY constraint failed" — the
+	// position table references listing, and nothing created the row.
+	portfolio := &domain.Portfolio{
+		Name:        t.Name(),
+		Description: t.Name() + " portfolio",
+	}
+	err := store.CreatePortfolio(t.Context(), portfolio)
+	require.NoError(t, err)
+
+	position := &domain.Position{
+		Listing:    testListing,
+		Currency:   finance.CurrencyUSD,
+		Quantity:   1.0,
+		EntryPrice: 100.0,
+		EntryDate:  time.Date(2026, 10, 17, 0, 0, 0, 0, time.Local),
+	}
+	err = store.AddPosition(t.Context(), portfolio.ID, position)
+	require.NoError(t, err)
+	require.NotEmpty(t, position.ID)
+
+	// The listing must now be known, so a second position or an alert works too.
+	listings, err := store.ListPositionListings(t.Context())
+	require.NoError(t, err)
+	require.Len(t, listings, 1)
+}
+
 func TestPortfolio(t *testing.T) {
 	store := newDataStore(t)
 	defer store.Close()
