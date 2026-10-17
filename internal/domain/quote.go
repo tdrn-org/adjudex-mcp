@@ -17,35 +17,14 @@
 package domain
 
 import (
-	"errors"
 	"time"
+
+	"github.com/tdrn-org/go-finance"
 )
 
-var ErrNoQuote error = errors.New("no quote")
-var ErrQuoteRateLimit error = errors.New("quote rate limit")
+type Quote finance.Quote
 
-type SymbolInfo struct {
-	Symbol string
-	Source string
-	Info   string
-}
-
-// Quote represents a single price snapshot for a symbol.
-type Quote struct {
-	Symbol          string    `json:"symbol"`
-	Timestamp       time.Time `json:"timestamp"`
-	Currency        string    `json:"currency"`
-	Open            float64   `json:"open"`
-	High            float64   `json:"high"`
-	Low             float64   `json:"low"`
-	Close           float64   `json:"close"`
-	Price           float64   `json:"price"`
-	Volume          int64     `json:"volume"`
-	Source          string    `json:"source"`
-	SourceTimestamp time.Time `json:"source_timestamp"`
-}
-
-func (q *Quote) ApplyCurrency(currency string, exchangeRate float64) {
+func (q *Quote) ApplyCurrency(currency finance.Currency, exchangeRate float64) {
 	q.Currency = currency
 	q.Open *= exchangeRate
 	q.High *= exchangeRate
@@ -56,13 +35,13 @@ func (q *Quote) ApplyCurrency(currency string, exchangeRate float64) {
 
 type Quotes []Quote
 
-func (qs Quotes) ApplyCurrency(currency string, exchangeRate float64) {
+func (qs Quotes) ApplyCurrency(currency finance.Currency, exchangeRate float64) {
 	for i := range qs {
 		qs[i].ApplyCurrency(currency, exchangeRate)
 	}
 }
 
-func (qs Quotes) Currency() string {
+func (qs Quotes) Currency() finance.Currency {
 	if len(qs) == 0 {
 		return ""
 	}
@@ -71,8 +50,8 @@ func (qs Quotes) Currency() string {
 
 // PriceHistory is a chronological series of quotes for a single symbol.
 type PriceHistory struct {
-	Symbol string  `json:"symbol"`
-	Quotes []Quote `json:"quotes"`
+	Listing finance.ProviderListing `json:"listing"`
+	Quotes  []Quote                 `json:"quotes"`
 }
 
 // IndicatorType names the technical indicator.
@@ -87,10 +66,10 @@ const (
 
 // IndicatorValue holds a computed indicator value at a point in time.
 type IndicatorValue struct {
-	Symbol    string        `json:"symbol"`
-	Currency  string        `json:"currency"`
-	Type      IndicatorType `json:"type"`
-	Period    int           `json:"period"`
-	Value     float64       `json:"value"`
-	Timestamp time.Time     `json:"timestamp"`
+	Listing   finance.ProviderListing `json:"listing"`
+	Currency  finance.Currency        `json:"currency"`
+	Type      IndicatorType           `json:"type"`
+	Period    int                     `json:"period"`
+	Value     float64                 `json:"value"`
+	Timestamp time.Time               `json:"timestamp"`
 }

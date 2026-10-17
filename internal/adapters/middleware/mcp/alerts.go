@@ -24,6 +24,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
+	"github.com/tdrn-org/go-finance"
 )
 
 func addAlertTools(server *mcp.Server, runtime Runtime) {
@@ -41,13 +42,13 @@ func addAlertCreateTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"name":{"type":"string","description":"A human-readable label for the alert."},"symbol":{"type":"string","description":"The ticker symbol to watch."},"currency":{"type":"string","description":"The currency of the alert threshold (e.g. USD, EUR). Defaults to USD."},"condition":{"type":"string","description":"Alert condition: price_above, price_below, rsi_above, rsi_below, sma_cross_above, sma_cross_below, volume_spike."},"threshold":{"type":"number","description":"The trigger value (e.g. 30.0 for RSI < 30)."},"indicator_type":{"type":"string","description":"Optional indicator type (sma, ema, rsi, macd). Required for indicator-based conditions."},"indicator_period":{"type":"integer","description":"Optional indicator period (e.g. 14 for RSI-14). Required for indicator-based conditions."}},"required":["name","symbol","condition","threshold"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			Name            string  `json:"name"`
-			Symbol          string  `json:"symbol"`
-			Currency        string  `json:"currency"`
-			Condition       string  `json:"condition"`
-			Threshold       float64 `json:"threshold"`
-			IndicatorType   *string `json:"indicator_type"`
-			IndicatorPeriod *int    `json:"indicator_period"`
+			Name            string                  `json:"name"`
+			Listing         finance.ProviderListing `json:"listing"`
+			Currency        finance.Currency        `json:"currency"`
+			Condition       string                  `json:"condition"`
+			Threshold       float64                 `json:"threshold"`
+			IndicatorType   *string                 `json:"indicator_type"`
+			IndicatorPeriod *int                    `json:"indicator_period"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
@@ -76,7 +77,7 @@ func addAlertCreateTool(server *mcp.Server, runtime Runtime) {
 
 		a := &domain.Alert{
 			Name:      args.Name,
-			Symbol:    args.Symbol,
+			Listing:   args.Listing,
 			Currency:  currency,
 			Condition: condition,
 			Threshold: args.Threshold,
@@ -118,8 +119,8 @@ func addAlertListTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"symbol":{"type":"string","description":"Optional symbol filter."},"state":{"type":"string","description":"Optional state filter (armed, triggered, acknowledged, disabled)."}}}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			Symbol string `json:"symbol"`
-			State  string `json:"state"`
+			Listing finance.ProviderListing `json:"listing"`
+			State   string                  `json:"state"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
@@ -133,7 +134,7 @@ func addAlertListTool(server *mcp.Server, runtime Runtime) {
 			return newToolResult(alerts)
 		}
 
-		alerts, err := runtime.DataStore().ListAlerts(ctx, args.Symbol)
+		alerts, err := runtime.DataStore().ListAlerts(ctx, args.Listing)
 		if err != nil {
 			return nil, fmt.Errorf("listing alerts: %w", err)
 		}

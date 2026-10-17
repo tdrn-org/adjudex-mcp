@@ -55,15 +55,6 @@ func InsertPortfolio(ctx context.Context, tx *database.Tx, portfolio *domain.Por
 	return p, nil
 }
 
-//go:embed portfolio.update_by_id.2.sql
-var updatePortfolioByID2SQL string
-
-func TouchPortfolioByID(ctx context.Context, tx *database.Tx, id string) error {
-	return tx.ExecTx(ctx, updatePortfolioByID2SQL,
-		database.Time2DB(tx.Now()),
-		id)
-}
-
 //go:embed portfolio.select_by_id.sql
 var selectPortfolioByIDSQL string
 
@@ -114,4 +105,13 @@ var deletePortfolioByIDSQL string
 
 func DeletePortfolioByID(ctx context.Context, tx *database.Tx, id string) error {
 	return tx.ExecTx(ctx, deletePortfolioByIDSQL, id)
+}
+
+//go:embed portfolio.update_by_id.sql
+var updatePortfolioByIDSQL string
+
+func TouchPortfolioByID(ctx context.Context, tx *database.Tx, id string) error {
+	return tx.ExecTx(ctx, updatePortfolioByIDSQL,
+		database.Time2DB(tx.Now()),
+		id)
 }

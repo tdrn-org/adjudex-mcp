@@ -24,12 +24,11 @@ import (
 )
 
 type Config struct {
-	Logging      LoggingConfig        `toml:"logging"`
-	Server       ServerConfig         `toml:"server"`
-	Store        StoreConfig          `toml:"store"`
-	QuoteService QuoteServiceConfig   `toml:"quote_service"`
-	Provider     financeconfig.Config `toml:"provider"`
-	Metrics      MetricsConfig        `toml:"metrics"`
+	Logging  LoggingConfig        `toml:"logging"`
+	Server   ServerConfig         `toml:"server"`
+	Store    StoreConfig          `toml:"store"`
+	Provider financeconfig.Config `toml:"provider"`
+	Metrics  MetricsConfig        `toml:"metrics"`
 }
 
 //go:embed defaults.toml

@@ -1,6 +1,6 @@
 SELECT
     a.id,
-    a.symbol,
+    b.listing,
     a.currency,
     a.quantity,
     a.entry_price,
@@ -9,6 +9,7 @@ SELECT
     a.created_at,
     a.updated_at
 FROM
-    position a
+    position a, listing b
 WHERE
+    a.listing_id = b.id AND
     a.portfolio_id = $1

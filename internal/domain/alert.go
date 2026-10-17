@@ -16,7 +16,11 @@
 
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/tdrn-org/go-finance"
+)
 
 // AlertCondition defines the trigger type for an alert.
 type AlertCondition string
@@ -51,18 +55,18 @@ type IndicatorSpec struct {
 // Alert represents a notification trigger attached to a security.
 // It is evaluated on every quote update and fires when its condition is met.
 type Alert struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Symbol      string         `json:"symbol"`
-	Currency    string         `json:"currency"`
-	Condition   AlertCondition `json:"condition"`
-	Threshold   float64        `json:"threshold"`
-	Indicator   *IndicatorSpec `json:"indicator,omitempty"`
-	State       AlertState     `json:"state"`
-	TriggeredAt *time.Time     `json:"triggered_at,omitempty"`
-	Message     string         `json:"message,omitempty"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	ID          string                  `json:"id"`
+	Name        string                  `json:"name"`
+	Listing     finance.ProviderListing `json:"listing"`
+	Currency    finance.Currency        `json:"currency"`
+	Condition   AlertCondition          `json:"condition"`
+	Threshold   float64                 `json:"threshold"`
+	Indicator   *IndicatorSpec          `json:"indicator,omitempty"`
+	State       AlertState              `json:"state"`
+	TriggeredAt *time.Time              `json:"triggered_at,omitempty"`
+	Message     string                  `json:"message,omitempty"`
+	CreatedAt   time.Time               `json:"created_at"`
+	UpdatedAt   time.Time               `json:"updated_at"`
 }
 
 // Evaluate checks whether the alert should fire given a current value.

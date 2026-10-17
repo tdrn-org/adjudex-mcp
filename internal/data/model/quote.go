@@ -23,20 +23,21 @@ import (
 
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/go-database"
+	"github.com/tdrn-org/go-finance"
 )
 
 type Quote struct {
-	Symbol          string  `db:"symbol"`
-	Timestamp       int64   `db:"timestamp"`
-	Currency        string  `db:"currency"`
-	Open            float64 `db:"open"`
-	High            float64 `db:"high"`
-	Low             float64 `db:"low"`
-	Close           float64 `db:"close"`
-	Price           float64 `db:"price"`
-	Volume          int64   `db:"volume"`
-	Source          string  `db:"source"`
-	SourceTimestamp int64   `db:"source_timestamp"`
+	Listing         finance.ProviderListing `db:"listing"`
+	Timestamp       int64                   `db:"timestamp"`
+	Currency        finance.Currency        `db:"currency"`
+	Open            float64                 `db:"open"`
+	High            float64                 `db:"high"`
+	Low             float64                 `db:"low"`
+	Close           float64                 `db:"close"`
+	Price           float64                 `db:"price"`
+	Volume          int64                   `db:"volume"`
+	Source          string                  `db:"source"`
+	SourceTimestamp int64                   `db:"source_timestamp"`
 }
 
 //go:embed quote.insert.sql
@@ -44,7 +45,7 @@ var insertQuoteSQL string
 
 func InsertQuote(ctx context.Context, tx *database.Tx, quote *domain.Quote) (*Quote, error) {
 	q := &Quote{
-		Symbol:          quote.Symbol,
+		Listing:         quote.Listing,
 		Timestamp:       database.Time2DB(quote.Timestamp),
 		Currency:        quote.Currency,
 		Open:            quote.Open,
@@ -57,7 +58,7 @@ func InsertQuote(ctx context.Context, tx *database.Tx, quote *domain.Quote) (*Qu
 		SourceTimestamp: database.Time2DB(quote.SourceTimestamp),
 	}
 	err := tx.ExecTx(ctx, insertQuoteSQL,
-		q.Symbol,
+		q.Listing.ID(),
 		q.Timestamp,
 		q.Currency,
 		q.Open,
@@ -77,15 +78,17 @@ func InsertQuote(ctx context.Context, tx *database.Tx, quote *domain.Quote) (*Qu
 //go:embed quote.select.sql
 var selectQuoteSQL string
 
-func SelectLatestQuote(ctx context.Context, tx *database.Tx, symbol string) (*Quote, error) {
+func SelectLatestQuote(ctx context.Context, tx *database.Tx, listing finance.ProviderListing) (*Quote, error) {
 	q := &Quote{
-		Symbol: symbol,
+		Listing: listing,
 	}
-	row, err := tx.QueryRowTx(ctx, selectQuoteSQL, q.Symbol)
+	row, err := tx.QueryRowTx(ctx, selectQuoteSQL,
+		q.Listing.ID())
 	if err != nil {
 		return nil, err
 	}
 	err = database.ScanRow(row, q,
+		"listing",
 		"timestamp",
 		"currency",
 		"open",
@@ -107,8 +110,11 @@ func SelectLatestQuote(ctx context.Context, tx *database.Tx, symbol string) (*Qu
 //go:embed quote.select_by_time_range.sql
 var selectQuoteByTimerangeSQL string
 
-func SelectQuotes(ctx context.Context, tx *database.Tx, symbol string, from, to time.Time) ([]*Quote, error) {
-	rows, err := tx.QueryTx(ctx, selectQuoteByTimerangeSQL, symbol, database.Time2DB(from), database.Time2DB(to))
+func SelectQuotes(ctx context.Context, tx *database.Tx, listing finance.ProviderListing, from, to time.Time) ([]*Quote, error) {
+	rows, err := tx.QueryTx(ctx, selectQuoteByTimerangeSQL,
+		listing.ID(),
+		database.Time2DB(from),
+		database.Time2DB(to))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +122,7 @@ func SelectQuotes(ctx context.Context, tx *database.Tx, symbol string, from, to 
 	qs := make([]*Quote, 0)
 	for rows.Next() {
 		q := &Quote{
-			Symbol: symbol,
+			Listing: listing,
 		}
 		err = database.Scan(rows, q)
 		if err != nil {
@@ -130,6 +136,8 @@ func SelectQuotes(ctx context.Context, tx *database.Tx, symbol string, from, to 
 //go:embed quote.delete_by_pk.sql
 var deleteQuoteByPKSQL string
 
-func DeleteQuoteByPK(ctx context.Context, tx *database.Tx, symbol string, timestamp time.Time) error {
-	return tx.ExecTx(ctx, deleteQuoteByPKSQL, symbol, database.Time2DB(timestamp))
+func DeleteQuoteByPK(ctx context.Context, tx *database.Tx, listing finance.ProviderListing, timestamp time.Time) error {
+	return tx.ExecTx(ctx, deleteQuoteByPKSQL,
+		listing.ID(),
+		database.Time2DB(timestamp))
 }

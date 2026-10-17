@@ -22,20 +22,21 @@ import (
 
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/go-database"
+	"github.com/tdrn-org/go-finance"
 )
 
 type Trade struct {
-	ID         string  `db:"id"`
-	StrategyID string  `db:"strategy_id"`
-	Symbol     string  `db:"symbol"`
-	Currency   string  `db:"currency"`
-	Direction  string  `db:"direction"`
-	Quantity   float64 `db:"quantity"`
-	Price      float64 `db:"price"`
-	ExecutedAt int64   `db:"executed_at"`
-	Status     string  `db:"status"`
-	PnL        float64 `db:"pnl"`
-	Notes      string  `db:"notes"`
+	ID         string                  `db:"id"`
+	StrategyID string                  `db:"strategy_id"`
+	Listing    finance.ProviderListing `db:"listing"`
+	Currency   string                  `db:"currency"`
+	Direction  string                  `db:"direction"`
+	Quantity   float64                 `db:"quantity"`
+	Price      float64                 `db:"price"`
+	ExecutedAt int64                   `db:"executed_at"`
+	Status     string                  `db:"status"`
+	PnL        float64                 `db:"pnl"`
+	Notes      string                  `db:"notes"`
 }
 
 //go:embed trade.insert.sql
@@ -45,7 +46,7 @@ func InsertTrade(ctx context.Context, tx *database.Tx, trade *domain.Trade) (*Tr
 	t := &Trade{
 		ID:         database.NewID(),
 		StrategyID: trade.StrategyID,
-		Symbol:     trade.Symbol,
+		Listing:    trade.Listing,
 		Currency:   trade.Currency,
 		Direction:  string(trade.Direction),
 		Quantity:   trade.Quantity,
@@ -58,7 +59,7 @@ func InsertTrade(ctx context.Context, tx *database.Tx, trade *domain.Trade) (*Tr
 	err := tx.ExecTx(ctx, insertTradeSQL,
 		t.ID,
 		t.StrategyID,
-		t.Symbol,
+		t.Listing.ID(),
 		t.Currency,
 		t.Direction,
 		t.Quantity,
@@ -86,7 +87,7 @@ func SelectTradeByID(ctx context.Context, tx *database.Tx, id string) (*Trade, e
 	}
 	err = database.ScanRow(row, t,
 		"strategy_id",
-		"symbol",
+		"listing",
 		"currency",
 		"direction",
 		"quantity",
@@ -103,11 +104,12 @@ func SelectTradeByID(ctx context.Context, tx *database.Tx, id string) (*Trade, e
 	return t, nil
 }
 
-//go:embed trade.select_by_symbol.sql
-var selectTradeBySymbolSQL string
+//go:embed trade.select_by_listing_id.sql
+var selectTradeByListingIDSQL string
 
-func SelectTradesBySymbol(ctx context.Context, tx *database.Tx, symbol string) ([]*Trade, error) {
-	rows, err := tx.QueryTx(ctx, selectTradeBySymbolSQL, symbol)
+func SelectTradesByListing(ctx context.Context, tx *database.Tx, listing finance.ProviderListing) ([]*Trade, error) {
+	rows, err := tx.QueryTx(ctx, selectTradeByListingIDSQL,
+		listing.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +117,7 @@ func SelectTradesBySymbol(ctx context.Context, tx *database.Tx, symbol string) (
 	ts := make([]*Trade, 0)
 	for rows.Next() {
 		t := &Trade{
-			Symbol: symbol,
+			Listing: listing,
 		}
 		err = database.Scan(rows, t)
 		if err != nil {
@@ -130,7 +132,8 @@ func SelectTradesBySymbol(ctx context.Context, tx *database.Tx, symbol string) (
 var selectTradeByStrategyIDSQL string
 
 func SelectTradesByStrategyID(ctx context.Context, tx *database.Tx, strategyID string) ([]*Trade, error) {
-	rows, err := tx.QueryTx(ctx, selectTradeByStrategyIDSQL, strategyID)
+	rows, err := tx.QueryTx(ctx, selectTradeByStrategyIDSQL,
+		strategyID)
 	if err != nil {
 		return nil, err
 	}

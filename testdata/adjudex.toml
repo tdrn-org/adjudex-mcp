@@ -30,19 +30,39 @@ type = "memory"
 [store.sqlite]
 file = "./adjudex.db"
 
-[quote_service]
-currency = "EUR"
+[provider.fx]
+providers = [ "frankfurter", "alphavantage", "consorsbank", "twelvedata" ]
+cache_ttl = "6h"
 
-[quote_service.demo]
-enabled = false
-online = true
+[provider.listings]
+providers = [ "alphavantage", "consorsbank", "twelvedata" ]
+listing_cache_ttl = "6h"
+quote_cache_ttl = "1h"
 
-[quote_service.alphavantage]
-enabled = false
-online = false
+[provider.alphavantage]
+base_url = "https://www.alphavantage.co/query/"
 api_key = ""
 
-[quote_service.twelvedata]
-enabled = false
-online = true
+[provider.consorsbank]
+address = "localhost:40443"
+skip_verify = true
+ca_file = "root.pem"
+secret = ""
+preferred_currency = ""
+subscription_timeout = "1h"
+
+[provider.frankfurter]
+base_url = "https://api.frankfurter.dev/v2/"
+
+[provider.twelvedata]
 api_key = ""
+
+[provider.cache]
+type = "memory"
+
+[provider.cache.memory]
+
+[provider.cache.redis]
+address = "localhost:6379"
+password = ""
+db = 0

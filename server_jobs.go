@@ -35,13 +35,13 @@ func (s *Server) evalAlerts(ctx context.Context, last, now time.Time) error {
 	}
 
 	for _, alert := range alerts {
-		quote, err := s.dataStore.GetLatestQuote(ctx, alert.Symbol)
+		quote, err := s.dataStore.GetLatestQuote(ctx, alert.Listing)
 		if err != nil {
-			s.logger.Warn("failed to get latest quote for alert", slog.String("symbol", alert.Symbol), slog.Any("err", err))
+			s.logger.Warn("failed to get latest quote for alert", slog.String("listing", alert.Listing.ID()), slog.Any("err", err))
 			continue
 		}
 		if alert.Evaluate(quote.Price) {
-			s.logger.Info("alert triggered!", slog.String("alert", alert.Name), slog.String("symbol", alert.Symbol), "price", quote.Price)
+			s.logger.Info("alert triggered!", slog.String("alert", alert.Name), slog.String("listing", alert.Listing.ID()), "price", quote.Price)
 			now := time.Now()
 			alert.Fire(now, fmt.Sprintf("%s: %.2f", alert.Condition, quote.Price))
 			err := s.dataStore.UpdateAlert(ctx, &alert)
@@ -56,19 +56,19 @@ func (s *Server) evalAlerts(ctx context.Context, last, now time.Time) error {
 func (s *Server) collectMetrics(ctx context.Context, last, now time.Time) error {
 	s.logger.Info("collecting metrics...")
 
-	symbolMap, err := s.dataStore.ListSymbols(ctx)
+	listings, err := s.dataStore.ListPositionListings(ctx)
 	if err != nil {
 		s.logger.Error("failed list symbols for metric collection", slog.Any("err", err))
 		return err
 	}
-	symbolQuotes := make(map[string]*domain.Quote, len(symbolMap))
-	for symbol := range symbolMap {
-		quote, err := s.dataStore.GetLatestQuote(ctx, symbol)
+	quoteMap := make(map[string]*domain.Quote, len(listings))
+	for _, listing := range listings {
+		quote, err := s.dataStore.GetLatestQuote(ctx, listing)
 		if err != nil {
-			s.logger.Error("failed get latest quote for metric collection", slog.String("symbol", symbol), slog.Any("err", err))
+			s.logger.Error("failed get latest quote for metric collection", slog.String("listing", listing.ID()), slog.Any("err", err))
 			return err
 		}
-		symbolQuotes[symbol] = quote
+		quoteMap[quote.Listing.ID()] = quote
 		s.metricsRecorder.RecordQuote(quote)
 	}
 	portfolios, err := s.dataStore.ListPortfolios(ctx)
@@ -79,12 +79,12 @@ func (s *Server) collectMetrics(ctx context.Context, last, now time.Time) error 
 	for _, portfolio := range portfolios {
 		holdings := make(domain.Holdings, 0, len(portfolio.Positions))
 		for _, position := range portfolio.Positions {
-			positionQuote := symbolQuotes[position.Symbol]
+			positionQuote := quoteMap[position.Listing.ID()]
 			if positionQuote != nil {
 				holding := domain.NewHolding(position, positionQuote.Price)
 				holdings = append(holdings, holding)
 			} else {
-				s.logger.Error("missing symbol quote in metric collection", slog.String("symbol", position.Symbol))
+				s.logger.Error("missing symbol quote in metric collection", slog.String("listing", position.Listing.ID()))
 			}
 		}
 		s.metricsRecorder.RecordPortfolio(&portfolio, holdings.Summarize())

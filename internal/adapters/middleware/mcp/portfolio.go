@@ -24,6 +24,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
+	"github.com/tdrn-org/go-finance"
 )
 
 func addPortfolioTools(server *mcp.Server, runtime Runtime) {
@@ -124,13 +125,13 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio to add the position to."},"symbol":{"type":"string","description":"The ticker symbol or WKN of the security."},"currency":{"type":"string","description":"The currency of the position (e.g. USD, EUR). Defaults to USD."},"quantity":{"type":"number","description":"The number of shares or units."},"entry_price":{"type":"number","description":"The purchase price per share."},"entry_date":{"type":"string","description":"The date of purchase (RFC3339 format, e.g. 2026-07-11T00:00:00Z)."},"notes":{"type":"string","description":"Optional notes about this position."}},"required":["portfolio_id","symbol","quantity","entry_price","entry_date"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			PortfolioID string  `json:"portfolio_id"`
-			Symbol      string  `json:"symbol"`
-			Currency    string  `json:"currency"`
-			Quantity    float64 `json:"quantity"`
-			EntryPrice  float64 `json:"entry_price"`
-			EntryDate   string  `json:"entry_date"`
-			Notes       string  `json:"notes"`
+			PortfolioID string                  `json:"portfolio_id"`
+			Listing     finance.ProviderListing `json:"listing"`
+			Currency    finance.Currency        `json:"currency"`
+			Quantity    float64                 `json:"quantity"`
+			EntryPrice  float64                 `json:"entry_price"`
+			EntryDate   string                  `json:"entry_date"`
+			Notes       string                  `json:"notes"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
@@ -147,7 +148,7 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 		}
 
 		pos := &domain.Position{
-			Symbol:     args.Symbol,
+			Listing:    args.Listing,
 			Currency:   currency,
 			Quantity:   args.Quantity,
 			EntryPrice: args.EntryPrice,
@@ -189,12 +190,12 @@ func addPositionUpdateTool(server *mcp.Server, runtime Runtime) {
 		InputSchema: json.RawMessage(`{"type":"object","properties":{"portfolio_id":{"type":"string","description":"ID of the portfolio."},"position_id":{"type":"string","description":"ID of the position to update."},"currency":{"type":"string","description":"New currency."},"quantity":{"type":"number","description":"New quantity."},"entry_price":{"type":"number","description":"New entry price."},"notes":{"type":"string","description":"New notes."}},"required":["portfolio_id","position_id"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
-			PortfolioID string   `json:"portfolio_id"`
-			PositionID  string   `json:"position_id"`
-			Currency    *string  `json:"currency"`
-			Quantity    *float64 `json:"quantity"`
-			EntryPrice  *float64 `json:"entry_price"`
-			Notes       *string  `json:"notes"`
+			PortfolioID string            `json:"portfolio_id"`
+			PositionID  string            `json:"position_id"`
+			Currency    *finance.Currency `json:"currency"`
+			Quantity    *float64          `json:"quantity"`
+			EntryPrice  *float64          `json:"entry_price"`
+			Notes       *string           `json:"notes"`
 		}
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
@@ -255,9 +256,9 @@ func addPortfolioHoldingsTool(server *mcp.Server, runtime Runtime) {
 
 		holdings := make([]domain.Holding, 0, len(p.Positions))
 		for _, pos := range p.Positions {
-			quote, err := runtime.QuoteService().ResolveQuote(ctx, pos.Symbol)
+			quote, err := runtime.MarketDataProvider().QueryQuote(ctx, pos.Listing, "")
 			if err != nil {
-				runtime.Logger().Warn("failed to resolve quote for holding", "symbol", pos.Symbol, "err", err)
+				runtime.Logger().Warn("failed to resolve quote for holding", "listing", pos.Listing, "err", err)
 				continue
 			}
 			holding := domain.NewHolding(pos, quote.Price)

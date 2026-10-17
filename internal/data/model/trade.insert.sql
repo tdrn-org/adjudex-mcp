@@ -2,7 +2,7 @@ INSERT INTO
     trade(
         id,
         strategy_id,
-        symbol,
+        listing_id,
         currency,
         direction,
         quantity,

@@ -29,7 +29,8 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/buildinfo"
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
-	"github.com/tdrn-org/adjudex-mcp/internal/stock"
+	"github.com/tdrn-org/adjudex-mcp/internal/marketdata"
+	"github.com/tdrn-org/go-finance"
 	"github.com/tdrn-org/go-httpserver"
 )
 
@@ -37,7 +38,7 @@ type Runtime interface {
 	BaseURL() *url.URL
 	Logger() *slog.Logger
 	DataStore() *data.Store
-	QuoteService() *stock.QuoteService
+	MarketDataProvider() *marketdata.Provider
 	Ping(ctx context.Context) error
 }
 
@@ -114,13 +115,13 @@ func (api *API) PingGet(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500	{string}	string	"server error"
 //	@Router			/api/v1/info [get]
 func (api *API) InfoGet(w http.ResponseWriter, r *http.Request) {
-	info := &ServerInfo{
+	info := &serverInfo{
 		Version: buildinfo.Version(),
 	}
 	api.sendJSON(w, r, http.StatusOK, info)
 }
 
-type ServerInfo struct {
+type serverInfo struct {
 	Version string `json:"version"`
 }
 
@@ -218,13 +219,13 @@ func (api *API) PortfolioDelete(w http.ResponseWriter, r *http.Request) {
 // =============================================================================
 
 type PortfolioSummary struct {
-	ID            string  `json:"id"`
-	Name          string  `json:"name"`
-	Currency      string  `json:"currency"`
-	MarketValue   float64 `json:"market_value"`
-	PnL           float64 `json:"pnl"`
-	PnLPercent    float64 `json:"pnl_percent"`
-	PositionCount int     `json:"position_count"`
+	ID            string           `json:"id"`
+	Name          string           `json:"name"`
+	Currency      finance.Currency `json:"currency"`
+	MarketValue   float64          `json:"market_value"`
+	PnL           float64          `json:"pnl"`
+	PnLPercent    float64          `json:"pnl_percent"`
+	PositionCount int              `json:"position_count"`
 }
 
 // GET @BasePath/portfolios/summaries
@@ -245,9 +246,9 @@ func (api *API) PortfolioSummaries(w http.ResponseWriter, r *http.Request) {
 
 		holdings := make([]domain.Holding, 0, len(full.Positions))
 		for _, pos := range full.Positions {
-			quote, err := api.runtime.QuoteService().ResolveQuote(r.Context(), pos.Symbol)
+			quote, err := api.runtime.MarketDataProvider().QueryQuote(r.Context(), pos.Listing, "")
 			if err != nil {
-				api.runtime.Logger().Warn("failed to resolve quote for summary", "symbol", pos.Symbol, "err", err)
+				api.runtime.Logger().Warn("failed to resolve quote for summary", "listing", pos.Listing.ID(), "err", err)
 				continue
 			}
 			holdings = append(holdings, domain.NewHolding(pos, quote.Price))
@@ -268,8 +269,6 @@ func (api *API) PortfolioSummaries(w http.ResponseWriter, r *http.Request) {
 	api.sendJSON(w, r, http.StatusOK, summaries)
 }
 
-// DELETE @BasePath/portfolios/{id}
-
 // GET @BasePath/portfolios/{id}/holdings
 //
 //	@Summary		Get portfolio holdings with live PnL
@@ -289,9 +288,9 @@ func (api *API) PortfolioHoldings(w http.ResponseWriter, r *http.Request) {
 
 	holdings := make([]domain.Holding, 0, len(p.Positions))
 	for _, pos := range p.Positions {
-		quote, err := api.runtime.QuoteService().ResolveQuote(r.Context(), pos.Symbol)
+		quote, err := api.runtime.MarketDataProvider().QueryQuote(r.Context(), pos.Listing, "")
 		if err != nil {
-			api.runtime.Logger().Warn("failed to resolve quote for holding", "symbol", pos.Symbol, "err", err)
+			api.runtime.Logger().Warn("failed to resolve quote for holding", "listing", pos.Listing.ID(), "err", err)
 			continue
 		}
 		holding := domain.NewHolding(pos, quote.Price)
@@ -318,6 +317,12 @@ func (api *API) PositionAdd(w http.ResponseWriter, r *http.Request) {
 		api.sendError(w, r, http.StatusBadRequest, err)
 		return
 	}
+	var listing finance.ProviderListing
+	err := json.Unmarshal([]byte(req.Listing), &listing)
+	if err != nil {
+		api.sendError(w, r, http.StatusBadRequest, err)
+		return
+	}
 
 	entryDate, err := time.Parse(time.RFC3339, req.EntryDate)
 	if err != nil {
@@ -325,13 +330,14 @@ func (api *API) PositionAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: Handle missing currency
 	currency := req.Currency
 	if currency == "" {
-		currency = "USD"
+		currency = finance.CurrencyUSD
 	}
 
 	pos := &domain.Position{
-		Symbol:     req.Symbol,
+		Listing:    listing,
 		Currency:   currency,
 		Quantity:   req.Quantity,
 		EntryPrice: req.EntryPrice,
@@ -346,12 +352,12 @@ func (api *API) PositionAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 type positionAddRequest struct {
-	Symbol     string  `json:"symbol"`
-	Currency   string  `json:"currency"`
-	Quantity   float64 `json:"quantity"`
-	EntryPrice float64 `json:"entry_price"`
-	EntryDate  string  `json:"entry_date"`
-	Notes      string  `json:"notes"`
+	Listing    string           `json:"listing"`
+	Currency   finance.Currency `json:"currency"`
+	Quantity   float64          `json:"quantity"`
+	EntryPrice float64          `json:"entry_price"`
+	EntryDate  string           `json:"entry_date"`
+	Notes      string           `json:"notes"`
 }
 
 // PUT @BasePath/portfolios/{id}/positions/{posId}
@@ -413,10 +419,10 @@ func (api *API) PositionUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 type positionUpdateRequest struct {
-	Currency   *string  `json:"currency"`
-	Quantity   *float64 `json:"quantity"`
-	EntryPrice *float64 `json:"entry_price"`
-	Notes      *string  `json:"notes"`
+	Currency   *finance.Currency `json:"currency"`
+	Quantity   *float64          `json:"quantity"`
+	EntryPrice *float64          `json:"entry_price"`
+	Notes      *string           `json:"notes"`
 }
 
 // DELETE @BasePath/portfolios/{id}/positions/{posId}
@@ -442,38 +448,51 @@ func (api *API) PositionRemove(w http.ResponseWriter, r *http.Request) {
 // Quote Handlers
 // =============================================================================
 
-// GET @BasePath/quotes/{symbol}
+// GET @BasePath/quotes/{listing}
 //
 //	@Summary		Get latest quote
 //	@Description	Returns the latest quote for a symbol (cached or live).
 //	@Produce		json
-//	@Param			symbol	path		string	true	"Ticker symbol"
+//	@Param			listing	path		string	true	"Listing"
 //	@Success		200		{object}	domain.Quote
 //	@Failure		404		{string}	string	"not found"
-//	@Router			/api/v1/quotes/{symbol} [get]
+//	@Router			/api/v1/quotes/{listing} [get]
 func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
-	symbol := r.PathValue("symbol")
-	q, err := api.runtime.QuoteService().ResolveQuote(r.Context(), symbol)
+	reqListing := r.PathValue("listing")
+	var listing finance.ProviderListing
+	err := json.Unmarshal([]byte(reqListing), &listing)
 	if err != nil {
-		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("resolving quote for %q: %w", symbol, err))
+		api.sendError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	q, err := api.runtime.DataStore().GetLatestQuote(r.Context(), listing)
+	if err != nil {
+		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("resolving quote for %q: %w", listing.String(), err))
 		return
 	}
 	api.sendJSON(w, r, http.StatusOK, q)
 }
 
-// GET @BasePath/quotes/{symbol}/history
+// GET @BasePath/quotes/{listing}/history
 //
 //	@Summary		Get quote history
 //	@Description	Returns historical quotes for a symbol within a date range.
 //	@Produce		json
-//	@Param			symbol	path		string	true	"Ticker symbol"
+//	@Param			listing	path		string	true	"Listing"
 //	@Param			from	query		string	false	"Start date (RFC3339)"
 //	@Param			to		query		string	false	"End date (RFC3339)"
 //	@Success		200		{object}	domain.PriceHistory
 //	@Failure		404		{string}	string	"not found"
 //	@Router			/api/v1/quotes/{symbol}/history [get]
 func (api *API) QuoteHistory(w http.ResponseWriter, r *http.Request) {
-	symbol := r.PathValue("symbol")
+	reqListing := r.PathValue("listing")
+	var listing finance.ProviderListing
+	err := json.Unmarshal([]byte(reqListing), &listing)
+	if err != nil {
+		api.sendError(w, r, http.StatusBadRequest, err)
+		return
+	}
 	now := time.Now()
 	to := now
 	from := now.AddDate(0, -1, 0)
@@ -495,17 +514,12 @@ func (api *API) QuoteHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	quotes, err := api.runtime.DataStore().GetQuotes(r.Context(), symbol, from, to)
+	quotes, err := api.runtime.DataStore().GetQuotes(r.Context(), listing, from, to)
 	if err != nil || len(quotes) == 0 {
-		api.runtime.Logger().Info("quotes not in store, fetching live", "symbol", symbol)
-		quotes, err = api.runtime.QuoteService().FetchHistory(r.Context(), symbol, from, to)
-		if err != nil {
-			api.sendError(w, r, http.StatusNotFound, fmt.Errorf("fetching history for %q: %w", symbol, err))
-			return
-		}
+		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("fetching history for %q: %w", listing.String(), err))
 	}
 
-	api.sendJSON(w, r, http.StatusOK, domain.PriceHistory{Symbol: symbol, Quotes: quotes})
+	api.sendJSON(w, r, http.StatusOK, domain.PriceHistory{Listing: listing, Quotes: quotes})
 }
 
 // =============================================================================

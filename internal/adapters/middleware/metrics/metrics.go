@@ -47,7 +47,7 @@ func NewRecorder(registry *prometheus.Registry) *Recorder {
 		return recorder
 	}
 	factory := promauto.With(registry)
-	quoteLabels := []string{"symbol", "currency", "source"}
+	quoteLabels := []string{"listing", "currency", "source"}
 	recorder.quotePrice = factory.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: Namespace,
 		Subsystem: SubsystemQuote,
@@ -92,7 +92,7 @@ func (r *Recorder) RecordQuote(quote *domain.Quote) {
 		return
 	}
 
-	quoteLabels := []string{quote.Symbol, quote.Currency, quote.Source}
+	quoteLabels := []string{quote.Listing.ID(), string(quote.Currency), quote.Source}
 	r.setGauge("quote price", r.quotePrice, quote.Price, quoteLabels...)
 	r.setGauge("quote price high", r.quotePriceHigh, quote.High, quoteLabels...)
 	r.setGauge("quote price low", r.quotePriceHigh, quote.Low, quoteLabels...)
@@ -104,7 +104,7 @@ func (r *Recorder) RecordPortfolio(portfolio *domain.Portfolio, holdingsSummary 
 		return
 	}
 
-	portfolioLabels := []string{portfolio.Name, holdingsSummary.Currency}
+	portfolioLabels := []string{portfolio.Name, string(holdingsSummary.Currency)}
 	r.setGauge("portfolio market value", r.portfolioValueAmount, holdingsSummary.MarketValue, portfolioLabels...)
 	r.setGauge("portfolio PnL amount", r.portfolioPnLAmount, holdingsSummary.PnL, portfolioLabels...)
 	r.setGauge("portfolio PnL ratio", r.portfolioPnLRatio, holdingsSummary.PnLPercent, portfolioLabels...)

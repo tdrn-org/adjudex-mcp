@@ -29,36 +29,18 @@ import (
 	"github.com/tdrn-org/go-finance"
 )
 
-func TestUpdateScheme(t *testing.T) {
-	store := newDataStore(t)
-	err := store.Close()
-	require.NoError(t, err)
-}
-
-func TestSymbol(t *testing.T) {
-	store := newDataStore(t)
-	defer store.Close()
-
-	s1 := &finance.Symbol{
-		Exchange: "XNGS",
-		Ticker:   "AAPL",
-		ISIN:     "US0378331005",
-		WKN:      "865985",
-		FIGI:     "BBG000B9XRY4",
-		Name:     "Apple Inc.",
-		Type:     finance.SecurityTypeEquity,
-	}
-	s2, err := store.MergeSymbol(t.Context(), s1)
-	require.NoError(t, err)
-	require.Equal(t, s1, s2)
-	s3, err := store.MergeSymbol(t.Context(), s1)
-	require.NoError(t, err)
-	require.Equal(t, s1, s3)
-}
+var testListing finance.ProviderListing = *finance.NewProviderListing("test", finance.ListingAttributeKeySymbol).
+	InstrumentName("test instrument").
+	InstrumentType(finance.InstrumentTypeEquity).
+	Attribute(finance.ListingAttributeKeySymbol, "test").
+	Build().MustValidate()
 
 func TestPortfolio(t *testing.T) {
 	store := newDataStore(t)
 	defer store.Close()
+
+	err := store.AddListing(t.Context(), testListing)
+	require.NoError(t, err)
 
 	// Create
 	p1 := &domain.Portfolio{
@@ -66,8 +48,8 @@ func TestPortfolio(t *testing.T) {
 		Description: t.Name() + " portfolio",
 		Positions: []domain.Position{
 			{
-				Symbol:     "XZY",
-				Currency:   "USD",
+				Listing:    testListing,
+				Currency:   finance.CurrencyUSD,
 				Quantity:   12.0,
 				EntryPrice: 123.4,
 				EntryDate:  time.Date(2026, 7, 10, 23, 56, 0, 0, time.Local),
@@ -75,7 +57,7 @@ func TestPortfolio(t *testing.T) {
 			},
 		},
 	}
-	err := store.CreatePortfolio(t.Context(), p1)
+	err = store.CreatePortfolio(t.Context(), p1)
 	require.NoError(t, err)
 
 	// Get
@@ -91,8 +73,8 @@ func TestPortfolio(t *testing.T) {
 
 	// Add
 	p2.Positions = append(p2.Positions, domain.Position{
-		Symbol:     "ABC",
-		Currency:   "USD",
+		Listing:    testListing,
+		Currency:   finance.CurrencyUSD,
 		Quantity:   24.0,
 		EntryPrice: 246.8,
 		EntryDate:  time.Date(2026, 7, 11, 06, 49, 0, 0, time.Local),
@@ -106,10 +88,10 @@ func TestPortfolio(t *testing.T) {
 	err = store.UpdatePosition(t.Context(), p2.ID, &p2.Positions[1])
 	require.NoError(t, err)
 
-	// List symbols (2 entries)
-	symbolMap, err := store.ListSymbols(t.Context())
+	// List symbols (1 entries)
+	listings, err := store.ListPositionListings(t.Context())
 	require.NoError(t, err)
-	require.Len(t, symbolMap, 2)
+	require.Len(t, listings, 1)
 
 	// Remove
 	err = store.RemovePosition(t.Context(), p2.ID, p2.Positions[1].ID)
@@ -129,9 +111,13 @@ func TestQuote(t *testing.T) {
 	store := newDataStore(t)
 	defer store.Close()
 
+	err := store.AddListing(t.Context(), testListing)
+	require.NoError(t, err)
+
+	// Add (multiple)
 	quotes := []domain.Quote{
 		{
-			Symbol:          "XYZ",
+			Listing:         testListing,
 			Timestamp:       time.Date(2026, 7, 11, 8, 12, 0, 0, time.Local),
 			Currency:        "USD",
 			Open:            1.0,
@@ -144,7 +130,7 @@ func TestQuote(t *testing.T) {
 			SourceTimestamp: time.Date(2026, 7, 11, 8, 14, 0, 0, time.Local),
 		},
 		{
-			Symbol:          "ABC",
+			Listing:         testListing,
 			Timestamp:       time.Date(2026, 7, 11, 8, 15, 0, 0, time.Local),
 			Currency:        "USD",
 			Open:            2.0,
@@ -157,13 +143,11 @@ func TestQuote(t *testing.T) {
 			SourceTimestamp: time.Date(2026, 7, 11, 8, 16, 0, 0, time.Local),
 		},
 	}
-
-	// Add (multiple)
-	err := store.SaveQuotes(t.Context(), quotes)
+	err = store.SaveQuotes(t.Context(), quotes)
 	require.NoError(t, err)
 
 	// Select (latest)
-	quote, err := store.GetLatestQuote(t.Context(), "ABC")
+	quote, err := store.GetLatestQuote(t.Context(), testListing)
 	require.NoError(t, err)
 	require.Equal(t, &quotes[1], quote)
 }
@@ -172,18 +156,20 @@ func TestAlert(t *testing.T) {
 	store := newDataStore(t)
 	defer store.Close()
 
+	err := store.AddListing(t.Context(), testListing)
+	require.NoError(t, err)
+
+	// Create
 	a1 := &domain.Alert{
 		Name:      t.Name() + " alert",
-		Symbol:    "XYZ",
+		Listing:   testListing,
 		Currency:  "USD",
 		Condition: domain.AlertPriceBelow,
 		Threshold: 35.0,
 		State:     domain.AlertStateArmed,
 		Message:   t.Name() + " alert",
 	}
-
-	// Create
-	err := store.CreateAlert(t.Context(), a1)
+	err = store.CreateAlert(t.Context(), a1)
 	require.NoError(t, err)
 
 	// Get
@@ -192,7 +178,7 @@ func TestAlert(t *testing.T) {
 	require.Equal(t, a1, a2)
 
 	// List (symbol)
-	as, err := store.ListAlerts(t.Context(), "XYZ")
+	as, err := store.ListAlerts(t.Context(), testListing)
 	require.NoError(t, err)
 	require.Len(t, as, 1)
 	require.Equal(t, a1, &as[0])
@@ -213,7 +199,7 @@ func TestAlert(t *testing.T) {
 	require.NoError(t, err)
 
 	// List
-	as, err = store.ListAlerts(t.Context(), "XYZ")
+	as, err = store.ListAlerts(t.Context(), testListing)
 	require.NoError(t, err)
 	require.Len(t, as, 0)
 }
@@ -222,17 +208,20 @@ func TestTrade(t *testing.T) {
 	store := newDataStore(t)
 	defer store.Close()
 
+	err := store.AddListing(t.Context(), testListing)
+	require.NoError(t, err)
 	st1 := &domain.Strategy{
 		Name:        t.Name() + " strategy",
 		Description: "strategy description",
 		Parameters:  domain.StrategyParams{},
 	}
-	err := store.SaveStrategy(t.Context(), st1)
+	err = store.SaveStrategy(t.Context(), st1)
 	require.NoError(t, err)
 
+	// Record
 	t1 := &domain.Trade{
 		StrategyID: st1.ID,
-		Symbol:     "XZY",
+		Listing:    testListing,
 		Currency:   "USD",
 		Direction:  domain.TradeBuy,
 		Quantity:   12.3,
@@ -242,8 +231,6 @@ func TestTrade(t *testing.T) {
 		PnL:        7.8,
 		Notes:      t.Name() + " note",
 	}
-
-	// Record
 	err = store.RecordTrade(t.Context(), t1)
 	require.NoError(t, err)
 
@@ -253,7 +240,7 @@ func TestTrade(t *testing.T) {
 	require.Equal(t, t1, t2)
 
 	// List (1 entry)
-	ts, err := store.ListTrades(t.Context(), t1.Symbol)
+	ts, err := store.ListTrades(t.Context(), t1.Listing)
 	require.NoError(t, err)
 	require.Len(t, ts, 1)
 	require.Equal(t, t1, &ts[0])
@@ -269,13 +256,12 @@ func TestStrategy(t *testing.T) {
 	store := newDataStore(t)
 	defer store.Close()
 
+	// Save
 	st1 := &domain.Strategy{
 		Name:        t.Name() + " strategy",
 		Description: "strategy description",
 		Parameters:  domain.StrategyParams{},
 	}
-
-	// Save
 	err := store.SaveStrategy(t.Context(), st1)
 	require.NoError(t, err)
 

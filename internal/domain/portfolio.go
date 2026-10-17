@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-// Package domain defines the core types and interfaces for adjudex.
-// This package MUST NOT import anything outside the Go standard library.
-// This ensures the domain model remains pure and free of infrastructure concerns.
-//
-// See AGENT.md §5 "Domain layer isolation" for the full rationale.
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/tdrn-org/go-finance"
+)
 
 // Portfolio represents a named collection of positions (watchlist or holdings).
 type Portfolio struct {
@@ -35,15 +34,15 @@ type Portfolio struct {
 
 // Position represents a tracked security within a portfolio.
 type Position struct {
-	ID         string    `json:"id"`
-	Symbol     string    `json:"symbol"`
-	Currency   string    `json:"currency"`
-	Quantity   float64   `json:"quantity"`
-	EntryPrice float64   `json:"entry_price"`
-	EntryDate  time.Time `json:"entry_date"`
-	Notes      string    `json:"notes,omitempty"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID         string                  `json:"id"`
+	Listing    finance.ProviderListing `json:"listing"`
+	Currency   finance.Currency        `json:"currency"`
+	Quantity   float64                 `json:"quantity"`
+	EntryPrice float64                 `json:"entry_price"`
+	EntryDate  time.Time               `json:"entry_date"`
+	Notes      string                  `json:"notes,omitempty"`
+	CreatedAt  time.Time               `json:"created_at"`
+	UpdatedAt  time.Time               `json:"updated_at"`
 }
 
 // Holding is a Position enriched with current market data.
@@ -80,14 +79,14 @@ func NewHolding(pos Position, currentPrice float64) Holding {
 type Holdings []Holding
 
 type HoldingsSummary struct {
-	Currency    string  `json:"currency"`
-	MarketValue float64 `json:"market_value"`
-	PnL         float64 `json:"pnl"`
-	PnLPercent  float64 `json:"pnl_percent"`
+	Currency    finance.Currency `json:"currency"`
+	MarketValue float64          `json:"market_value"`
+	PnL         float64          `json:"pnl"`
+	PnLPercent  float64          `json:"pnl_percent"`
 }
 
 func (holdings Holdings) Summarize() HoldingsSummary {
-	currency := ""
+	var currency finance.Currency
 	totalEntryPrice := 0.0
 	totalMarketValue := 0.0
 	for _, holding := range holdings {

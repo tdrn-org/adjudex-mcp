@@ -1,4 +1,5 @@
 SELECT
+    b.listing,
     a.timestamp,
     a.currency,
     a.open,
@@ -10,8 +11,9 @@ SELECT
     a.source,
     a.source_timestamp
 FROM
-    quote a
+    quote a, listing b
 WHERE
-    a.symbol = $1
+    a.listing_id = b.id AND
+    a.listing_id = $1
 ORDER BY
     a.timestamp DESC

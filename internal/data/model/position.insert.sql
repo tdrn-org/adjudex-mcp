@@ -2,7 +2,7 @@ INSERT INTO
     position(
         id,
         portfolio_id,
-        symbol,
+        listing_id,
         currency,
         quantity,
         entry_price,

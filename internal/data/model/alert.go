@@ -22,22 +22,23 @@ import (
 
 	"github.com/tdrn-org/adjudex-mcp/internal/domain"
 	"github.com/tdrn-org/go-database"
+	"github.com/tdrn-org/go-finance"
 )
 
 type Alert struct {
-	ID              string  `db:"id"`
-	Name            string  `db:"name"`
-	Symbol          string  `db:"symbol"`
-	Currency        string  `db:"currency"`
-	Condition       string  `db:"condition"`
-	Threshold       float64 `db:"threshold"`
-	IndicatorType   *string `db:"indicator_type"`
-	IndicatorPeriod *int    `db:"indicator_period"`
-	State           string  `db:"state"`
-	TriggeredAt     *int64  `db:"triggered_at"`
-	Message         string  `db:"message"`
-	CreatedAt       int64   `db:"created_at"`
-	UpdatedAt       int64   `db:"updated_at"`
+	ID              string                  `db:"id"`
+	Name            string                  `db:"name"`
+	Listing         finance.ProviderListing `db:"listing"`
+	Currency        finance.Currency        `db:"currency"`
+	Condition       string                  `db:"condition"`
+	Threshold       float64                 `db:"threshold"`
+	IndicatorType   *string                 `db:"indicator_type"`
+	IndicatorPeriod *int                    `db:"indicator_period"`
+	State           string                  `db:"state"`
+	TriggeredAt     *int64                  `db:"triggered_at"`
+	Message         string                  `db:"message"`
+	CreatedAt       int64                   `db:"created_at"`
+	UpdatedAt       int64                   `db:"updated_at"`
 }
 
 //go:embed alert.insert.sql
@@ -53,7 +54,7 @@ func InsertAlert(ctx context.Context, tx *database.Tx, alert *domain.Alert) (*Al
 	a := &Alert{
 		ID:              database.NewID(),
 		Name:            alert.Name,
-		Symbol:          alert.Symbol,
+		Listing:         alert.Listing,
 		Currency:        alert.Currency,
 		Condition:       string(alert.Condition),
 		Threshold:       alert.Threshold,
@@ -68,7 +69,7 @@ func InsertAlert(ctx context.Context, tx *database.Tx, alert *domain.Alert) (*Al
 	err := tx.ExecTx(ctx, insertAlertSQL,
 		a.ID,
 		a.Name,
-		a.Symbol,
+		a.Listing.ID(),
 		a.Currency,
 		a.Condition,
 		a.Threshold,
@@ -98,7 +99,7 @@ func UpdateAlert(ctx context.Context, tx *database.Tx, alert *domain.Alert) (*Al
 	a := &Alert{
 		ID:              alert.ID,
 		Name:            alert.Name,
-		Symbol:          alert.Symbol,
+		Listing:         alert.Listing,
 		Currency:        alert.Currency,
 		Condition:       string(alert.Condition),
 		Threshold:       alert.Threshold,
@@ -111,7 +112,7 @@ func UpdateAlert(ctx context.Context, tx *database.Tx, alert *domain.Alert) (*Al
 	}
 	err := tx.ExecTx(ctx, updateAlertByIDSQL,
 		a.Name,
-		a.Symbol,
+		a.Listing.ID(),
 		a.Currency,
 		a.Condition,
 		a.Threshold,
@@ -141,7 +142,7 @@ func SelectAlertByID(ctx context.Context, tx *database.Tx, id string) (*Alert, e
 	}
 	err = database.ScanRow(row, a,
 		"name",
-		"symbol",
+		"listing",
 		"currency",
 		"condition",
 		"threshold",
@@ -160,11 +161,12 @@ func SelectAlertByID(ctx context.Context, tx *database.Tx, id string) (*Alert, e
 	return a, nil
 }
 
-//go:embed alert.select_by_symbol.sql
-var selectAlertBySymbolSQL string
+//go:embed alert.select_by_listing_id.sql
+var selectAlertByListingIDSQL string
 
-func SelectAlertsBySymbol(ctx context.Context, tx *database.Tx, symbol string) ([]*Alert, error) {
-	rows, err := tx.QueryTx(ctx, selectAlertBySymbolSQL, symbol)
+func SelectAlertsByListing(ctx context.Context, tx *database.Tx, listing finance.ProviderListing) ([]*Alert, error) {
+	rows, err := tx.QueryTx(ctx, selectAlertByListingIDSQL,
+		listing.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +174,7 @@ func SelectAlertsBySymbol(ctx context.Context, tx *database.Tx, symbol string) (
 	as := make([]*Alert, 0)
 	for rows.Next() {
 		a := &Alert{
-			Symbol: symbol,
+			Listing: listing,
 		}
 		err = database.Scan(rows, a)
 		if err != nil {

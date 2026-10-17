@@ -1,7 +1,7 @@
 UPDATE
     position
 SET
-    symbol = $1,
+    listing_id = $1,
     currency = $2,
     quantity = $3,
     entry_price = $4,

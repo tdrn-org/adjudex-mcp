@@ -1,6 +1,6 @@
 INSERT INTO
     quote(
-        symbol,
+        listing_id,
         timestamp,
         currency,
         open,

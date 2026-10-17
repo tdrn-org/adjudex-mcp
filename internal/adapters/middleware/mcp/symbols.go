@@ -41,7 +41,10 @@ func addSymbolSearchTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
 
-		results := runtime.QuoteService().ResolveSymbols(ctx, args.Query)
+		results, err := runtime.MarketDataProvider().SearchListings(ctx, args.Query)
+		if err != nil {
+			return nil, fmt.Errorf("search failure: %w", err)
+		}
 		return newToolResult(results)
 	})
 }

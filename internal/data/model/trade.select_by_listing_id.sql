@@ -1,6 +1,7 @@
 SELECT
     a.id,
     a.strategy_id,
+    b.listing,
     a.currency,
     a.direction,
     a.quantity,
@@ -10,6 +11,7 @@ SELECT
     a.pnl,
     a.notes
 FROM
-    trade a
+    trade a, listing b
 WHERE
-    a.symbol = $1
+    a.listing_id = b.id AND
+    a.listing_id = $1

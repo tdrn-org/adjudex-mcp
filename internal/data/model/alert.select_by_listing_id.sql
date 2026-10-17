@@ -1,6 +1,7 @@
 SELECT
     a.id,
     a.name,
+    b.listing,
     a.currency,
     a.condition,
     a.threshold,
@@ -12,6 +13,7 @@ SELECT
     a.created_at,
     a.updated_at
 FROM
-    alert a
+    alert a, listing b
 WHERE
-    a.symbol = $1
+    a.listing_id = b.id AND
+    a.listing_id = $1

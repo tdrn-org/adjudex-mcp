@@ -33,11 +33,12 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/adapters/middleware/rest"
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
-	"github.com/tdrn-org/adjudex-mcp/internal/stock"
+	"github.com/tdrn-org/adjudex-mcp/internal/marketdata"
 	"github.com/tdrn-org/adjudex-mcp/internal/web"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
 	"github.com/tdrn-org/go-database/sqlite"
+	"github.com/tdrn-org/go-finance"
 	"github.com/tdrn-org/go-httpserver"
 	"github.com/tdrn-org/go-jobticker"
 	"github.com/tdrn-org/go-tlsconf/tlsclient"
@@ -46,14 +47,14 @@ import (
 const serverJobTickerSchedule time.Duration = 5 * time.Minute
 
 type Server struct {
-	cfg             *config.Config
-	dataStore       *data.Store
-	httpServer      *httpserver.Instance
-	baseURL         *url.URL
-	metricsRecorder *metrics.Recorder
-	quoteService    *stock.QuoteService
-	jobTicker       *jobticker.SequentialQueue
-	logger          *slog.Logger
+	cfg                *config.Config
+	dataStore          *data.Store
+	httpServer         *httpserver.Instance
+	baseURL            *url.URL
+	metricsRecorder    *metrics.Recorder
+	marketDataProvider *marketdata.Provider
+	jobTicker          *jobticker.SequentialQueue
+	logger             *slog.Logger
 }
 
 func StartServer(ctx context.Context, cfg *config.Config) (*Server, error) {
@@ -69,7 +70,7 @@ func StartServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 		s.startStore,
 		s.startHttpServer,
 		s.startMetrics,
-		s.startQuoteService,
+		s.startMarketdataProvider,
 		s.startRestAPI,
 		s.startWebUI,
 		s.startMCPHandler,
@@ -109,6 +110,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) Close() error {
 	closeFuncs := []func() error{
 		s.closeHttpServer,
+		s.closeMarketDataProvider,
 		s.closeStore,
 	}
 	closeErrs := make([]error, 0, len(closeFuncs))
@@ -215,14 +217,21 @@ func (s *Server) closeHttpServer() error {
 	return s.httpServer.Close()
 }
 
-func (s *Server) startQuoteService(_ context.Context, cfg *config.Config) error {
-	runtime := &serverRuntime{server: s}
-	quoteService, err := stock.NewQuoteService(runtime, &cfg.QuoteService)
+func (s *Server) startMarketdataProvider(_ context.Context, cfg *config.Config) error {
+	// TODO: Make currency an option
+	marketDataProvider, err := marketdata.NewProvider(&cfg.Provider, finance.CurrencyUSD)
 	if err != nil {
 		return err
 	}
-	s.quoteService = quoteService
+	s.marketDataProvider = marketDataProvider
 	return nil
+}
+
+func (s *Server) closeMarketDataProvider() error {
+	if s.marketDataProvider == nil {
+		return nil
+	}
+	return s.marketDataProvider.Close()
 }
 
 func (s *Server) startRestAPI(_ context.Context, _ *config.Config) error {
@@ -246,7 +255,6 @@ func (s *Server) startJobTicker(ctx context.Context, cfg *config.Config) error {
 	schedule := serverJobTickerSchedule
 	deadline := 4 * schedule
 	jobs := []jobticker.JobFunc{
-		s.quoteService.FetchQuotes,
 		s.evalAlerts,
 		s.collectMetrics,
 	}
@@ -278,8 +286,8 @@ func (runtime *serverRuntime) MetricsRecorder() *metrics.Recorder {
 	return runtime.server.metricsRecorder
 }
 
-func (runtime *serverRuntime) QuoteService() *stock.QuoteService {
-	return runtime.server.quoteService
+func (runtime *serverRuntime) MarketDataProvider() *marketdata.Provider {
+	return runtime.server.marketDataProvider
 }
 
 func (runtime *serverRuntime) Ping(ctx context.Context) error {

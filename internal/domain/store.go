@@ -19,36 +19,35 @@ package domain
 import (
 	"context"
 	"time"
+
+	"github.com/tdrn-org/go-finance"
 )
 
 // PortfolioStore defines the persistence interface for portfolios and positions.
 type PortfolioStore interface {
-	CreatePortfolio(ctx context.Context, p *Portfolio) error
+	CreatePortfolio(ctx context.Context, portfolio *Portfolio) error
 	GetPortfolio(ctx context.Context, id string) (*Portfolio, error)
 	ListPortfolios(ctx context.Context) ([]Portfolio, error)
 	DeletePortfolio(ctx context.Context, id string) error
-	AddPosition(ctx context.Context, portfolioID string, pos *Position) error
+	AddPosition(ctx context.Context, portfolioID string, position *Position) error
 	RemovePosition(ctx context.Context, portfolioID string, positionID string) error
-	UpdatePosition(ctx context.Context, portfolioID string, pos *Position) error
-	// ListSymbols returns all distinct symbols across all portfolios and positions
-	// including the timestamp of their latest quote.
-	// Used by the background quote poller to know which symbols to fetch.
-	ListSymbols(ctx context.Context) (map[string]time.Time, error)
+	UpdatePosition(ctx context.Context, portfolioID string, position *Position) error
+	ListLastQuotes(ctx context.Context) ([]Quote, error)
 }
 
 // QuoteStore defines the persistence interface for quote data.
 type QuoteStore interface {
-	SaveQuote(ctx context.Context, q *Quote) error
+	SaveQuote(ctx context.Context, quote *Quote) error
 	SaveQuotes(ctx context.Context, quotes []Quote) error
-	GetQuotes(ctx context.Context, symbol string, from, to time.Time) ([]Quote, error)
-	GetLatestQuote(ctx context.Context, symbol string) (*Quote, error)
+	GetQuotes(ctx context.Context, listing finance.ProviderListing, from, to time.Time) ([]Quote, error)
+	GetLatestQuote(ctx context.Context, symbol finance.ProviderListing) (*Quote, error)
 }
 
 // AlertStore defines the persistence interface for alerts.
 type AlertStore interface {
 	CreateAlert(ctx context.Context, a *Alert) error
 	GetAlert(ctx context.Context, id string) (*Alert, error)
-	ListAlerts(ctx context.Context, symbol string) ([]Alert, error)
+	ListAlerts(ctx context.Context, listing finance.ProviderListing) ([]Alert, error)
 	ListArmedAlerts(ctx context.Context) ([]Alert, error)
 	UpdateAlert(ctx context.Context, a *Alert) error
 	DeleteAlert(ctx context.Context, id string) error
@@ -58,7 +57,7 @@ type AlertStore interface {
 type TradeStore interface {
 	RecordTrade(ctx context.Context, t *Trade) error
 	GetTrade(ctx context.Context, id string) (*Trade, error)
-	ListTrades(ctx context.Context, symbol string) ([]Trade, error)
+	ListTrades(ctx context.Context, listing finance.ProviderListing) ([]Trade, error)
 	ListTradesByStrategy(ctx context.Context, strategyID string) ([]Trade, error)
 }
 

@@ -30,23 +30,54 @@ type = "memory"
 [store.sqlite]
 file = "./adjudex.db"
 
-[quote_service]
-currency = "USD"
-max_age = "6h"
+[provider.fx]
+providers = [ "demo" ]
+cooldown = "10m"
+cache_ttl = "1h"
 
-[quote_service.demo]
-enabled = false
-online = true
+[provider.listings]
+providers = [ "demo" ]
+cooldown = "10m"
+listing_cache_ttl = "12h"
+quote_cache_ttl = "5m"
 
-[quote_service.alphavantage]
-enabled = false
-online = false
+[provider.demo]
+enabled = true
+
+[provider.alphavantage]
+base_url = "https://www.alphavantage.co/query/"
 api_key = ""
 
-[quote_service.twelvedata]
-enabled = false
-online = true
+[provider.consorsbank]
+address = "localhost:40443"
+skip_verify = false
+ca_file = "root.pem"
+secret = ""
+include_exchanges = []
+preferred_currency = ""
+subscription_timeout = "1h"
+
+[provider.frankfurter]
+base_url = "https://api.frankfurter.dev/v2/"
+
+[provider.openfigi]
+base_url = "https://api.openfigi.com/v3"
 api_key = ""
+
+[provider.twelvedata]
+api_key = ""
+include_mics = []
+include_instrument_types = []
+
+[provider.cache]
+type = "memory"
+
+[provider.cache.memory]
+
+[provider.cache.redis]
+address = "localhost:6379"
+password = ""
+db = 0
 
 [metrics]
 enabled = false

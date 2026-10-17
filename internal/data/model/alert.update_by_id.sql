@@ -2,7 +2,7 @@ UPDATE
     alert
 SET
     name = $1,
-    symbol = $2,
+    listing_id = $2,
     currency = $3,
     condition = $4,
     threshold = $5,

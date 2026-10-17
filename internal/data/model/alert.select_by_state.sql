@@ -1,6 +1,6 @@
 SELECT
     a.id,
-    a.symbol,
+    b.listing,
     a.currency,
     a.name,
     a.condition,
@@ -12,6 +12,7 @@ SELECT
     a.created_at,
     a.updated_at
 FROM
-    alert a
+    alert a, listing b
 WHERE
+    a.listing_id = b.id AND
     a.state = $1

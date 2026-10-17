@@ -1,26 +1,26 @@
 --
--- Symbol
+-- Listing
 --
-CREATE TABLE symbol(
+CREATE TABLE listing(
     id TEXT NOT NULL,
-    exchange TEXT NOT NULL,
-    ticker TEXT NOT NULL,
-    isin TEXT NOT NULL,
-    wkn TEXT NOT NULL,
-    figi TEXT NOT NULL,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    PRIMARY KEY(id),
-    UNIQUE(exchange,ticker),
-    UNIQUE(isin),
-    UNIQUE(wkn),
-    UNIQUE(figi)
+    listing TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    instrument_name TEXT NOT NULL,
+    instrument_type TEXT NOT NULL,
+    PRIMARY KEY(id)
+);
+CREATE TABLE listing_attribute(
+    listing_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    PRIMARY KEY(listing_id,key,key),
+    FOREIGN KEY(listing_id) REFERENCES listing(id)
 );
 --
 -- Quote
 --
 CREATE TABLE quote(
-    symbol TEXT NOT NULL,
+    listing_id TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
     currency TEXT NOT NULL,
     open REAL NOT NULL,
@@ -31,7 +31,8 @@ CREATE TABLE quote(
     volume INTEGER NOT NULL,
     source TEXT NOT NULL,
     source_timestamp INTEGER NOT NULL,
-    PRIMARY KEY(symbol, source_timestamp)
+    PRIMARY KEY(listing_id, timestamp),
+    FOREIGN KEY(listing_id) REFERENCES listing(id)
 );
 --
 -- Portfolio
@@ -50,7 +51,7 @@ CREATE TABLE portfolio(
 CREATE TABLE position(
     id TEXT NOT NULL,
     portfolio_id TEXT NOT NULL,
-    symbol TEXT NOT NULL,
+    listing_id TEXT NOT NULL,
     currency TEXT NOT NULL,
     quantity REAL NOT NULL,
     entry_price REAL NOT NULL,
@@ -59,17 +60,18 @@ CREATE TABLE position(
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     PRIMARY KEY(id),
-    FOREIGN KEY(portfolio_id) REFERENCES portfolio(id)
+    FOREIGN KEY(portfolio_id) REFERENCES portfolio(id),
+    FOREIGN KEY(listing_id) REFERENCES listing(id)
 );
 CREATE INDEX idx_position_portfolio_id ON position(portfolio_id);
-CREATE INDEX idx_position_symbol ON position(symbol);
+CREATE INDEX idx_position_listing_id ON position(listing_id);
 --
 -- Alert
 --
 CREATE TABLE alert(
     id TEXT NOT NULL,
     name TEXT NOT NULL,
-    symbol TEXT NOT NULL,
+    listing_id TEXT NOT NULL,
     currency TEXT NOT NULL,
     condition TEXT NOT NULL,
     threshold REAL NOT NULL,
@@ -80,9 +82,10 @@ CREATE TABLE alert(
     message TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
-    PRIMARY KEY(id)
+    PRIMARY KEY(id),
+    FOREIGN KEY(listing_id) REFERENCES listing(id)
 );
-CREATE INDEX idx_alert_symbol ON alert(symbol);
+CREATE INDEX idx_alert_listing_id ON alert(listing_id);
 CREATE INDEX idx_alert_state ON alert(state);
 --
 -- Strategy
@@ -107,7 +110,7 @@ CREATE TABLE strategy(
 CREATE TABLE trade(
     id TEXT NOT NULL,
     strategy_id TEXT NOT NULL,
-    symbol TEXT NOT NULL,
+    listing_id TEXT NOT NULL,
     currency TEXT NOT NULL,
     direction TEXT NOT NULL,
     quantity REAL NOT NULL,
@@ -117,10 +120,11 @@ CREATE TABLE trade(
     pnl REAL NOT NULL,
     notes TEXT NOT NULL,
     PRIMARY KEY(id),
-    FOREIGN KEY(strategy_id) REFERENCES strategy(id)
+    FOREIGN KEY(strategy_id) REFERENCES strategy(id),
+    FOREIGN KEY(listing_id) REFERENCES listing(id)
 );
 CREATE INDEX idx_trade_strategy_id ON trade(strategy_id);
-CREATE INDEX idx_trade_symbol ON trade(symbol);
+CREATE INDEX idx_trade_listing_id ON trade(listing_id);
 --
 -- EOF
 --

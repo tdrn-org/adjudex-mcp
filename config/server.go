@@ -31,6 +31,7 @@ type ServerConfig struct {
 	AllowedOrigins     []string            `toml:"allowed_origins"`
 	AccessLog          string              `toml:"access_log"`
 	AccessLogSizeLimit int64               `toml:"access_log_size_limit"`
+	SessionCookieName  string              `toml:"session_cookie_name"`
 }
 
 type ServerProtocol string

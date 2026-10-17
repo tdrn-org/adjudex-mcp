@@ -2,7 +2,7 @@ INSERT INTO
     alert(
         id,
         name,
-        symbol,
+        listing_id,
         currency,
         condition,
         threshold,

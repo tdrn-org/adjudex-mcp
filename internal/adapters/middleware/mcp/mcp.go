@@ -24,14 +24,14 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/tdrn-org/adjudex-mcp/internal/buildinfo"
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
-	"github.com/tdrn-org/adjudex-mcp/internal/stock"
+	"github.com/tdrn-org/adjudex-mcp/internal/marketdata"
 )
 
 type Runtime interface {
 	BaseURL() *url.URL
 	Logger() *slog.Logger
 	DataStore() *data.Store
-	QuoteService() *stock.QuoteService
+	MarketDataProvider() *marketdata.Provider
 }
 
 func NewHandler(runtime Runtime) http.Handler {
