@@ -22,9 +22,14 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+
+	// link to include version info
+	_ "github.com/tdrn-org/go-finance"
 )
 
 const undefined = "<dev build>"
+
+const noBuildInfo = "<no build info>"
 
 var cmd = undefined
 var version = undefined
@@ -49,7 +54,7 @@ func FullVersion() string {
 func Extended() string {
 	buildInfo, ok := debug.ReadBuildInfo()
 	if !ok {
-		return "<no build info>"
+		return noBuildInfo
 	}
 	buffer := &strings.Builder{}
 	fmt.Fprint(buffer, "Build toolchain ", buildInfo.GoVersion)
@@ -58,4 +63,17 @@ func Extended() string {
 		fmt.Fprint(buffer, "  ", setting.Key, "=", strconv.Quote(setting.Value))
 	}
 	return buffer.String()
+}
+
+func FinanceVersion() string {
+	buildInfo, ok := debug.ReadBuildInfo()
+	if !ok {
+		return noBuildInfo
+	}
+	for _, dep := range buildInfo.Deps {
+		if dep.Path == "github.com/tdrn-org/go-finance" {
+			return dep.Version
+		}
+	}
+	return undefined
 }

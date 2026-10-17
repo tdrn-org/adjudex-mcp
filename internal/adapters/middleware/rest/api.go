@@ -121,13 +121,15 @@ func (api *API) PingGet(w http.ResponseWriter, r *http.Request) {
 //	@Router			/api/v1/info [get]
 func (api *API) InfoGet(w http.ResponseWriter, r *http.Request) {
 	info := &serverInfo{
-		Version: buildinfo.Version(),
+		Version:        buildinfo.Version(),
+		FinanceVersion: buildinfo.FinanceVersion(),
 	}
 	api.sendJSON(w, r, http.StatusOK, info)
 }
 
 type serverInfo struct {
-	Version string `json:"version"`
+	Version        string `json:"version"`
+	FinanceVersion string `json:"finance_version"`
 }
 
 // =============================================================================

@@ -42,3 +42,7 @@ func TestFullVersion(t *testing.T) {
 func TestExtended(t *testing.T) {
 	require.Regexp(t, "^Build toolchain ", buildinfo.Extended())
 }
+
+func TestFinanceVersion(t *testing.T) {
+	require.Regexp(t, "^v\\d+\\.\\d+\\.\\d+$", buildinfo.FinanceVersion())
+}
