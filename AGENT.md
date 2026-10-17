@@ -53,7 +53,7 @@ All modules follow the path pattern `github.com/tdrn-org/<name>`.
 | go-conf | `github.com/tdrn-org/go-conf` | Configuration loading (file + env) |
 | go-tlsconf | `github.com/tdrn-org/go-tlsconf` | TLS setup for HTTPS mode |
 | go-database | `github.com/tdrn-org/go-database` | SQLite access, transactions, schema migrations |
-| go-finance | `github.com/tdrn-org/go-finance` | Financial reference data — instrument identity (`ProviderListing`), quotes, exchange rates, provider system |
+| go-finance | `github.com/tdrn-org/go-finance` | Financial reference data — instrument identity (`Listing`), quotes, exchange rates, provider system |
 
 External libraries are only permitted when no own alternative exists.
 **Document the reason in a comment or ADR when adding an external dependency.**
@@ -174,16 +174,16 @@ All external dependencies (DB, HTTP, MCP) depend on domain — never the reverse
 
 The distinction that matters: an *infrastructure* dependency (driver, transport,
 vendor SDK) never enters the domain; a *domain model* authored by us may.
-`finance.ProviderListing` is a value with our own semantics — not a driver.
+`finance.Listing` is a value with our own semantics — not a driver.
 
 ### go-finance domain types (ADR-011)
 
 `github.com/tdrn-org/go-finance` is our own domain-model library. Its
-`ProviderListing` is the identity carrier of a listed instrument (provider plus
+`Listing` is the identity carrier of a listed instrument (provider plus
 attributes: symbol, ticker, ISIN, WKN, exchange, MIC); its `Quote` is the price
 snapshot for exactly that listing.
 
-- **`finance.ProviderListing` is used directly in domain types.** It replaces the
+- **`finance.Listing` is used directly in domain types.** It replaces the
   former `symbol string`. No adjudex mirror type — a parallel structure would have
   to be maintained in lockstep with every go-finance API change, and it would
   re-introduce the stringly-typed identity that was already rejected.

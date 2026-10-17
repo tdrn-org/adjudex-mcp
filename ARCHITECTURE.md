@@ -448,7 +448,7 @@ mechanical, stdlib-only change that fixes the mismatch at the source.
 **Decision**:
 - Adopt `github.com/tdrn-org/go-finance` as adjudex' instrument-identity and
   quote domain model.
-- `finance.ProviderListing` replaces the former `symbol string` in domain types
+- `finance.Listing` replaces the former `symbol string` in domain types
   (Quote, PriceHistory, SymbolInfo) — used **directly**, with no adjudex mirror
   type.
 - `type Quote finance.Quote` is a **Definition** (`type Quote = …` alias rejected):
@@ -459,12 +459,12 @@ mechanical, stdlib-only change that fixes the mismatch at the source.
   SDKs) still never enter `internal/domain/`.
 - Comparison semantics: `ListingProvider.SameListing(a, b) bool` — identity,
   provider-semantic — instead of a generic/reflective `Equal`.
-  `ProviderListing.Equal` stays reserved for *data* equality, built on the
+  `Listing.Equal` stays reserved for *data* equality, built on the
   canonical `String()` form. Naming follows the stdlib distinction:
   `Same` = identity (`os.SameFile`), `Equal` = data (`bytes.Equal`).
 
 **Reason**:
-- Instrument identity is **provider-issued**: `ProviderListing` carries exactly
+- Instrument identity is **provider-issued**: `Listing` carries exactly
   the identifying attributes the source itself supplies (provider, instrument
   name/type, symbol, ticker, ISIN, WKN, exchange, MIC, currency). Mirroring it
   would duplicate the model and drift on every go-finance change.
@@ -498,7 +498,7 @@ mechanical, stdlib-only change that fixes the mismatch at the source.
 
 **Open item (deliberately not decided here)**:
 Who owns the instrument identity — adjudex' own `symbol` table with surrogate key,
-or go-finance (`ProviderListing` + its `SymbolStore`/database/sql persistence)?
+or go-finance (`Listing` + its `SymbolStore`/database/sql persistence)?
 `Quote.Listing` is the source-side view in either case. The two must never become
 two competing identities; the decision has to be explicit before the integration
 is built.

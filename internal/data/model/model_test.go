@@ -29,7 +29,7 @@ import (
 	"github.com/tdrn-org/go-finance"
 )
 
-var testListing finance.ProviderListing = *finance.NewProviderListing("test", finance.ListingAttributeKeySymbol).
+var testListing finance.Listing = *finance.NewListing("test", finance.ListingAttributeKeySymbol).
 	InstrumentName("test instrument").
 	InstrumentType(finance.InstrumentTypeEquity).
 	Attribute(finance.ListingAttributeKeySymbol, "test").
