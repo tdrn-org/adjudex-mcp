@@ -55,7 +55,8 @@ func addTradeRecordTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
 
-		if err := validateListing(args.Listing); err != nil {
+		listing, err := resolveListing(ctx, runtime, args.Listing)
+		if err != nil {
 			return nil, err
 		}
 
@@ -85,7 +86,7 @@ func addTradeRecordTool(server *mcp.Server, runtime Runtime) {
 
 		t := &domain.Trade{
 			StrategyID: args.StrategyID,
-			Listing:    args.Listing,
+			Listing:    listing,
 			Currency:   currency,
 			Direction:  direction,
 			Quantity:   args.Quantity,

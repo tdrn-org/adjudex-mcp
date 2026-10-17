@@ -137,7 +137,8 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
 
-		if err := validateListing(args.Listing); err != nil {
+		listing, err := resolveListing(ctx, runtime, args.Listing)
+		if err != nil {
 			return nil, err
 		}
 
@@ -154,7 +155,7 @@ func addPositionAddTool(server *mcp.Server, runtime Runtime) {
 		currency := args.Currency
 
 		pos := &domain.Position{
-			Listing:    args.Listing,
+			Listing:    listing,
 			Currency:   currency,
 			Quantity:   args.Quantity,
 			EntryPrice: args.EntryPrice,

@@ -34,29 +34,37 @@ func addQuoteTools(server *mcp.Server, runtime Runtime) {
 	addRateGetTool(server, runtime)
 }
 
-// validateListing guards the API boundary against a listing that carries no
-// identity — for example because a client used the wrong field name or passed a
-// ticker instead of the opaque listing value.
+// resolveListing replaces the listing a caller passed with the one the store
+// holds for its ID.
 //
-// finance.Listing.Validate rejects an empty listing (ErrEmptyListing) as well as
-// one without provider, id keys or instrument name. Without this check one
-// malformed client call takes the whole server down: a listing without internal
-// data dereferences nil on its first getter.
-func validateListing(listing finance.Listing) error {
-	if _, err := listing.Validate(); err != nil {
-		return fmt.Errorf(`invalid listing: pass the "listing" value returned by symbol_search: %w`, err)
+// A listing on the wire carries the ID only: instrument name and type are not
+// part of it, and a caller cannot be trusted to report them. Resolving against
+// the store proves that the server issued this listing in the first place and
+// supplies the description the response needs. A listing the store does not know
+// is rejected - it must be obtained via symbol_search first.
+func resolveListing(ctx context.Context, runtime Runtime, listing finance.Listing) (finance.Listing, error) {
+	resolved, err := runtime.DataStore().ResolveListing(ctx, listing)
+	if err != nil {
+		return listing, fmt.Errorf(`cannot use listing %q: %w`, listing.ID(), err)
 	}
-	return nil
+	return resolved, nil
 }
 
 // validateOptionalListing guards a listing that only acts as a filter: an unset
-// listing means "no filter" and must not be rejected. Listing.ID() is safe to call
-// on a zero value (unlike the other getters).
+// listing means "no filter" and must not be rejected.
+//
+// A filter is matched by ID, so nothing is resolved here. An ID that matches
+// nothing simply yields an empty result - unlike a listing that is used, which
+// has to resolve, see [resolveListing].
 func validateOptionalListing(listing finance.Listing) error {
 	if listing.ID() == "" {
 		return nil
 	}
-	return validateListing(listing)
+	_, err := finance.ParseListingID(listing.ID())
+	if err != nil {
+		return fmt.Errorf("invalid listing filter: %w", err)
+	}
+	return nil
 }
 
 // addRateGetTool registers the exchange-rate tool.
@@ -93,8 +101,8 @@ func addRateGetTool(server *mcp.Server, runtime Runtime) {
 func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "quote_get",
-		Description: "Fetches the latest quote for a listing. Uses cached data when available, falls back to live provider. Pass the listing value returned by symbol_search.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing value (opaque base64 string) returned by symbol_search."}},"required":["listing"]}`),
+		Description: "Fetches the latest quote for a listing. Uses cached data when available, falls back to live provider. Pass the listing ID returned by symbol_search.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by symbol_search."}},"required":["listing"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Listing finance.Listing `json:"listing"`
@@ -102,13 +110,14 @@ func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
-		if err := validateListing(args.Listing); err != nil {
+		listing, err := resolveListing(ctx, runtime, args.Listing)
+		if err != nil {
 			return nil, err
 		}
 
-		quote, err := runtime.MarketDataProvider().QueryQuote(ctx, args.Listing)
+		quote, err := runtime.MarketDataProvider().QueryQuote(ctx, listing)
 		if err != nil {
-			return nil, fmt.Errorf("resolving quote for %q: %w", args.Listing.String(), err)
+			return nil, fmt.Errorf("resolving quote for %q: %w", listing.String(), err)
 		}
 		return newToolResult(quote)
 	})
@@ -117,8 +126,8 @@ func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "quote_history",
-		Description: "Returns historical quotes for a listing within a date range. Uses cached data when available, falls back to live provider. Pass the listing value returned by symbol_search.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing value (opaque base64 string) returned by symbol_search."},"from":{"type":"string","description":"Start date (RFC3339 format, e.g. 2026-06-01T00:00:00Z). Defaults to 30 days ago."},"to":{"type":"string","description":"End date (RFC3339 format). Defaults to now."}},"required":["listing"]}`),
+		Description: "Returns historical quotes for a listing within a date range. Uses cached data when available, falls back to live provider. Pass the listing ID returned by symbol_search.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by symbol_search."},"from":{"type":"string","description":"Start date (RFC3339 format, e.g. 2026-06-01T00:00:00Z). Defaults to 30 days ago."},"to":{"type":"string","description":"End date (RFC3339 format). Defaults to now."}},"required":["listing"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Listing finance.Listing `json:"listing"`
@@ -128,7 +137,8 @@ func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
-		if err := validateListing(args.Listing); err != nil {
+		listing, err := resolveListing(ctx, runtime, args.Listing)
+		if err != nil {
 			return nil, err
 		}
 
@@ -151,13 +161,13 @@ func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 			}
 		}
 
-		quotes, err := runtime.DataStore().GetQuotes(ctx, args.Listing, from, to)
+		quotes, err := runtime.DataStore().GetQuotes(ctx, listing, from, to)
 		if err != nil || len(quotes) == 0 {
-			return nil, fmt.Errorf("fetching history for %q: %w", args.Listing.String(), err)
+			return nil, fmt.Errorf("fetching history for %q: %w", listing.String(), err)
 		}
 
 		history := domain.PriceHistory{
-			Listing: args.Listing,
+			Listing: listing,
 			Quotes:  quotes,
 		}
 		return newToolResult(history)
@@ -167,8 +177,8 @@ func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 func addQuoteIndicatorTool(server *mcp.Server, runtime Runtime) {
 	server.AddTool(&mcp.Tool{
 		Name:        "quote_indicator",
-		Description: "Computes a technical indicator (SMA, EMA, RSI, MACD) for a listing over a given period. Pass the listing value returned by symbol_search.",
-		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing value (opaque base64 string) returned by symbol_search."},"type":{"type":"string","description":"Indicator type: sma, ema, rsi, macd."},"period":{"type":"integer","description":"Lookback period (e.g. 20 for SMA-20). Defaults to 20."}},"required":["listing","type"]}`),
+		Description: "Computes a technical indicator (SMA, EMA, RSI, MACD) for a listing over a given period. Pass the listing ID returned by symbol_search.",
+		InputSchema: json.RawMessage(`{"type":"object","properties":{"listing":{"type":"string","description":"The listing ID (e.g. \"twelvedata:ticker=AAPL:mic=XNGS\") returned by symbol_search."},"type":{"type":"string","description":"Indicator type: sma, ema, rsi, macd."},"period":{"type":"integer","description":"Lookback period (e.g. 20 for SMA-20). Defaults to 20."}},"required":["listing","type"]}`),
 	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		var args struct {
 			Listing finance.Listing `json:"listing"`
@@ -178,7 +188,8 @@ func addQuoteIndicatorTool(server *mcp.Server, runtime Runtime) {
 		if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
-		if err := validateListing(args.Listing); err != nil {
+		listing, err := resolveListing(ctx, runtime, args.Listing)
+		if err != nil {
 			return nil, err
 		}
 
@@ -195,9 +206,9 @@ func addQuoteIndicatorTool(server *mcp.Server, runtime Runtime) {
 
 		now := time.Now()
 		from := now.AddDate(0, -3, 0)
-		quotes, err := runtime.DataStore().GetQuotes(ctx, args.Listing, from, now)
+		quotes, err := runtime.DataStore().GetQuotes(ctx, listing, from, now)
 		if err != nil || len(quotes) < args.Period {
-			return nil, fmt.Errorf("fetching history for %q: %w", args.Listing.String(), err)
+			return nil, fmt.Errorf("fetching history for %q: %w", listing.String(), err)
 		}
 
 		if len(quotes) < args.Period {

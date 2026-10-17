@@ -35,14 +35,15 @@ var testListing finance.Listing = *finance.NewListing("test", finance.ListingAtt
 	Attribute(finance.ListingAttributeKeySymbol, "test").
 	Build().MustValidate()
 
-func TestAddPositionCreatesListing(t *testing.T) {
+// TestAddPositionRequiresRegisteredListing pins the registry contract: a listing
+// only enters the store via AddListing, i.e. as a result the server handed out.
+// A position that refers to an unknown ID is rejected instead of creating the
+// instrument on the fly - a client must not be able to define what an instrument
+// is called.
+func TestAddPositionRequiresRegisteredListing(t *testing.T) {
 	store := newDataStore(t)
 	defer store.Close()
 
-	// No AddListing on purpose: a client adding the first position of a new
-	// instrument has never seen a quote for it, so the store does not know the
-	// listing yet. It used to fail with "FOREIGN KEY constraint failed" — the
-	// position table references listing, and nothing created the row.
 	portfolio := &domain.Portfolio{
 		Name:        t.Name(),
 		Description: t.Name() + " portfolio",
@@ -58,13 +59,79 @@ func TestAddPositionCreatesListing(t *testing.T) {
 		EntryDate:  time.Date(2026, 10, 17, 0, 0, 0, 0, time.Local),
 	}
 	err = store.AddPosition(t.Context(), portfolio.ID, position)
+	require.ErrorIs(t, err, data.ErrUnknownListing)
+	require.Empty(t, position.ID)
+}
+
+// TestAddPositionUsesRegisteredListing makes sure a position carries the stored
+// description of its instrument, not whatever the caller supplied.
+func TestAddPositionUsesRegisteredListing(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	require.NoError(t, store.AddListing(t.Context(), testListing))
+
+	portfolio := &domain.Portfolio{
+		Name:        t.Name(),
+		Description: t.Name() + " portfolio",
+	}
+	require.NoError(t, store.CreatePortfolio(t.Context(), portfolio))
+
+	// The caller passes an identity-only listing, as it arrives over the wire.
+	identityOnly, err := finance.ParseListingID(testListing.ID())
+	require.NoError(t, err)
+	require.Empty(t, identityOnly.InstrumentName())
+
+	position := &domain.Position{
+		Listing:    identityOnly,
+		Currency:   finance.CurrencyUSD,
+		Quantity:   1.0,
+		EntryPrice: 100.0,
+		EntryDate:  time.Date(2026, 10, 17, 0, 0, 0, 0, time.Local),
+	}
+	err = store.AddPosition(t.Context(), portfolio.ID, position)
 	require.NoError(t, err)
 	require.NotEmpty(t, position.ID)
+	require.Equal(t, testListing.ID(), position.Listing.ID())
+	require.Equal(t, "test instrument", position.Listing.InstrumentName())
 
-	// The listing must now be known, so a second position or an alert works too.
 	listings, err := store.ListPositionListings(t.Context())
 	require.NoError(t, err)
 	require.Len(t, listings, 1)
+}
+
+// TestResolveListing covers the lookup that replaces trusting the wire form.
+func TestResolveListing(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+	require.NoError(t, store.AddListing(t.Context(), testListing))
+
+	identityOnly, err := finance.ParseListingID(testListing.ID())
+	require.NoError(t, err)
+
+	resolved, err := store.ResolveListing(t.Context(), identityOnly)
+	require.NoError(t, err)
+	require.Equal(t, testListing.String(), resolved.String())
+	require.Equal(t, testListing.InstrumentName(), resolved.InstrumentName())
+	require.Equal(t, testListing.InstrumentType(), resolved.InstrumentType())
+
+	unknown, err := finance.ParseListingID("test:symbol=unknown")
+	require.NoError(t, err)
+	_, err = store.ResolveListing(t.Context(), unknown)
+	require.ErrorIs(t, err, data.ErrUnknownListing)
+}
+
+// TestAddListingRejectsIncomplete makes sure an identity-only listing never
+// reaches the store: it would be a row without a description, and Validate is
+// what keeps that out.
+func TestAddListingRejectsIncomplete(t *testing.T) {
+	store := newDataStore(t)
+	defer store.Close()
+
+	identityOnly, err := finance.ParseListingID(testListing.ID())
+	require.NoError(t, err)
+	err = store.AddListing(t.Context(), identityOnly)
+	require.Error(t, err)
 }
 
 func TestPortfolio(t *testing.T) {

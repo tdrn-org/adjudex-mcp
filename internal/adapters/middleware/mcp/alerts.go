@@ -54,7 +54,8 @@ func addAlertCreateTool(server *mcp.Server, runtime Runtime) {
 			return nil, fmt.Errorf("parsing arguments: %w", err)
 		}
 
-		if err := validateListing(args.Listing); err != nil {
+		listing, err := resolveListing(ctx, runtime, args.Listing)
+		if err != nil {
 			return nil, err
 		}
 
@@ -81,7 +82,7 @@ func addAlertCreateTool(server *mcp.Server, runtime Runtime) {
 
 		a := &domain.Alert{
 			Name:      args.Name,
-			Listing:   args.Listing,
+			Listing:   listing,
 			Currency:  currency,
 			Condition: condition,
 			Threshold: args.Threshold,

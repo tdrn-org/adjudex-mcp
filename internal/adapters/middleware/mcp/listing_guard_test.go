@@ -32,17 +32,11 @@ func validTestListing(t *testing.T) finance.Listing {
 		Build().MustValidate()
 }
 
-// TestValidateListingRejectsZeroValue pins the boundary guard for tools that take
-// a required listing. A client that follows the schema but uses the wrong field
-// name produces a zero value; without this check the first getter dereferences nil
-// internal data and takes the whole server down (it did, in production).
-func TestValidateListingRejectsZeroValue(t *testing.T) {
-	require.Error(t, validateListing(finance.Listing{}))
-	require.NoError(t, validateListing(validTestListing(t)))
-}
-
 // TestValidateOptionalListingAllowsUnset makes sure a filter argument stays
 // optional: an unset listing means "no filter" and must not be rejected.
+//
+// A malformed listing ID cannot even be constructed: it would have to be parsed
+// first, and parsing rejects it - see finance.ParseListingID.
 func TestValidateOptionalListingAllowsUnset(t *testing.T) {
 	require.NoError(t, validateOptionalListing(finance.Listing{}))
 	require.NoError(t, validateOptionalListing(validTestListing(t)))

@@ -54,6 +54,10 @@ func TestPositionJSONIncludesListingInfo(t *testing.T) {
 	require.NoError(t, json.Unmarshal(encoded, &doc))
 	require.Contains(t, doc, "listing", "the listing value must stay usable for follow-up requests")
 	require.Contains(t, doc, "listing_info")
+	// The value matters, not just its presence: a listing embedded in a struct
+	// marshalled by value is not addressable, and a pointer-only Marshaler would
+	// silently render as an empty object here.
+	require.Equal(t, position.Listing.ID(), doc["listing"], "the listing must be the ID: %s", encoded)
 
 	info, ok := doc["listing_info"].(map[string]any)
 	require.True(t, ok, "listing_info must be an object: %s", encoded)
@@ -90,6 +94,7 @@ func TestHoldingJSONStaysFlat(t *testing.T) {
 	require.Contains(t, doc, "entry_price")
 	require.Contains(t, doc, "current_price")
 	require.Contains(t, doc, "listing")
+	require.Equal(t, position.Listing.ID(), doc["listing"], "the listing must be the ID: %s", encoded)
 	require.Equal(t, "Test Instrument", doc["listing_info"].(map[string]any)["instrument_name"])
 }
 

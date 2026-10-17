@@ -46,6 +46,16 @@ func addSymbolSearchTool(server *mcp.Server, runtime Runtime) {
 		if err != nil {
 			return nil, fmt.Errorf("search failure: %w", err)
 		}
+		// Register what is handed out: the listing ID is all a client gets back
+		// later, and only a registered ID can be resolved into the instrument it
+		// identifies. An unregistered result would be a candidate that cannot be
+		// used, so a registration failure fails the search.
+		for _, listing := range results {
+			err := runtime.DataStore().AddListing(ctx, listing)
+			if err != nil {
+				return nil, fmt.Errorf("registering listing %q: %w", listing.ID(), err)
+			}
+		}
 		return newToolResult(domain.NewListingInfos(results))
 	})
 }

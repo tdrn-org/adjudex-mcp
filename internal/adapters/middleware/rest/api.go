@@ -19,12 +19,12 @@ package rest
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -244,29 +244,37 @@ func (api *API) displayCurrency(r *http.Request) finance.Currency {
 	return api.runtime.DisplayCurrency()
 }
 
-// listingFromPath decodes the listing passed as a path segment.
+// listingFromPath reads the listing ID passed as a path segment.
 //
-// A listing is serialized as a JSON string holding compressed, base64 encoded
-// text. The raw path segment therefore has to be quoted before it is
-// unmarshalled — handing it to json.Unmarshal directly can never work, which is
-// why this endpoint answered every request with "unexpected end of JSON input".
-//
-// The decoded listing is validated as well: a listing without identity has no
-// internal data and would be rejected (or worse) on its first getter.
-func listingFromPath(r *http.Request) (finance.Listing, error) {
-	var listing finance.Listing
+// The ID identifies an instrument; it is resolved against the store, which is
+// where the description (instrument name, type) comes from and which proves that
+// the server issued this listing at all. A listing that only arrives as an ID is
+// never enough on its own - see [finance.Listing.MarshalJSON].
+func (api *API) listingFromPath(r *http.Request) (finance.Listing, error) {
+	var unset finance.Listing
 	raw := r.PathValue("listing")
 	if raw == "" {
-		return listing, fmt.Errorf("no listing in path, expected /quotes/{listing}")
+		return unset, fmt.Errorf("no listing in path, expected /quotes/{listing}")
 	}
-	if err := json.Unmarshal([]byte(strconv.Quote(raw)), &listing); err != nil {
-		return listing, fmt.Errorf("invalid listing %q: %w", raw, err)
-	}
-	validated, err := listing.Validate()
+	listing, err := finance.ParseListingID(raw)
 	if err != nil {
-		return listing, fmt.Errorf("invalid listing %q: %w", raw, err)
+		return unset, fmt.Errorf("invalid listing %q: %w", raw, err)
 	}
-	return *validated, nil
+	resolved, err := api.runtime.DataStore().ResolveListing(r.Context(), listing)
+	if err != nil {
+		return unset, fmt.Errorf("unusable listing %q: %w", raw, err)
+	}
+	return resolved, nil
+}
+
+// sendListingError reports a listing that could not be read from the request:
+// malformed is the caller's mistake, unknown is a stale or foreign ID.
+func (api *API) sendListingError(w http.ResponseWriter, r *http.Request, err error) {
+	status := http.StatusBadRequest
+	if errors.Is(err, data.ErrUnknownListing) {
+		status = http.StatusNotFound
+	}
+	api.sendError(w, r, status, err)
 }
 
 // GET @BasePath/rates
@@ -559,9 +567,9 @@ func (api *API) PositionRemove(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{string}	string	"not found"
 //	@Router			/api/v1/quotes/{listing} [get]
 func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
-	listing, err := listingFromPath(r)
+	listing, err := api.listingFromPath(r)
 	if err != nil {
-		api.sendError(w, r, http.StatusBadRequest, err)
+		api.sendListingError(w, r, err)
 		return
 	}
 
@@ -585,9 +593,9 @@ func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{string}	string	"not found"
 //	@Router			/api/v1/quotes/{symbol}/history [get]
 func (api *API) QuoteHistory(w http.ResponseWriter, r *http.Request) {
-	listing, err := listingFromPath(r)
+	listing, err := api.listingFromPath(r)
 	if err != nil {
-		api.sendError(w, r, http.StatusBadRequest, err)
+		api.sendListingError(w, r, err)
 		return
 	}
 	now := time.Now()

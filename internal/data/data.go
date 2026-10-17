@@ -18,6 +18,8 @@ package data
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -47,7 +49,20 @@ func (s *Store) Close() error {
 	return s.driver.Close()
 }
 
+// ErrUnknownListing indicates a listing whose ID the server did not issue, and
+// which therefore cannot be resolved.
+var ErrUnknownListing error = errors.New("unknown listing")
+
+// AddListing registers a listing, so that a client can refer to it by its ID.
+//
+// This is the only way a listing enters the store on behalf of a client: the
+// client receives an ID from symbol_search and hands it back later. Only complete
+// listings are accepted - an incomplete one would be stored under an ID that
+// identifies nothing, and it could never be resolved again.
 func (s *Store) AddListing(ctx context.Context, listing finance.Listing) error {
+	if _, err := listing.Validate(); err != nil {
+		return fmt.Errorf("registering listing: %w", err)
+	}
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return err
@@ -85,6 +100,35 @@ func ensureListing(ctx context.Context, tx *database.Tx, listing finance.Listing
 	return err
 }
 
+// ResolveListing returns the stored form of the given listing.
+//
+// A listing that arrives from a client carries the ID only - instrument name and
+// type are not part of it. The store is the only trustworthy source for them, and
+// resolving against it also proves that the server issued this listing in the
+// first place: a caller cannot introduce an instrument by assembling an ID.
+func (s *Store) ResolveListing(ctx context.Context, listing finance.Listing) (finance.Listing, error) {
+	txCtx, tx, err := s.driver.BeginTx(ctx)
+	if err != nil {
+		return listing, err
+	}
+	defer tx.RollbackUncommitedTx(txCtx)
+	return resolveListing(txCtx, tx, listing)
+}
+
+// resolveListing is ResolveListing within an existing transaction.
+func resolveListing(ctx context.Context, tx *database.Tx, listing finance.Listing) (finance.Listing, error) {
+	existing, err := model.SelectListing(ctx, tx, listing.ID())
+	if err != nil {
+		return listing, err
+	}
+	if existing == nil {
+		return listing, fmt.Errorf("%w: %q: obtain the listing via symbol_search", ErrUnknownListing, listing.ID())
+	}
+	// Deliberately the stored listing and not the caller's one: whatever the
+	// caller says about the instrument is replaced by what was registered.
+	return existing.Listing, nil
+}
+
 func (s *Store) CreatePortfolio(ctx context.Context, portfolio *domain.Portfolio) error {
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
@@ -97,8 +141,13 @@ func (s *Store) CreatePortfolio(ctx context.Context, portfolio *domain.Portfolio
 		return err
 	}
 	poss := make([]*model.Position, 0, len(portfolio.Positions))
-	for _, position := range portfolio.Positions {
-		pos, err := model.InsertPosition(txCtx, tx, p.ID, &position)
+	for i := range portfolio.Positions {
+		resolved, err := resolveListing(txCtx, tx, portfolio.Positions[i].Listing)
+		if err != nil {
+			return err
+		}
+		portfolio.Positions[i].Listing = resolved
+		pos, err := model.InsertPosition(txCtx, tx, p.ID, &portfolio.Positions[i])
 		if err != nil {
 			return err
 		}
@@ -231,10 +280,11 @@ func (s *Store) AddPosition(ctx context.Context, portfolioID string, position *d
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	err = ensureListing(txCtx, tx, position.Listing)
+	resolved, err := resolveListing(txCtx, tx, position.Listing)
 	if err != nil {
 		return err
 	}
+	position.Listing = resolved
 
 	pos, err := model.InsertPosition(txCtx, tx, portfolioID, position)
 	if err != nil {
@@ -428,10 +478,11 @@ func (s *Store) CreateAlert(ctx context.Context, alert *domain.Alert) error {
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	err = ensureListing(txCtx, tx, alert.Listing)
+	resolved, err := resolveListing(txCtx, tx, alert.Listing)
 	if err != nil {
 		return err
 	}
+	alert.Listing = resolved
 
 	a, err := model.InsertAlert(txCtx, tx, alert)
 	if err != nil {
@@ -591,10 +642,11 @@ func (s *Store) RecordTrade(ctx context.Context, trade *domain.Trade) error {
 	}
 	defer tx.RollbackUncommitedTx(txCtx)
 
-	err = ensureListing(txCtx, tx, trade.Listing)
+	resolved, err := resolveListing(txCtx, tx, trade.Listing)
 	if err != nil {
 		return err
 	}
+	trade.Listing = resolved
 
 	t, err := model.InsertTrade(txCtx, tx, trade)
 	if err != nil {
