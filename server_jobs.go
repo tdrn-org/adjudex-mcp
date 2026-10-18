@@ -26,6 +26,29 @@ import (
 	"github.com/tdrn-org/go-finance"
 )
 
+func (s *Server) queryAndSaveQuotes(ctx context.Context, last, now time.Time) error {
+	s.logger.Info("querying and saving quotes...")
+
+	listings, err := s.dataStore.ListPositionListings(ctx)
+	if err != nil {
+		s.logger.Error("failed list listings for quote querying", slog.Any("err", err))
+		return err
+	}
+	for _, listing := range listings {
+		quote, err := s.marketDataProvider.QueryQuote(ctx, listing)
+		if err != nil {
+			s.logger.Error("failed query quote", slog.Any("listing", listing), slog.Any("err", err))
+			continue
+		}
+		err = s.dataStore.SaveQuote(ctx, quote)
+		if err != nil {
+			s.logger.Error("failed save quote", slog.Any("listing", listing), slog.Any("err", err))
+			continue
+		}
+	}
+	return nil
+}
+
 func (s *Server) evalAlerts(ctx context.Context, last, now time.Time) error {
 	s.logger.Info("evaluating alerts...")
 
@@ -59,7 +82,7 @@ func (s *Server) collectMetrics(ctx context.Context, last, now time.Time) error 
 
 	listings, err := s.dataStore.ListPositionListings(ctx)
 	if err != nil {
-		s.logger.Error("failed list symbols for metric collection", slog.Any("err", err))
+		s.logger.Error("failed list listings for metric collection", slog.Any("err", err))
 		return err
 	}
 	quoteMap := make(map[string]*domain.Quote, len(listings))
@@ -86,7 +109,7 @@ func (s *Server) collectMetrics(ctx context.Context, last, now time.Time) error 
 				holdings = append(holdings, domain.NewHolding(position, positionQuote.ListingPrice))
 				bases = append(bases, position.Currency, positionQuote.Currency)
 			} else {
-				s.logger.Error("missing symbol quote in metric collection", slog.String("listing", position.Listing.ID()))
+				s.logger.Error("missing listing quote in metric collection", slog.Any("listing", position.Listing))
 			}
 		}
 		target := s.cfg.Display.Currency

@@ -274,6 +274,7 @@ func (s *Server) startJobTicker(ctx context.Context, cfg *config.Config) error {
 	schedule := serverJobTickerSchedule
 	deadline := 4 * schedule
 	jobs := []jobticker.JobFunc{
+		s.queryAndSaveQuotes,
 		s.evalAlerts,
 		s.collectMetrics,
 	}
