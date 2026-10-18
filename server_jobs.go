@@ -18,6 +18,7 @@ package adjudexmcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -36,6 +37,10 @@ func (s *Server) queryAndSaveQuotes(ctx context.Context, last, now time.Time) er
 	}
 	for _, listing := range listings {
 		quote, err := s.marketDataProvider.QueryQuote(ctx, listing)
+		if errors.Is(err, finance.ErrRequestPending) {
+			time.Sleep(200 * time.Millisecond)
+			quote, err = s.marketDataProvider.QueryQuote(ctx, listing)
+		}
 		if err != nil {
 			s.logger.Error("failed query quote", slog.Any("listing", listing), slog.Any("err", err))
 			continue
