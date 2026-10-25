@@ -26,7 +26,7 @@ CREATE TABLE quote(
     open REAL NOT NULL,
     high REAL NOT NULL,
     low REAL NOT NULL,
-    close REAL NOT NULL,
+    previous_close REAL NOT NULL,
     price REAL NOT NULL,
     volume INTEGER NOT NULL,
     source TEXT NOT NULL,

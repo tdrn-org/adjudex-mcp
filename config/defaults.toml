@@ -37,13 +37,17 @@ file = "./adjudex.db"
 currency = "EUR"
 
 [provider.fx]
-providers = [ "demo" ]
 cooldown = "10m"
+
+[[provider.fx.provider]]
+name = "demo"
 cache_ttl = "1h"
 
 [provider.listings]
-providers = [ "demo" ]
 cooldown = "10m"
+
+[[provider.listings.provider]]
+name = "demo"
 listing_cache_ttl = "12h"
 quote_cache_ttl = "5m"
 

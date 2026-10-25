@@ -31,11 +31,39 @@ type = "memory"
 file = "./adjudex.db"
 
 [provider.fx]
-providers = [ "frankfurter", "alphavantage", "consorsbank", "twelvedata" ]
-cache_ttl = "6h"
+cooldown_ttl = "15m"
+
+[[provider.fx.provider]]
+name = "frankfurter"
+cache_ttl = "2h"
+
+[[provider.fx.provider]]
+name = "alphavantage"
+cache_ttl = "3h"
+
+[[provider.fx.provider]]
+name = "consorsbank"
+cache_ttl = "4h"
+
+[[provider.fx.provider]]
+name = "twelvedata"
+cache_ttl = "5h"
 
 [provider.listings]
-providers = [ "alphavantage", "consorsbank", "twelvedata" ]
+cooldown_ttl = "15m"
+
+[[provider.listings.provider]]
+name = "alphavantage"
+listing_cache_ttl = "4h"
+quote_cache_ttl = "3h"
+
+[[provider.listings.provider]]
+name = "consorsbank"
+listing_cache_ttl = "5h"
+quote_cache_ttl = "2h"
+
+[[provider.listings.provider]]
+name = "twelvedata"
 listing_cache_ttl = "6h"
 quote_cache_ttl = "1h"
 

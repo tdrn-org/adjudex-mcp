@@ -48,7 +48,7 @@ var testQuote *domain.Quote = func() *domain.Quote {
 		Open:            1.0,
 		High:            1.2,
 		Low:             0.9,
-		Close:           1.1,
+		PreviousClose:   1.1,
 		Price:           123.456,
 		Volume:          42,
 		Currency:        finance.CurrencyUSD,

@@ -33,7 +33,7 @@ type Quote struct {
 	Open            float64          `db:"open"`
 	High            float64          `db:"high"`
 	Low             float64          `db:"low"`
-	Close           float64          `db:"close"`
+	PreviousClose   float64          `db:"previous_close"`
 	Price           float64          `db:"price"`
 	Volume          int64            `db:"volume"`
 	Source          string           `db:"source"`
@@ -51,7 +51,7 @@ func InsertQuote(ctx context.Context, tx *database.Tx, quote *domain.Quote) (*Qu
 		Open:            quote.Open,
 		High:            quote.High,
 		Low:             quote.Low,
-		Close:           quote.Close,
+		PreviousClose:   quote.PreviousClose,
 		Price:           quote.Price,
 		Volume:          quote.Volume,
 		Source:          quote.Source,
@@ -64,7 +64,7 @@ func InsertQuote(ctx context.Context, tx *database.Tx, quote *domain.Quote) (*Qu
 		q.Open,
 		q.High,
 		q.Low,
-		q.Close,
+		q.PreviousClose,
 		q.Price,
 		q.Volume,
 		q.Source,
@@ -94,7 +94,7 @@ func SelectLatestQuote(ctx context.Context, tx *database.Tx, listing finance.Lis
 		"open",
 		"high",
 		"low",
-		"close",
+		"previous_close",
 		"price",
 		"volume",
 		"source",

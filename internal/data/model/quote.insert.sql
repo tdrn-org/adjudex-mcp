@@ -6,7 +6,7 @@ INSERT INTO
         open,
         high,
         low,
-        close,
+        previous_close,
         price,
         volume,
         source,

@@ -463,7 +463,7 @@ func (s *Store) modelToQuote(q *model.Quote, listing finance.Listing) *domain.Qu
 		Open:            q.Open,
 		High:            q.High,
 		Low:             q.Low,
-		Close:           q.Close,
+		PreviousClose:   q.PreviousClose,
 		Price:           q.Price,
 		Volume:          q.Volume,
 		Source:          q.Source,

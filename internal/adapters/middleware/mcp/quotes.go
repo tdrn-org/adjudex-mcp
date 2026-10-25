@@ -239,7 +239,7 @@ func computeSMA(quotes []domain.Quote, period int) []domain.IndicatorValue {
 	for i := period - 1; i < len(quotes); i++ {
 		sum := 0.0
 		for j := i - period + 1; j <= i; j++ {
-			sum += quotes[j].Close
+			sum += quotes[j].PreviousClose
 		}
 		values = append(values, domain.IndicatorValue{
 			Listing:   quotes[i].Listing,
@@ -261,7 +261,7 @@ func computeEMA(quotes []domain.Quote, period int) []domain.IndicatorValue {
 
 	sum := 0.0
 	for i := 0; i < period; i++ {
-		sum += quotes[i].Close
+		sum += quotes[i].PreviousClose
 	}
 	ema := sum / float64(period)
 	values = append(values, domain.IndicatorValue{
@@ -273,7 +273,7 @@ func computeEMA(quotes []domain.Quote, period int) []domain.IndicatorValue {
 	})
 
 	for i := period; i < len(quotes); i++ {
-		ema = (quotes[i].Close-ema)*multiplier + ema
+		ema = (quotes[i].PreviousClose-ema)*multiplier + ema
 		values = append(values, domain.IndicatorValue{
 			Listing:   quotes[i].Listing,
 			Type:      domain.IndicatorEMA,

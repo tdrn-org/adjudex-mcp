@@ -234,14 +234,17 @@ func (s *Server) startMarketdataProvider(_ context.Context, cfg *config.Config) 
 // A misconfigured provider list otherwise degrades silently: the server starts,
 // answers every request, and reports synthetic prices.
 func (s *Server) warnAboutDemoProviders(cfg *config.Config) {
-	for _, name := range cfg.Provider.Listings.ProviderNames {
-		if string(name) == demo.Name {
-			s.logger.Warn("demo provider is active for listings: quoted prices are SYNTHETIC, not real market data")
+	if !cfg.Provider.Demo.Enabled {
+		return
+	}
+	for _, provider := range cfg.Provider.FX.Providers {
+		if string(provider.Name) == demo.Name {
+			s.logger.Warn("demo provider is active for FX: exchange rates are SYNTHETIC, not real market data")
 		}
 	}
-	for _, name := range cfg.Provider.FX.ProviderNames {
-		if string(name) == demo.Name {
-			s.logger.Warn("demo provider is active for FX: exchange rates are SYNTHETIC, not real market data")
+	for _, provider := range cfg.Provider.Listings.Providers {
+		if string(provider.Name) == demo.Name {
+			s.logger.Warn("demo provider is active for listings: quoted prices are SYNTHETIC, not real market data")
 		}
 	}
 }

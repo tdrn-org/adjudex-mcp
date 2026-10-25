@@ -5,7 +5,7 @@ SELECT
     a.open,
     a.high,
     a.low,
-    a.close,
+    a.previous_close,
     a.price,
     a.volume,
     a.source,
