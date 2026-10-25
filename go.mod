@@ -15,7 +15,7 @@ require (
 	github.com/tdrn-org/go-diff v0.1.6
 	github.com/tdrn-org/go-finance v0.0.16
 	github.com/tdrn-org/go-httpserver v0.1.6
-	github.com/tdrn-org/go-jobticker v0.0.4
+	github.com/tdrn-org/go-jobticker v0.0.5
 	github.com/tdrn-org/go-log v0.6.4
 	github.com/tdrn-org/go-tlsconf v0.0.15
 	go.opentelemetry.io/otel v1.47.0

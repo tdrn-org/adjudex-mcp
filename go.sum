@@ -150,8 +150,8 @@ github.com/tdrn-org/go-finance v0.0.16 h1:MZtPnL5099vn4T7UN+vud8ZDg8MVO1g7HLoUff
 github.com/tdrn-org/go-finance v0.0.16/go.mod h1:npMuZHKs4KhvY0mUMtv0OV+WqMvEg+ThGLTF1AiqRN8=
 github.com/tdrn-org/go-httpserver v0.1.6 h1:rtCIaPGnYLswQmUd4WZIx+oK1BhsOCkQVllonoNJQas=
 github.com/tdrn-org/go-httpserver v0.1.6/go.mod h1:FMywF9Fu9S+4sW89vXxcgJzup8dZyNnoAO0m84f3AYI=
-github.com/tdrn-org/go-jobticker v0.0.4 h1:+TkwadeD3OVhexN7FBGXFa4Vo5EgHbI917kFmHq1TgQ=
-github.com/tdrn-org/go-jobticker v0.0.4/go.mod h1:HzUPBFXVrLfXd0xsSP7i8DDzc4XiLSRwYiVarcm20D0=
+github.com/tdrn-org/go-jobticker v0.0.5 h1:BkPuwD9DZ8t3t5YTacBgJAE+j8wHt+KMDuqVv2K2Sac=
+github.com/tdrn-org/go-jobticker v0.0.5/go.mod h1:xnDpD9ozCBAuJnRXtco6o3dpO0qt8FJmew1e79/0FyM=
 github.com/tdrn-org/go-log v0.6.4 h1:AvpO/nizfq5O+wq6rJNocXG4HsIvsUAhgIG/MOg5LGI=
 github.com/tdrn-org/go-log v0.6.4/go.mod h1:BlnqMMnt1DwQjJZuxMy0qSffPttdv6ubcod6mgGBvzA=
 github.com/tdrn-org/go-tlsconf v0.0.15 h1:VscbpWYkvVY8fJf3ncGgFRRAmRQWTL1Uxr5JP9zRz2U=
