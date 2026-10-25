@@ -94,3 +94,13 @@ type = "memory"
 address = "localhost:6379"
 password = ""
 db = 0
+
+[tracing]
+enabled = true
+protocol = "http"
+endpoint_url = "https://localhost:4317"
+batch_timeout = "10s"
+export_timeout = "60s"
+
+[tracing.headers]
+X-Scope-OrgID = "tenant-id"

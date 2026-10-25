@@ -92,3 +92,13 @@ db = 0
 [metrics]
 enabled = false
 path = "/metrics"
+
+[tracing]
+enabled = false
+protocol = "gRPC"
+endpoint_url = "http://localhost:4317"
+batch_timeout = "5s"
+export_timeout = "30s"
+
+[tracing.headers]
+#X-Scope-OrgID = ""

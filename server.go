@@ -34,6 +34,7 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
 	"github.com/tdrn-org/adjudex-mcp/internal/marketdata"
+	"github.com/tdrn-org/adjudex-mcp/internal/trace"
 	"github.com/tdrn-org/adjudex-mcp/internal/web"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
@@ -49,6 +50,7 @@ const serverJobTickerSchedule time.Duration = 5 * time.Minute
 
 type Server struct {
 	cfg                *config.Config
+	traceProvider      *trace.Provider
 	dataStore          *data.Store
 	httpServer         *httpserver.Instance
 	baseURL            *url.URL
@@ -68,6 +70,7 @@ func StartServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 		logger: earlyLogger,
 	}
 	startFuncs := []func(context.Context, *config.Config) error{
+		s.startTracing,
 		s.startStore,
 		s.startHttpServer,
 		s.startMetrics,
@@ -100,6 +103,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	shutdownFuncs := []func(context.Context) error{
 		s.shutdownJobTicker,
 		s.shutdownHttpServer,
+		s.shutdownTracing,
 	}
 	shutdownErrs := make([]error, 0, len(shutdownFuncs))
 	for _, shutdownFunc := range shutdownFuncs {
@@ -139,6 +143,27 @@ func (s *Server) Ping(ctx context.Context) error {
 		return fmt.Errorf("failed to ping URL: '%s' (status: %s)", pingURL, rsp.Status)
 	}
 	return nil
+}
+
+func (s *Server) startTracing(ctx context.Context, cfg *config.Config) error {
+	if !cfg.Tracing.Enabled {
+		return nil
+	}
+	s.logger.Info("starting tracing...")
+	provider, err := trace.Start(ctx, traceOptions(cfg.Tracing))
+	if err != nil {
+		return err
+	}
+	s.traceProvider = provider
+	return nil
+}
+
+func (s *Server) shutdownTracing(ctx context.Context) error {
+	if s.traceProvider == nil {
+		return nil
+	}
+	s.logger.Info("shutting down tracing...")
+	return s.traceProvider.Shutdown(ctx)
 }
 
 func (s *Server) startStore(ctx context.Context, cfg *config.Config) error {
@@ -190,18 +215,6 @@ func (s *Server) startHttpServer(ctx context.Context, cfg *config.Config) error 
 	return nil
 }
 
-func (s *Server) startMetrics(ctx context.Context, cfg *config.Config) error {
-	if cfg.Metrics.Enabled {
-		s.logger.Info("enabling metrics endpoint...", slog.String("path", cfg.Metrics.Path))
-		registry := prometheus.NewRegistry()
-		s.metricsRecorder = metrics.NewRecorder(registry)
-		s.httpServer.Handle("GET "+cfg.Metrics.Path, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	} else {
-		s.metricsRecorder = metrics.NewRecorder(nil)
-	}
-	return nil
-}
-
 func (s *Server) shutdownHttpServer(ctx context.Context) error {
 	if s.httpServer == nil {
 		return nil
@@ -216,6 +229,18 @@ func (s *Server) closeHttpServer() error {
 	}
 	s.logger.Info("closing HTTP server...")
 	return s.httpServer.Close()
+}
+
+func (s *Server) startMetrics(ctx context.Context, cfg *config.Config) error {
+	if cfg.Metrics.Enabled {
+		s.logger.Info("enabling metrics endpoint...", slog.String("path", cfg.Metrics.Path))
+		registry := prometheus.NewRegistry()
+		s.metricsRecorder = metrics.NewRecorder(registry)
+		s.httpServer.Handle("GET "+cfg.Metrics.Path, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	} else {
+		s.metricsRecorder = metrics.NewRecorder(nil)
+	}
+	return nil
 }
 
 func (s *Server) startMarketdataProvider(_ context.Context, cfg *config.Config) error {

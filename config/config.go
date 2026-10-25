@@ -31,6 +31,7 @@ type Config struct {
 	Provider financeconfig.Config `toml:"provider"`
 	Display  DisplayConfig        `toml:"display"`
 	Metrics  MetricsConfig        `toml:"metrics"`
+	Tracing  TracingConfig        `toml:"tracing"`
 }
 
 // DisplayConfig holds the presentation preferences of the user interface.

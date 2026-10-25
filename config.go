@@ -18,9 +18,12 @@ package adjudexmcp
 
 import (
 	"log/slog"
+	"reflect"
+	"time"
 
 	"github.com/rs/cors"
 	"github.com/tdrn-org/adjudex-mcp/config"
+	"github.com/tdrn-org/adjudex-mcp/internal/trace"
 	"github.com/tdrn-org/go-conf/service/loglevel"
 	"github.com/tdrn-org/go-httpserver"
 	"github.com/tdrn-org/go-httpserver/certificate"
@@ -93,4 +96,15 @@ func httpServerOptions(cfg *config.ServerConfig) []httpserver.OptionSetter {
 		httpServerOptions = append(httpServerOptions, httpserver.WithAccessLog(accessLogLogger))
 	}
 	return httpServerOptions
+}
+
+func traceOptions(cfg config.TracingConfig) *trace.Options {
+	return &trace.Options{
+		ServiceName:   reflect.TypeFor[Server]().PkgPath(),
+		Protocol:      trace.Protocol(cfg.Protocol),
+		EndpointURL:   cfg.EndpointURL.URL,
+		BatchTimeout:  time.Duration(cfg.BatchTimeout),
+		ExportTimeout: time.Duration(cfg.ExportTimeout),
+		Headers:       cfg.Headers,
+	}
 }
