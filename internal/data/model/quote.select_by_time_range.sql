@@ -15,6 +15,6 @@ FROM
 WHERE
     a.listing_id = b.id AND
     a.listing_id = $1 AND
-    a.source_timestamp BETWEEN $2 AND $3
+    a.timestamp BETWEEN $2 AND $3
 ORDER BY
     a.timestamp ASC
