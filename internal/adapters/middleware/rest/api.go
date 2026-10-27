@@ -93,6 +93,7 @@ func (api *API) Mount(server *httpserver.Instance) {
 
 const responseOK string = "ok"
 const responseServerError string = "server error"
+const responseNotFound string = "not found"
 
 // GET @BasePath/ping
 //
@@ -100,7 +101,7 @@ const responseServerError string = "server error"
 //	@Description	Ping the server to check general health
 //	@Produce		text/plain
 //	@Success		200	{string}	string	"ok"
-//	@Failure		500	{string}	string	"server error"
+//	@Failure		500	{string}	string "server error"
 //	@Router			/api/v1/ping [get]
 func (api *API) PingGet(w http.ResponseWriter, r *http.Request) {
 	err := api.runtime.Ping(r.Context())
@@ -168,6 +169,9 @@ func (api *API) PortfolioGet(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("getting portfolio %q: %w", id, err))
 		return
+	} else if p == nil {
+		api.sendPlainTextResponse(w, r, http.StatusNotFound, responseNotFound)
+		return
 	}
 	api.sendJSON(w, r, http.StatusOK, p)
 }
@@ -192,7 +196,8 @@ func (api *API) PortfolioCreate(w http.ResponseWriter, r *http.Request) {
 		Name:        req.Name,
 		Description: req.Description,
 	}
-	if err := api.runtime.DataStore().CreatePortfolio(r.Context(), p); err != nil {
+	err := api.runtime.DataStore().CreatePortfolio(r.Context(), p)
+	if err != nil {
 		api.sendError(w, r, http.StatusInternalServerError, fmt.Errorf("creating portfolio: %w", err))
 		return
 	}
@@ -214,7 +219,8 @@ type portfolioCreateRequest struct {
 //	@Router			/api/v1/portfolios/{id} [delete]
 func (api *API) PortfolioDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if err := api.runtime.DataStore().DeletePortfolio(r.Context(), id); err != nil {
+	err := api.runtime.DataStore().DeletePortfolio(r.Context(), id)
+	if err != nil {
 		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("deleting portfolio %q: %w", id, err))
 		return
 	}
@@ -585,7 +591,7 @@ func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
 		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("resolving quote for %q: %w", listing.String(), err))
 		return
 	} else if q == nil {
-		api.sendPlainTextResponse(w, r, http.StatusNotFound, "not found")
+		api.sendPlainTextResponse(w, r, http.StatusNotFound, responseNotFound)
 		return
 	}
 	api.sendJSON(w, r, http.StatusOK, q)
