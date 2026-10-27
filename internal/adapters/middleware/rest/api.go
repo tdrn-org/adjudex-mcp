@@ -584,6 +584,9 @@ func (api *API) QuoteGet(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("resolving quote for %q: %w", listing.String(), err))
 		return
+	} else if q == nil {
+		api.sendPlainTextResponse(w, r, http.StatusNotFound, "not found")
+		return
 	}
 	api.sendJSON(w, r, http.StatusOK, q)
 }

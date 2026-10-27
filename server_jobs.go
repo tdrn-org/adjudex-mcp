@@ -67,6 +67,8 @@ func (s *Server) evalAlerts(ctx context.Context, last, now time.Time) error {
 		if err != nil {
 			s.logger.Warn("failed to get latest quote for alert", slog.String("listing", alert.Listing.ID()), slog.Any("err", err))
 			continue
+		} else if quote == nil {
+			continue
 		}
 		if alert.Evaluate(quote.Price) {
 			s.logger.Info("alert triggered!", slog.String("alert", alert.Name), slog.String("listing", alert.Listing.ID()), "price", quote.Price)
@@ -95,6 +97,8 @@ func (s *Server) collectMetrics(ctx context.Context, last, now time.Time) error 
 		if err != nil {
 			s.logger.Error("failed get latest quote for metric collection", slog.String("listing", listing.ID()), slog.Any("err", err))
 			return err
+		} else if quote == nil {
+			continue
 		}
 		quoteMap[quote.Listing.ID()] = quote
 		s.metricsRecorder.RecordQuote(quote)
