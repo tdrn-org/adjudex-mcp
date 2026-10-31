@@ -18,7 +18,7 @@ definitions:
         $ref: '#/definitions/finance.Currency'
       current_price:
         allOf:
-        - $ref: '#/definitions/finance.ListingPrice'
+        - $ref: '#/definitions/finance.Tick'
         description: |-
           CurrentPrice is the price the market value is based on, including its
           currency and provenance.
@@ -513,7 +513,7 @@ definitions:
     type: object
   finance.Listing:
     type: object
-  finance.ListingPrice:
+  finance.Tick:
     properties:
       currency:
         allOf:

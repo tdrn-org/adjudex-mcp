@@ -114,7 +114,7 @@ func (s *Server) collectMetrics(ctx context.Context, last, now time.Time) error 
 		for _, position := range portfolio.Positions {
 			positionQuote := quoteMap[position.Listing.ID()]
 			if positionQuote != nil {
-				holdings = append(holdings, domain.NewHolding(position, positionQuote.ListingPrice))
+				holdings = append(holdings, domain.NewHolding(position, positionQuote.Tick))
 				bases = append(bases, position.Currency, positionQuote.Currency)
 			} else {
 				s.logger.Error("missing listing quote in metric collection", slog.Any("listing", position.Listing))

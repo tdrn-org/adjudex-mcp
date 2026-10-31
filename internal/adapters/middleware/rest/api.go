@@ -343,7 +343,7 @@ func (api *API) PortfolioSummaries(w http.ResponseWriter, r *http.Request) {
 				api.runtime.Logger().Warn("failed to resolve quote for summary", "listing", pos.Listing.ID(), "err", err)
 				continue
 			}
-			holdings = append(holdings, domain.NewHolding(pos, quote.ListingPrice))
+			holdings = append(holdings, domain.NewHolding(pos, quote.Tick))
 			bases = append(bases, pos.Currency, quote.Currency)
 		}
 
@@ -399,7 +399,7 @@ func (api *API) PortfolioHoldings(w http.ResponseWriter, r *http.Request) {
 			api.runtime.Logger().Warn("failed to resolve quote for holding", "listing", pos.Listing.ID(), "err", err)
 			continue
 		}
-		holdings = append(holdings, domain.NewHolding(pos, quote.ListingPrice))
+		holdings = append(holdings, domain.NewHolding(pos, quote.Tick))
 		bases = append(bases, pos.Currency, quote.Currency)
 	}
 	rates, err := api.runtime.MarketDataProvider().QueryExchangeRates(r.Context(), target, bases)

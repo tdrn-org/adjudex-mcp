@@ -511,7 +511,7 @@ is built.
 **Status**: Accepted
 
 **Decision**:
-- **A quote is a fact and never gets rescaled.** `finance.ListingPrice` is the
+- **A quote is a fact and never gets rescaled.** `finance.Tick` is the
   carrier of a price (listing, timestamp, currency, price, source,
   source_timestamp). `Quote` embeds it, and adjudex no longer modifies prices
   after they arrive. Currency conversion is a presentation concern of the caller.
@@ -549,7 +549,7 @@ is built.
   instead of checking it.
 
 **Consequences**:
-- **API break (intentional)**: `Holding.current_price` is a `ListingPrice`
+- **API break (intentional)**: `Holding.current_price` is a `Tick`
   object, `entry_value`/`market_value` are `Amount` objects, and `pnl` /
   `pnl_percent` are absent when no comparable value exists. The embedded UI
   (`internal/web`) mirrors this in `lib/types.ts`.
@@ -576,5 +576,5 @@ Persisting the *booking rate* alongside a trade. Rejected for now: when the trad
 is booked in the currency the user actually paid in (EUR on a German broker), the
 original price already contains the rate, and the FX rate at execution only adds
 the separate disclosure of a currency effect — which is not a requirement. The
-`ListingPrice` persisted with a trade is the "original price of its source".
+`Tick` persisted with a trade is the "original price of its source".
 

@@ -26,7 +26,7 @@ import (
 //
 // A Quote is a fact reported by a provider and is therefore immutable: its
 // prices are denominated in the currency carried by the embedded
-// [finance.ListingPrice] and are never rescaled afterwards. Currency conversion
+// [finance.Tick] and are never rescaled afterwards. Currency conversion
 // is a presentation concern of the caller — converting here would leave the
 // quote claiming a provenance it does not have (provider X, currency Y, while
 // the number is actually provider X multiplied by an FX rate from provider Z).

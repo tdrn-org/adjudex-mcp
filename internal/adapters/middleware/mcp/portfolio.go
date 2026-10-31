@@ -276,7 +276,7 @@ func addPortfolioHoldingsTool(server *mcp.Server, runtime Runtime) {
 				runtime.Logger().Warn("failed to resolve quote for holding", "listing", pos.Listing, "err", err)
 				continue
 			}
-			holdings = append(holdings, domain.NewHolding(pos, quote.ListingPrice))
+			holdings = append(holdings, domain.NewHolding(pos, quote.Tick))
 			bases = append(bases, pos.Currency, quote.Currency)
 		}
 

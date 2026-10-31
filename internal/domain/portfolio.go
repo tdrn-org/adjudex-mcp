@@ -91,7 +91,7 @@ type Holding struct {
 	Position
 	// CurrentPrice is the price the market value is based on, including its
 	// currency and provenance.
-	CurrentPrice finance.ListingPrice `json:"current_price"`
+	CurrentPrice finance.Tick `json:"current_price"`
 	// EntryValue is quantity x entry price, denominated in the position currency.
 	EntryValue Amount `json:"entry_value"`
 	// MarketValue is quantity x current price, denominated in the price currency.
@@ -112,12 +112,12 @@ func (h Holding) MarshalJSON() ([]byte, error) {
 	type positionAlias Position
 	return json.Marshal(struct {
 		positionAlias
-		CurrentPrice finance.ListingPrice `json:"current_price"`
-		EntryValue   Amount               `json:"entry_value"`
-		MarketValue  Amount               `json:"market_value"`
-		PnL          *Amount              `json:"pnl,omitempty"`
-		PnLPercent   *float64             `json:"pnl_percent,omitempty"`
-		ListingInfo  ListingInfo          `json:"listing_info"`
+		CurrentPrice finance.Tick `json:"current_price"`
+		EntryValue   Amount       `json:"entry_value"`
+		MarketValue  Amount       `json:"market_value"`
+		PnL          *Amount      `json:"pnl,omitempty"`
+		PnLPercent   *float64     `json:"pnl_percent,omitempty"`
+		ListingInfo  ListingInfo  `json:"listing_info"`
 	}{
 		positionAlias: positionAlias(h.Position),
 		CurrentPrice:  h.CurrentPrice,
@@ -132,7 +132,7 @@ func (h Holding) MarshalJSON() ([]byte, error) {
 // NewHolding derives a Holding from a Position and its current price.
 // Returns by-value (not pointer) because Holding is a derived Value Object —
 // it is never persisted or mutated, only computed and consumed.
-func NewHolding(pos Position, currentPrice finance.ListingPrice) Holding {
+func NewHolding(pos Position, currentPrice finance.Tick) Holding {
 	entryValue := NewAmount(pos.Currency, pos.Quantity*pos.EntryPrice)
 	marketValue := NewAmount(currentPrice.Currency, pos.Quantity*currentPrice.Price)
 	holding := Holding{

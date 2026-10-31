@@ -78,7 +78,7 @@ func TestHoldingJSONStaysFlat(t *testing.T) {
 		EntryPrice: 100,
 		EntryDate:  time.Date(2026, 10, 17, 0, 0, 0, 0, time.UTC),
 	}
-	holding := NewHolding(position, finance.ListingPrice{
+	holding := NewHolding(position, finance.Tick{
 		Listing:  position.Listing,
 		Currency: finance.CurrencyEUR,
 		Price:    110,

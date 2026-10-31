@@ -3,7 +3,7 @@
 //
 // Currency discipline: a monetary value never travels as a bare number. Amounts
 // carry their currency (Amount), prices carry their currency AND provenance
-// (ListingPrice). A value without a currency would be ambiguous — the same
+// (Tick). A value without a currency would be ambiguous — the same
 // instrument can be booked in EUR and quoted in USD.
 
 export interface Portfolio {
@@ -49,7 +49,7 @@ export interface Amount {
 }
 
 /** A price as reported by a provider, including its provenance. */
-export interface ListingPrice {
+export interface Tick {
   listing: string;
   timestamp: string;
   currency: string;
@@ -60,7 +60,7 @@ export interface ListingPrice {
 
 export interface Holding extends Position {
   /** The quote this holding is valued with, in its ORIGINAL currency. */
-  current_price: ListingPrice;
+  current_price: Tick;
   /** quantity x entry_price, in the position currency. */
   entry_value: Amount;
   /** quantity x current_price, converted to the requested display currency. */
@@ -73,7 +73,7 @@ export interface Holding extends Position {
   pnl_percent?: number;
 }
 
-export interface Quote extends ListingPrice {
+export interface Quote extends Tick {
   open: number;
   high: number;
   low: number;

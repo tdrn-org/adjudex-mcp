@@ -35,8 +35,8 @@ func eurPosition(quantity, entryPrice float64) Position {
 }
 
 // usdPrice is a quote for the same instrument, reported in USD.
-func usdPrice(price float64) finance.ListingPrice {
-	return finance.ListingPrice{Currency: finance.CurrencyUSD, Price: price}
+func usdPrice(price float64) finance.Tick {
+	return finance.Tick{Currency: finance.CurrencyUSD, Price: price}
 }
 
 func approx(a, b float64) bool {
@@ -45,7 +45,7 @@ func approx(a, b float64) bool {
 
 func TestNewHoldingSameCurrencyHasPnL(t *testing.T) {
 	pos := eurPosition(10, 100)
-	holding := NewHolding(pos, finance.ListingPrice{Currency: finance.CurrencyEUR, Price: 110})
+	holding := NewHolding(pos, finance.Tick{Currency: finance.CurrencyEUR, Price: 110})
 	if holding.PnL == nil {
 		t.Fatal("expected PnL for same-currency holding")
 	}
@@ -74,8 +74,8 @@ func TestNewHoldingMixedCurrencyHasNoPnL(t *testing.T) {
 
 func TestSummarizeSingleCurrencyNeedsNoRates(t *testing.T) {
 	holdings := Holdings{
-		NewHolding(eurPosition(10, 100), finance.ListingPrice{Currency: finance.CurrencyEUR, Price: 110}),
-		NewHolding(eurPosition(5, 200), finance.ListingPrice{Currency: finance.CurrencyEUR, Price: 180}),
+		NewHolding(eurPosition(10, 100), finance.Tick{Currency: finance.CurrencyEUR, Price: 110}),
+		NewHolding(eurPosition(5, 200), finance.Tick{Currency: finance.CurrencyEUR, Price: 180}),
 	}
 	summary, err := holdings.Summarize(finance.CurrencyEUR, nil)
 	if err != nil {
@@ -132,8 +132,8 @@ func TestSummarizeMixedPortfolioTotalsInTarget(t *testing.T) {
 	// One EUR position and one USD position (bought in USD), totalled in EUR.
 	usdPos := Position{Currency: finance.CurrencyUSD, Quantity: 10, EntryPrice: 100}
 	holdings := Holdings{
-		NewHolding(eurPosition(10, 100), finance.ListingPrice{Currency: finance.CurrencyEUR, Price: 100}),
-		NewHolding(usdPos, finance.ListingPrice{Currency: finance.CurrencyUSD, Price: 110}),
+		NewHolding(eurPosition(10, 100), finance.Tick{Currency: finance.CurrencyEUR, Price: 100}),
+		NewHolding(usdPos, finance.Tick{Currency: finance.CurrencyUSD, Price: 110}),
 	}
 	rates := []finance.ExchangeRate{testRate(finance.CurrencyUSD, finance.CurrencyEUR, 0.5)}
 

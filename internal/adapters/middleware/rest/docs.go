@@ -509,7 +509,7 @@ const docTemplate = `{
                     "description": "CurrentPrice is the price the market value is based on, including its\ncurrency and provenance.",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/finance.ListingPrice"
+                            "$ref": "#/definitions/finance.Tick"
                         }
                     ]
                 },
@@ -1070,7 +1070,7 @@ const docTemplate = `{
         "finance.Listing": {
             "type": "object"
         },
-        "finance.ListingPrice": {
+        "finance.Tick": {
             "type": "object",
             "properties": {
                 "currency": {
