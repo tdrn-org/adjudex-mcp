@@ -34,7 +34,6 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
 	"github.com/tdrn-org/adjudex-mcp/internal/marketdata"
-	"github.com/tdrn-org/adjudex-mcp/internal/trace"
 	"github.com/tdrn-org/adjudex-mcp/internal/web"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
@@ -44,13 +43,14 @@ import (
 	"github.com/tdrn-org/go-httpserver"
 	"github.com/tdrn-org/go-jobticker"
 	"github.com/tdrn-org/go-tlsconf/tlsclient"
+	traceprovider "github.com/tdrn-org/go-trace/provider"
 )
 
 const serverJobTickerSchedule time.Duration = 5 * time.Minute
 
 type Server struct {
 	cfg                *config.Config
-	traceProvider      *trace.Provider
+	traceProvider      traceprovider.Provider
 	dataStore          *data.Store
 	httpServer         *httpserver.Instance
 	baseURL            *url.URL
@@ -150,7 +150,7 @@ func (s *Server) startTracing(ctx context.Context, cfg *config.Config) error {
 		return nil
 	}
 	s.logger.Info("starting tracing...")
-	provider, err := trace.Start(ctx, traceOptions(cfg.Tracing))
+	provider, err := traceprovider.Start(ctx, &cfg.Tracing)
 	if err != nil {
 		return err
 	}

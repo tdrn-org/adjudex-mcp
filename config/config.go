@@ -22,16 +22,17 @@ import (
 	"github.com/tdrn-org/go-config-toml"
 	"github.com/tdrn-org/go-finance"
 	financeconfig "github.com/tdrn-org/go-finance/config"
+	traceprovider "github.com/tdrn-org/go-trace/provider"
 )
 
 type Config struct {
-	Logging  LoggingConfig        `toml:"logging"`
-	Server   ServerConfig         `toml:"server"`
-	Store    StoreConfig          `toml:"store"`
-	Provider financeconfig.Config `toml:"provider"`
-	Display  DisplayConfig        `toml:"display"`
-	Metrics  MetricsConfig        `toml:"metrics"`
-	Tracing  TracingConfig        `toml:"tracing"`
+	Logging  LoggingConfig               `toml:"logging"`
+	Server   ServerConfig                `toml:"server"`
+	Store    StoreConfig                 `toml:"store"`
+	Provider financeconfig.Config        `toml:"provider"`
+	Display  DisplayConfig               `toml:"display"`
+	Metrics  MetricsConfig               `toml:"metrics"`
+	Tracing  traceprovider.TracingConfig `toml:"tracing"`
 }
 
 // DisplayConfig holds the presentation preferences of the user interface.
