@@ -158,8 +158,8 @@ github.com/tdrn-org/go-log v0.6.4 h1:AvpO/nizfq5O+wq6rJNocXG4HsIvsUAhgIG/MOg5LGI
 github.com/tdrn-org/go-log v0.6.4/go.mod h1:BlnqMMnt1DwQjJZuxMy0qSffPttdv6ubcod6mgGBvzA=
 github.com/tdrn-org/go-tlsconf v0.0.15 h1:VscbpWYkvVY8fJf3ncGgFRRAmRQWTL1Uxr5JP9zRz2U=
 github.com/tdrn-org/go-tlsconf v0.0.15/go.mod h1:1iL49P7ov0OfD08T4rgL3BJ7Zw3UZRNK45PcWa26SgE=
-github.com/tdrn-org/go-trace v0.0.1 h1:t2ArApsCzLI9+BZ0sz3XD9W8VSdMOeYRWlZSFbwvo/c=
-github.com/tdrn-org/go-trace v0.0.1/go.mod h1:bTYCPJHd/p/+FwAAUltLx9bi3BbZVigr1rkk0vksfHo=
+github.com/tdrn-org/go-trace v0.0.2 h1:Kt8/SKARPZxBQgB6C1QkDWT1R9+pvDE9+oQ+1v9xbsc=
+github.com/tdrn-org/go-trace v0.0.2/go.mod h1:bTYCPJHd/p/+FwAAUltLx9bi3BbZVigr1rkk0vksfHo=
 github.com/twelvedata/twelvedata-go v1.0.14 h1:zH9WI9T63HBUA4KasrmZQGWGc74lc4LdQf6prelTQUc=
 github.com/twelvedata/twelvedata-go v1.0.14/go.mod h1:HfZu5AU4bQbICW/uEgZrBxUnv1m08pWJWgcLzI5X70M=
 github.com/urfave/cli/v2 v2.27.7 h1:bH59vdhbjLv3LAvIu6gd0usJHgoTTPhCFib8qqOwXYU=

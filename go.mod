@@ -18,7 +18,7 @@ require (
 	github.com/tdrn-org/go-jobticker v0.0.5
 	github.com/tdrn-org/go-log v0.6.4
 	github.com/tdrn-org/go-tlsconf v0.0.15
-	github.com/tdrn-org/go-trace v0.0.1
+	github.com/tdrn-org/go-trace v0.0.2
 )
 
 require (
