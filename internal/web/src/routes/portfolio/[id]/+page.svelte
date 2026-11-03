@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Holding, Portfolio, Position } from '$lib/types';
+  import type { Holding, Portfolio, Position } from '#lib/types';
 
   let { data } = $props();
 

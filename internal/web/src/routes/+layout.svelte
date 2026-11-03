@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import '../app.css';
 
   const tabs = [
@@ -24,7 +24,7 @@
             <a
               href={tab.href}
               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150
-                {$page.url.pathname === tab.href
+                {page.url.pathname === tab.href
                   ? 'bg-accent/15 text-accent-glow'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-surface-alt'}"
             >
