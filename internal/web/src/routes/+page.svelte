@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { get } from '$lib/api';
-  import type { PortfolioSummary, ServerInfo } from '$lib/types';
+  import { get } from '#lib/api';
+  import type { PortfolioSummary, ServerInfo } from '#lib/types';
 
   let summaries = $state<PortfolioSummary[]>([]);
   let info = $state<ServerInfo | null>(null);
