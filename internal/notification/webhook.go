@@ -34,7 +34,7 @@ type webookConfig struct {
 }
 
 func (c *webookConfig) GetClient() (*http.Client, error) {
-	return http.DefaultClient, nil
+	return nil, nil
 }
 
 func (c *webookConfig) GetWebhookURL() (*url.URL, error) {
@@ -42,7 +42,7 @@ func (c *webookConfig) GetWebhookURL() (*url.URL, error) {
 }
 
 func (c *webookConfig) GetTimeout() (time.Duration, error) {
-	return 0, nil
+	return time.Duration(c.cfg.Timeout), nil
 }
 
 func newWebhookService(cfg *config.NotifyConfig) (Service, error) {
@@ -64,8 +64,8 @@ type webhookService struct {
 	alertPrefix    string
 }
 
-func (s *webhookService) NotifyAlert(ctx context.Context, alert *domain.Alert) {
-	err := s.alertPayload.Send(ctx, newAlertParams(s.alertPrefix, alert))
+func (s *webhookService) NotifyAlert(ctx context.Context, alert *domain.Alert, quote *domain.Quote) {
+	err := s.alertPayload.Send(ctx, newAlertParams(s.alertPrefix, alert, quote))
 	if err != nil {
 		slog.Error("failed to send alert notification", slog.Any("err", err))
 	}

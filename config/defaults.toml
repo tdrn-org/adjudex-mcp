@@ -92,12 +92,12 @@ db = 0
 [notify]
 enabled = false
 webhook_url = ""
-timeout = "1s"
-alert_payload = """
+timeout = "5s"
+alert_payload = '''
 {
-"text": "{{Prefix}}Alert"
+"text": "{{.Prefix}}**{{.Name}}** — {{.ConditionText}} {{.Threshold}} (current {{.Value}})\n{{.Instrument}} ({{.Listing}})\n{{.Message}}"
 }
-"""
+'''
 alert_prefix = ""
 
 [metrics]

@@ -1,0 +1,9 @@
+{
+  "price_above": "▲",
+  "price_below": "▼",
+  "rsi_above": "⬆",
+  "rsi_below": "⬇",
+  "sma_cross_above": "↗",
+  "sma_cross_below": "↘",
+  "volume_spike": "📈"
+}

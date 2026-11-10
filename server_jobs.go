@@ -74,7 +74,7 @@ func (s *Server) evalAlerts(ctx context.Context, last, now time.Time) error {
 			s.logger.Info("alert triggered!", slog.String("alert", alert.Name), slog.String("listing", alert.Listing.ID()), "price", quote.Price)
 			now := time.Now()
 			alert.Fire(now, fmt.Sprintf("%s: %.2f", alert.Condition, quote.Price))
-			s.notificationService.NotifyAlert(ctx, &alert)
+			s.notificationService.NotifyAlert(ctx, &alert, quote)
 			err := s.dataStore.UpdateAlert(ctx, &alert)
 			if err != nil {
 				s.logger.Error("failed to update triggered alert", slog.String("alert", alert.Name), slog.Any("err", err))

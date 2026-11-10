@@ -24,7 +24,7 @@ import (
 )
 
 type Service interface {
-	NotifyAlert(ctx context.Context, alert *domain.Alert)
+	NotifyAlert(ctx context.Context, alert *domain.Alert, quote *domain.Quote)
 }
 
 func NewService(cfg *config.NotifyConfig) (Service, error) {
@@ -36,4 +36,6 @@ func NewService(cfg *config.NotifyConfig) (Service, error) {
 
 type noopService struct{}
 
-func (*noopService) NotifyAlert(ctx context.Context, alert *domain.Alert) {}
+func (*noopService) NotifyAlert(ctx context.Context, alert *domain.Alert, quote *domain.Quote) {
+	// noop service
+}

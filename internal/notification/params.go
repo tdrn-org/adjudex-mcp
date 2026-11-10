@@ -16,14 +16,47 @@
 
 package notification
 
-import "github.com/tdrn-org/adjudex-mcp/internal/domain"
+import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
+
+	"github.com/tdrn-org/adjudex-mcp/internal/domain"
+)
 
 type alertParams struct {
-	Prefix string
+	Prefix        string
+	Name          string
+	Instrument    string
+	Listing       string
+	Condition     string
+	ConditionText string
+	Threshold     string
+	Value         string
+	Message       string
 }
 
-func newAlertParams(prefix string, alert *domain.Alert) *alertParams {
+func newAlertParams(prefix string, alert *domain.Alert, quote *domain.Quote) *alertParams {
 	return &alertParams{
-		Prefix: prefix,
+		Prefix:        prefix,
+		Name:          alert.Name,
+		Instrument:    quote.Listing.InstrumentName(),
+		Listing:       quote.Listing.ID(),
+		Condition:     string(alert.Condition),
+		ConditionText: conditionTextMap[alert.Condition],
+		Threshold:     fmt.Sprintf("%.2f %s", alert.Threshold, alert.Currency),
+		Value:         fmt.Sprintf("%.2f %s", quote.Price, quote.Currency),
+		Message:       alert.Message,
+	}
+}
+
+//go:embed condition_text.json
+var conditionTextMapData []byte
+var conditionTextMap map[domain.AlertCondition]string
+
+func init() {
+	err := json.Unmarshal(conditionTextMapData, &conditionTextMap)
+	if err != nil {
+		panic(err)
 	}
 }
