@@ -18,6 +18,7 @@ package notification
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -51,7 +52,7 @@ func newWebhookService(cfg *config.NotifyConfig) (Service, error) {
 	}
 	s := &webhookService{
 		payloadFactory: payloadFactory,
-		alertPayload:   payloadFactory.NewJSONPayload(cfg.AlertPayload, nil),
+		alertPayload:   payloadFactory.NewJSONPayload(json.RawMessage(cfg.AlertPayload), nil),
 	}
 	return s, nil
 }
