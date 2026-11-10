@@ -95,7 +95,7 @@ webhook_url = ""
 timeout = "5s"
 alert_payload = '''
 {
-"text": "{{.Prefix}}**{{.Name}}** — {{.ConditionText}} {{.Threshold}} (current {{.Value}})\n{{.Instrument}} ({{.Listing}})\n{{.Message}}"
+"text": "{{.Prefix}}Alert: **{{.Name}}** — {{.ConditionText}} {{.Threshold}} (current {{.Value}})\nListing: {{.Instrument}} ({{.Listing}})\nMessage: {{.Message}}"
 }
 '''
 alert_prefix = ""
