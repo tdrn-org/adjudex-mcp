@@ -34,6 +34,7 @@ import (
 	"github.com/tdrn-org/adjudex-mcp/internal/data"
 	"github.com/tdrn-org/adjudex-mcp/internal/data/model"
 	"github.com/tdrn-org/adjudex-mcp/internal/marketdata"
+	"github.com/tdrn-org/adjudex-mcp/internal/notification"
 	"github.com/tdrn-org/adjudex-mcp/internal/web"
 	"github.com/tdrn-org/go-database"
 	"github.com/tdrn-org/go-database/memory"
@@ -49,15 +50,16 @@ import (
 const serverJobTickerSchedule time.Duration = 5 * time.Minute
 
 type Server struct {
-	cfg                *config.Config
-	traceProvider      traceprovider.Provider
-	dataStore          *data.Store
-	httpServer         *httpserver.Instance
-	baseURL            *url.URL
-	metricsRecorder    *metrics.Recorder
-	marketDataProvider *marketdata.Provider
-	jobTicker          *jobticker.SequentialQueue
-	logger             *slog.Logger
+	cfg                 *config.Config
+	traceProvider       traceprovider.Provider
+	dataStore           *data.Store
+	httpServer          *httpserver.Instance
+	baseURL             *url.URL
+	metricsRecorder     *metrics.Recorder
+	marketDataProvider  *marketdata.Provider
+	notificationService notification.Service
+	jobTicker           *jobticker.SequentialQueue
+	logger              *slog.Logger
 }
 
 func StartServer(ctx context.Context, cfg *config.Config) (*Server, error) {
@@ -75,6 +77,7 @@ func StartServer(ctx context.Context, cfg *config.Config) (*Server, error) {
 		s.startHttpServer,
 		s.startMetrics,
 		s.startMarketdataProvider,
+		s.startNotificationService,
 		s.startRestAPI,
 		s.startWebUI,
 		s.startMCPHandler,
@@ -279,6 +282,15 @@ func (s *Server) closeMarketDataProvider() error {
 		return nil
 	}
 	return s.marketDataProvider.Close()
+}
+
+func (s *Server) startNotificationService(_ context.Context, cfg *config.Config) error {
+	notificationService, err := notification.NewService(&cfg.Notify)
+	if err != nil {
+		return err
+	}
+	s.notificationService = notificationService
+	return nil
 }
 
 func (s *Server) startRestAPI(_ context.Context, _ *config.Config) error {

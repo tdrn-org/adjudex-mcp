@@ -30,6 +30,7 @@ type Config struct {
 	Server   ServerConfig                `toml:"server"`
 	Store    StoreConfig                 `toml:"store"`
 	Provider financeconfig.Config        `toml:"provider"`
+	Notify   NotifyConfig                `toml:"notify"`
 	Display  DisplayConfig               `toml:"display"`
 	Metrics  MetricsConfig               `toml:"metrics"`
 	Tracing  traceprovider.TracingConfig `toml:"tracing"`

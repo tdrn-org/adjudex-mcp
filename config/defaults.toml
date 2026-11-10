@@ -89,6 +89,16 @@ address = "localhost:6379"
 password = ""
 db = 0
 
+[notify]
+enabled = false
+webhook_url = ""
+timeout = "1s"
+alert_payload = """
+{
+"text": "alert"
+}
+"""
+
 [metrics]
 enabled = false
 path = "/metrics"
