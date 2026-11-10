@@ -13,7 +13,7 @@ require (
 	github.com/tdrn-org/go-config-toml v0.1.1
 	github.com/tdrn-org/go-database v0.1.12
 	github.com/tdrn-org/go-diff v0.1.6
-	github.com/tdrn-org/go-finance v0.0.24
+	github.com/tdrn-org/go-finance v0.0.25
 	github.com/tdrn-org/go-httpserver v0.1.7
 	github.com/tdrn-org/go-jobticker v0.0.5
 	github.com/tdrn-org/go-log v0.6.4
@@ -88,7 +88,7 @@ require (
 	golang.org/x/time v0.16.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20261026165753-2ffab32bce7e // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261026165753-2ffab32bce7e // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261104224025-d1e00e9f33ab // indirect
 	google.golang.org/grpc v1.85.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	modernc.org/libc v1.80.0 // indirect
