@@ -53,6 +53,7 @@ func newWebhookService(cfg *config.NotifyConfig) (Service, error) {
 	s := &webhookService{
 		payloadFactory: payloadFactory,
 		alertPayload:   payloadFactory.NewJSONPayload(json.RawMessage(cfg.AlertPayload), nil),
+		alertPrefix:    cfg.AlertPrefix,
 	}
 	return s, nil
 }
@@ -60,10 +61,11 @@ func newWebhookService(cfg *config.NotifyConfig) (Service, error) {
 type webhookService struct {
 	payloadFactory *webhook.PayloadFactory
 	alertPayload   *webhook.Payload
+	alertPrefix    string
 }
 
 func (s *webhookService) NotifyAlert(ctx context.Context, alert *domain.Alert) {
-	err := s.alertPayload.Send(ctx, newAlertParams(alert))
+	err := s.alertPayload.Send(ctx, newAlertParams(s.alertPrefix, alert))
 	if err != nil {
 		slog.Error("failed to send alert notification", slog.Any("err", err))
 	}

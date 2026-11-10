@@ -19,8 +19,11 @@ package notification
 import "github.com/tdrn-org/adjudex-mcp/internal/domain"
 
 type alertParams struct {
+	Prefix string
 }
 
-func newAlertParams(alert *domain.Alert) *alertParams {
-	return &alertParams{}
+func newAlertParams(prefix string, alert *domain.Alert) *alertParams {
+	return &alertParams{
+		Prefix: prefix,
+	}
 }

@@ -95,9 +95,10 @@ webhook_url = ""
 timeout = "1s"
 alert_payload = """
 {
-"text": "alert"
+"text": "{{Prefix}}Alert"
 }
 """
+alert_prefix = ""
 
 [metrics]
 enabled = false

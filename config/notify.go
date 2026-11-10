@@ -23,4 +23,5 @@ type NotifyConfig struct {
 	WebhookURL   config.URLSpec      `toml:"webhook_url"`
 	Timeout      config.DurationSpec `toml:"timeout"`
 	AlertPayload string              `toml:"alert_payload"`
+	AlertPrefix  string              `toml:"alert_prefix"`
 }
