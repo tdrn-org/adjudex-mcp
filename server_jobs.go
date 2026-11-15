@@ -38,10 +38,13 @@ func (s *Server) queryAndSaveQuotes(ctx context.Context, last, now time.Time) er
 	for _, listing := range listings {
 		quote, err := s.marketDataProvider.QueryQuote(ctx, listing)
 		if errors.Is(err, finance.ErrRequestPending) {
-			s.logger.Error("skipping pending quote", slog.Any("listing", listing.ID()))
+			s.logger.Info("skipping pending quote", slog.Any("listing", listing.ID()))
+			continue
+		} else if errors.Is(err, finance.ErrSubscriptionStalled) {
+			s.logger.Error("quote stalled", slog.Any("listing", listing.ID()), slog.Any("err", err))
 			continue
 		} else if err != nil {
-			s.logger.Error("failed query quote", slog.Any("listing", listing.ID()), slog.Any("err", err))
+			s.logger.Error("failed to query quote", slog.Any("listing", listing.ID()), slog.Any("err", err))
 			continue
 		}
 		err = s.dataStore.SaveQuote(ctx, quote)
