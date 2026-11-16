@@ -13,9 +13,9 @@ require (
 	github.com/tdrn-org/go-config-toml v0.1.1
 	github.com/tdrn-org/go-database v0.1.12
 	github.com/tdrn-org/go-diff v0.1.6
-	github.com/tdrn-org/go-finance v0.0.29
+	github.com/tdrn-org/go-finance v0.0.30
 	github.com/tdrn-org/go-httpserver v0.1.7
-	github.com/tdrn-org/go-jobticker v0.0.6
+	github.com/tdrn-org/go-jobticker v0.0.7
 	github.com/tdrn-org/go-log v0.6.4
 	github.com/tdrn-org/go-notify v0.1.1
 	github.com/tdrn-org/go-tlsconf v0.0.15
@@ -92,9 +92,9 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261110000943-09e21b237f2c // indirect
 	google.golang.org/grpc v1.85.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	modernc.org/libc v1.81.1 // indirect
+	modernc.org/libc v1.81.2 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.12.1 // indirect
+	modernc.org/memory v1.13.0 // indirect
 	modernc.org/sqlite v1.62.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
