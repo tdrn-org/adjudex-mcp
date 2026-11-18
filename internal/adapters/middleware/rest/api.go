@@ -638,6 +638,7 @@ func (api *API) QuoteHistory(w http.ResponseWriter, r *http.Request) {
 	quotes, err := api.runtime.DataStore().GetQuotes(r.Context(), listing, from, to)
 	if err != nil || len(quotes) == 0 {
 		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("fetching history for %q: %w", listing.String(), err))
+		return
 	}
 
 	api.sendJSON(w, r, http.StatusOK, domain.PriceHistory{Listing: listing, Quotes: quotes})
