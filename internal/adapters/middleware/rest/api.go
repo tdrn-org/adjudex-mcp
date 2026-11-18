@@ -636,8 +636,12 @@ func (api *API) QuoteHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	quotes, err := api.runtime.DataStore().GetQuotes(r.Context(), listing, from, to)
-	if err != nil || len(quotes) == 0 {
-		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("fetching history for %q: %w", listing.String(), err))
+	if err != nil {
+		api.sendError(w, r, http.StatusInternalServerError, fmt.Errorf("fetching history for %q: %w", listing.String(), err))
+		return
+	}
+	if len(quotes) == 0 {
+		api.sendError(w, r, http.StatusNotFound, fmt.Errorf("no history for %q between %s and %s", listing.String(), from.Format(time.RFC3339), to.Format(time.RFC3339)))
 		return
 	}
 

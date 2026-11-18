@@ -162,8 +162,11 @@ func addQuoteHistoryTool(server *mcp.Server, runtime Runtime) {
 		}
 
 		quotes, err := runtime.DataStore().GetQuotes(ctx, listing, from, to)
-		if err != nil || len(quotes) == 0 {
+		if err != nil {
 			return nil, fmt.Errorf("fetching history for %q: %w", listing.String(), err)
+		}
+		if len(quotes) == 0 {
+			return nil, fmt.Errorf("no history for %q between %s and %s", listing.String(), from.Format(time.RFC3339), to.Format(time.RFC3339))
 		}
 
 		history := domain.PriceHistory{
@@ -207,12 +210,12 @@ func addQuoteIndicatorTool(server *mcp.Server, runtime Runtime) {
 		now := time.Now()
 		from := now.AddDate(0, -3, 0)
 		quotes, err := runtime.DataStore().GetQuotes(ctx, listing, from, now)
-		if err != nil || len(quotes) < args.Period {
+		if err != nil {
 			return nil, fmt.Errorf("fetching history for %q: %w", listing.String(), err)
 		}
 
 		if len(quotes) < args.Period {
-			return nil, fmt.Errorf("not enough data for %q: need %d quotes, got %d", args.Listing.String(), args.Period, len(quotes))
+			return nil, fmt.Errorf("not enough data for %q: need %d quotes, got %d", listing.String(), args.Period, len(quotes))
 		}
 
 		values := computeIndicator(quotes, indicatorType, args.Period)
