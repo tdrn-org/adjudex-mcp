@@ -373,6 +373,9 @@ func (s *Store) ListPositionListings(ctx context.Context) ([]finance.Listing, er
 }
 
 func (s *Store) SaveQuote(ctx context.Context, quote *domain.Quote) error {
+	if _, err := (*finance.Quote)(quote).Validate(); err != nil {
+		return fmt.Errorf("saving quote for %q: %w", quote.Listing.String(), err)
+	}
 	txCtx, tx, err := s.driver.BeginTx(ctx)
 	if err != nil {
 		return err
