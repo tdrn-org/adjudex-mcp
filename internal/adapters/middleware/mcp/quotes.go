@@ -117,7 +117,16 @@ func addQuoteGetTool(server *mcp.Server, runtime Runtime) {
 
 		quote, err := runtime.MarketDataProvider().QueryQuote(ctx, listing)
 		if err != nil {
-			return nil, fmt.Errorf("resolving quote for %q: %w", listing.String(), err)
+			// A shut market is no failure: answer with the last quote the store
+			// knows and leave the judgement about its age to the caller, who
+			// sees SourceTimestamp and decides whether that is good enough.
+			if quoteUnavailable(err) {
+				stored, storeErr := runtime.DataStore().GetLatestQuote(ctx, listing)
+				if storeErr == nil && stored != nil {
+					return newToolResult(stored)
+				}
+			}
+			return nil, fmt.Errorf("resolving quote for %q: %w", listing.String(), translateProviderError(err))
 		}
 		return newToolResult(quote)
 	})
