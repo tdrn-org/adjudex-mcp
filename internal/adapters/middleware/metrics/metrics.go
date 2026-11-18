@@ -95,7 +95,7 @@ func (r *Recorder) RecordQuote(quote *domain.Quote) {
 	quoteLabels := []string{quote.Listing.ID(), quote.Listing.InstrumentName(), string(quote.Currency), quote.Source}
 	r.setGauge("quote price", r.quotePrice, quote.Price, quoteLabels...)
 	r.setGauge("quote price high", r.quotePriceHigh, quote.High, quoteLabels...)
-	r.setGauge("quote price low", r.quotePriceHigh, quote.Low, quoteLabels...)
+	r.setGauge("quote price low", r.quotePriceLow, quote.Low, quoteLabels...)
 	r.setGauge("quote volume", r.quoteVolumeShares, float64(quote.Volume), quoteLabels...)
 }
 
