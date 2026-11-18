@@ -578,3 +578,41 @@ original price already contains the rate, and the FX rate at execution only adds
 the separate disclosure of a currency effect — which is not a requirement. The
 `Tick` persisted with a trade is the "original price of its source".
 
+---
+
+## ADR-013: Stored Quote Fallback When the Market Is Closed
+
+**Date**: 2026-11-18
+**Status**: Accepted
+
+**Decision**:
+- **A shut market is not an error.** `quote_get` answers with the last quote the
+  store knows when the provider reports `ErrQuoteExchangeClosed`,
+  `ErrRequestPending` or `ErrQuoteNotAvailable`. Only errors that do not describe
+  a market condition keep surfacing (`quoteUnavailable`, `errors.go`).
+- **The answer carries no staleness verdict.** `SourceTimestamp` is the truth;
+  the caller computes the age when it shows the value. No `stale` flag, and no
+  `age_seconds` either: a derived age is a snapshot that turns wrong the moment
+  the response is cached or rendered later.
+- **Whether an old quote is good enough is a human judgement.** A two-day-old
+  quote on a Sunday evening is fine; a four-hour-old one on a trading day is
+  not. A fixed threshold in the server would repeat the false-alarm pattern of
+  the canary subscription.
+- **Unknown errors are never rewritten.** `translateProviderError` wraps the
+  known sentinels in a sentence that explains the situation and keeps the
+  original error reachable via `errors.Is`; anything unclassified passes through
+  unchanged, because hiding it behind a friendly sentence costs the diagnosis.
+
+**Reason**: "quote exchange closed" reads like a defect, although it is the
+normal state of the world after the close. The last known price is the useful
+answer — and its age is already in the payload, so the server does not need to
+invent a second, softer form of the same information.
+
+**Consequences**:
+- Callers that used to branch on an error now receive a result. They must look at
+  `SourceTimestamp` to decide whether the price is usable for their purpose.
+- No new field, no changed signature, no interface extension: `GetLatestQuote`
+  already existed on `QuoteStore` and `source_timestamp` was already serialized.
+- The REST route `GET /api/v1/quotes/{listing}` is untouched — it reads the store
+  only and never called a provider.
+
