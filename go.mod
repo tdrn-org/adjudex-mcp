@@ -17,7 +17,7 @@ require (
 	github.com/tdrn-org/go-httpserver v0.1.7
 	github.com/tdrn-org/go-jobticker v0.0.7
 	github.com/tdrn-org/go-log v0.6.4
-	github.com/tdrn-org/go-notify v0.1.1
+	github.com/tdrn-org/go-notify v0.1.2
 	github.com/tdrn-org/go-tlsconf v0.0.15
 	github.com/tdrn-org/go-trace v0.0.2
 )
